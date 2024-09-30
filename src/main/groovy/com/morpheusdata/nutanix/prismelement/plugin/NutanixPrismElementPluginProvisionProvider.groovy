@@ -15,14 +15,14 @@ import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 
-class MorpheusNutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider {
+class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider {
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
 	protected MorpheusContext context
 	protected Plugin plugin
 
-	MorpheusNutanixPrismElementPluginProvisionProvider(Plugin plugin, MorpheusContext ctx) {
+	NutanixPrismElementPluginProvisionProvider(Plugin plugin, MorpheusContext ctx) {
 		super()
 		this.@context = ctx
 		this.@plugin = plugin
@@ -52,7 +52,7 @@ class MorpheusNutanixPrismElementPluginProvisionProvider extends AbstractProvisi
 
 	@Override
 	String getProvisionTypeCode() {
-		return MorpheusNutanixPrismElementPluginCloudProvider.CLOUD_PROVIDER_CODE // cloud code and provision code match for existing plugin
+		return NutanixPrismElementPluginCloudProvider.CLOUD_PROVIDER_CODE // cloud code and provision code match for existing plugin
 	}
 
 	/**

@@ -21,14 +21,14 @@ import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 
-class MorpheusNutanixPrismElementPluginCloudProvider implements CloudProvider {
+class NutanixPrismElementPluginCloudProvider implements CloudProvider {
 	public static final String CLOUD_PROVIDER_CODE = 'nutanix'
 	public static final String CLOUD_PROVIDER_NAME = 'Nutanix Prism Element'
 
 	protected MorpheusContext context
 	protected Plugin plugin
 
-	MorpheusNutanixPrismElementPluginCloudProvider(Plugin plugin, MorpheusContext ctx) {
+    NutanixPrismElementPluginCloudProvider(Plugin plugin, MorpheusContext ctx) {
 		super()
 		this.@plugin = plugin
 		this.@context = ctx
