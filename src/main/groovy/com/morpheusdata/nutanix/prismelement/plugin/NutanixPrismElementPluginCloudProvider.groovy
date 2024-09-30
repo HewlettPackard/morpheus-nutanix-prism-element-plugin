@@ -2,6 +2,7 @@ package com.morpheusdata.nutanix.prismelement.plugin
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.model.BackupProvider
@@ -20,10 +21,19 @@ import com.morpheusdata.model.StorageControllerType
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
+import groovy.util.logging.Slf4j
 
+/**
+ * Cloud provider for the Nutanix Prism Element Plugin
+ *
+ * TODO: Omitted the 'securityTypes', 'networkServerTypes' and 'serverGroupTypes' from the embedded computeZoneType
+ * 		 seed. Once there are hooks in the providers, we should fill them in.
+ */
+@Slf4j
 class NutanixPrismElementPluginCloudProvider implements CloudProvider {
 	public static final String CLOUD_PROVIDER_CODE = 'nutanix'
 	public static final String CLOUD_PROVIDER_NAME = 'Nutanix Prism Element'
+	private final oneGB = (1024 * 1024 * 1024) as Long
 
 	protected MorpheusContext context
 	protected Plugin plugin
@@ -71,8 +81,26 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	Collection<OptionType> getOptionTypes() {
-		Collection<OptionType> options = []
-		return options
+        Collection<OptionType> options = []
+        options << new OptionType(
+                code: 'zoneType.nutanix.credential',
+                inputType: OptionType.InputType.CREDENTIAL,
+                name: 'Credentials',
+                fieldName: 'type',
+                fieldLabel: 'Credentials',
+                fieldContext: 'credential',
+                fieldCode: 'gomorpheus.label.credentials',
+                fieldSet: '',
+                fieldGroup: 'Connection Config',
+                required: true,
+                global: false,
+                helpBlock: '',
+                defaultValue: 'local',
+                displayOrder: 1,
+                optionSource: 'credentials',
+				config: '{"credentialTypes":["username-password"]}'
+        )
+        return options
 	}
 
 	/**
@@ -86,8 +114,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	}
 
 	/**
-	 * Grabs available backup providers related to the target Cloud Plugin.
-	 * @return Collection of BackupProvider
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<BackupProvider> getAvailableBackupProviders() {
@@ -96,53 +123,235 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	}
 
 	/**
-	 * Provides a Collection of {@link NetworkType} related to this CloudProvider
-	 * @return Collection of NetworkType
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<NetworkType> getNetworkTypes() {
 		Collection<NetworkType> networks = []
-		return networks
+
+		def childNetwork = context.async.network.type.find(new DataQuery().withFilter('code', 'childNetwork')).blockingGet()
+		if (childNetwork != null) {
+			networks << childNetwork
+		} else {
+			log.error("Unable to find NetworkType dependency: 'childNetwork'")
+		}
+
+		networks << new NetworkType(
+				code: 'nutanixVlan',
+				name: 'VLAN',
+				description: '',
+				externalType: 'Network',
+				cidrEditable: true,
+				dhcpServerEditable: true,
+				dnsEditable: true,
+				gatewayEditable: true,
+				vlanIdEditable: true,
+				canAssignPool: true,
+		)
+
+		networks << new NetworkType(
+				code: 'nutanixManagedVlan',
+				name: 'Managed VLAN',
+				description: '',
+				externalType: 'Network',
+				cidrEditable: true,
+				dhcpServerEditable: true,
+				dnsEditable: true,
+				gatewayEditable: true,
+				vlanIdEditable: true,
+				canAssignPool: true,
+		)
+
+		networks
 	}
 
 	/**
-	 * Provides a Collection of {@link NetworkSubnetType} related to this CloudProvider
-	 * @return Collection of NetworkSubnetType
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<NetworkSubnetType> getSubnetTypes() {
-		Collection<NetworkSubnetType> subnets = []
-		return subnets
+		[]
 	}
 
 	/**
-	 * Provides a Collection of {@link StorageVolumeType} related to this CloudProvider
-	 * @return Collection of StorageVolumeType
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<StorageVolumeType> getStorageVolumeTypes() {
 		Collection<StorageVolumeType> volumeTypes = []
-		return volumeTypes
+
+		volumeTypes << new StorageVolumeType(
+				code: 'nutanix-scsi',
+				externalId: 'nutanix_SCSI',
+				displayName: 'Nutanix SCSI',
+				name: 'scsi',
+				description: 'Nutanix - SCSI',
+				displayOrder: 1,
+				defaultType: true,
+				minStorage: oneGB,
+				allowSearch: true,
+		)
+
+		volumeTypes << new StorageVolumeType(
+				code: 'nutanix-sata',
+				externalId: 'nutanix_SATA',
+				displayName: 'Nutanix SATA',
+				name: 'sata',
+				description: 'Nutanix - SATA',
+				displayOrder: 2,
+				defaultType: true,
+				minStorage: oneGB,
+				allowSearch: true,
+		)
+
+		volumeTypes << new StorageVolumeType(
+				code: 'nutanix-ide',
+				externalId: 'nutanix_IDE',
+				displayName: 'Nutanix IDE',
+				name: 'ide',
+				description: 'Nutanix - IDE',
+				displayOrder: 3,
+				defaultType: true,
+				minStorage: oneGB,
+				allowSearch: true,
+		)
+
+		volumeTypes
 	}
 
 	/**
-	 * Provides a Collection of {@link StorageControllerType} related to this CloudProvider
-	 * @return Collection of StorageControllerType
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<StorageControllerType> getStorageControllerTypes() {
-		Collection<StorageControllerType> controllerTypes = []
-		return controllerTypes
+		[]
 	}
 
 	/**
-	 * Grabs all {@link ComputeServerType} objects that this CloudProvider can represent during a sync or during a provision.
-	 * @return collection of ComputeServerType
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<ComputeServerType> getComputeServerTypes() {
 		Collection<ComputeServerType> serverTypes = []
-		return serverTypes
+
+		serverTypes << new ComputeServerType(
+				code: 'nutanixMetalHypervisor',
+				name: 'Nutanix Hypervisor - Metal',
+				platform: 'linux',
+				nodeType: 'nutanix-node',
+				externalDelete: false,
+				managed: false,
+				controlPower: false,
+				computeService: 'nutanixComputeService',
+				displayOrder: 1,
+				hasAutomation: false,
+				bareMetalHost: true,
+				agentType: null,
+				provisionTypeCode: CLOUD_PROVIDER_CODE)
+
+		serverTypes << new ComputeServerType(
+				code: 'nutanixVm',
+				name: 'Nutanix Instance',
+				description: '',
+				platform: 'linux',
+				nodeType: 'morpheus-vm-node',
+				computeService: 'nutanixComputeService',
+				displayOrder: 0,
+				guestVm: true,
+				provisionTypeCode : CLOUD_PROVIDER_CODE)
+
+	// Note: the definition is commented out in embedded. Keeping in case it needs to be re-enabled in the future
+//    		serverTypes << new ComputeServerType(
+//    			code: 'nutanixWindowsVm',
+//    			name: 'Nutanix Instance - Windows',
+//    			description: '',
+//    			platform: 'windows',
+//    			nodeType: 'morpheus-windows-vm-node',
+//    			reconfigureSupported: true,
+//    			enabled: true,
+//    			selectable: false,
+//    			externalDelete: true,
+//    			managed: true,
+//    			controlPower: true,
+//    			controlSuspend: false,
+//    			creatable: false,
+//    			computeService: 'nutanixComputeService',
+//    			displayOrder: 0,
+//    			hasAutomation: true,
+//    			containerHypervisor: false,
+//    			bareMetalHost: false,
+//    			vmHypervisor: false,
+//    			agentType: ComputeServerType.AgentType.guest,
+//    			guestVm: true,
+//    			provisionTypeCode: CLOUD_PROVIDER_CODE)
+
+		serverTypes << new ComputeServerType(
+				code: 'nutanixUnmanaged',
+				name: 'Nutanix Instance',
+				description: 'nutanix vm',
+				platform: 'linux',
+				nodeType: 'unmanaged',
+				managed: false,
+				computeService: 'nutanixComputeService',
+				displayOrder: 99,
+				hasAutomation: false,
+				agentType: null,
+				managedServerType: 'nutanixVm',
+				guestVm: true,
+				provisionTypeCode: CLOUD_PROVIDER_CODE,
+		)
+
+		serverTypes << new ComputeServerType(
+				code: 'nutanixLinux',
+				name: 'Nutanix Docker Host',
+				description: '',
+				platform: 'linux',
+				nodeType: 'morpheus-node',
+				computeService: 'nutanixComputeService',
+				displayOrder: 20,
+				containerHypervisor: true,
+				agentType: ComputeServerType.AgentType.host,
+				containerEngine: ComputeServerType.ContainerEngine.docker,
+				computeTypeCode: 'docker-host',
+				provisionTypeCode: CLOUD_PROVIDER_CODE,
+		)
+
+		//kubernetes
+		serverTypes << new ComputeServerType(
+				code:'nutanixKubeMaster',
+				name:'Nutanix Kubernetes Master',
+				description:'',
+				platform:'linux',
+				nodeType:'kube-master',
+				controlSuspend:true,
+				creatable:true,
+				computeService:'nutanixComputeService',
+				displayOrder:15,
+				containerHypervisor:true,
+				agentType: ComputeServerType.AgentType.host,
+				containerEngine: ComputeServerType.ContainerEngine.docker,
+				provisionTypeCode: CLOUD_PROVIDER_CODE,
+				computeTypeCode: 'kube-master',
+		)
+
+		serverTypes << new ComputeServerType(
+				code: 'nutanixKubeWorker',
+				name: 'Nutanix Kubernetes Worker',
+				description: '',
+				platform: 'linux',
+				nodeType: 'kube-worker',
+				controlSuspend: true,
+				creatable: true,
+				computeService: 'nutanixComputeService',
+				displayOrder: 16,
+				containerHypervisor: true,
+				agentType: ComputeServerType.AgentType.guest,
+				containerEngine: ComputeServerType.ContainerEngine.docker,
+				provisionTypeCode: CLOUD_PROVIDER_CODE,
+				computeTypeCode: 'kube-worker',
+		)
+
+		serverTypes
 	}
 
 	/**
@@ -221,6 +430,14 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Boolean canCreateNetworks() {
+		true
+	}
+
+	/**
 	 * Returns whether a cloud supports {@link CloudFolder}
 	 * @return Boolean
 	 */
@@ -248,9 +465,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	}
 
 	/**
-	 * Indicates if the cloud supports cloud-init. Returning true will allow configuration of the Cloud
-	 * to allow installing the agent remotely via SSH /WinRM or via Cloud Init
-	 * @return Boolean
+	 * {@inheritDoc}
 	 */
 	@Override
 	Boolean hasCloudInit() {
@@ -263,7 +478,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	Boolean supportsDistributedWorker() {
-		return false
+		return true
 	}
 
 	/**
