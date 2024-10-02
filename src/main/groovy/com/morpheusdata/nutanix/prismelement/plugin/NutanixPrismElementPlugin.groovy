@@ -18,7 +18,7 @@ package com.morpheusdata.nutanix.prismelement.plugin
 import com.morpheusdata.core.Plugin
 
 @SuppressWarnings("unused") // picked up by plugin framework
-class MorpheusNutanixPrismElementPlugin extends Plugin {
+class NutanixPrismElementPlugin extends Plugin {
 
     @Override
     String getCode() {
@@ -28,8 +28,8 @@ class MorpheusNutanixPrismElementPlugin extends Plugin {
     @Override
     void initialize() {
         this.setName("Nutanix Prism Element Plugin")
-        this.registerProvider(new MorpheusNutanixPrismElementPluginCloudProvider(this,this.morpheus))
-        this.registerProvider(new MorpheusNutanixPrismElementPluginProvisionProvider(this,this.morpheus))
+        this.registerProvider(new NutanixPrismElementPluginCloudProvider(this,this.morpheus))
+        this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this,this.morpheus))
     }
 
     /**

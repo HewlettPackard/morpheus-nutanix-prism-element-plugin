@@ -96,7 +96,7 @@ sourceSets {
 jar {
 	manifest {
 		attributes(
-			'Plugin-Class': 'com.morpheusdata.nutanix.NutanixPrismElementPlugin',
+			'Plugin-Class': 'com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin',
 			'Plugin-Version': version,
 			'Morpheus-Name': 'Nutanix Prism Element Plugin',
 			'Morpheus-Organization': 'morpheus',
