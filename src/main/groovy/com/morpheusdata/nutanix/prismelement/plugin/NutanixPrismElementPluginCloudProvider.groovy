@@ -1,3 +1,21 @@
+/*
+ * Copyright 2024 Morpheus Data, LLC.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.morpheusdata.nutanix.prismelement.plugin
 
 import com.morpheusdata.core.MorpheusContext
@@ -5,6 +23,7 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
+import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.model.BackupProvider
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudFolder
@@ -14,14 +33,23 @@ import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.Datastore
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.Network
+import com.morpheusdata.model.NetworkPool
+import com.morpheusdata.model.NetworkPoolRange
 import com.morpheusdata.model.NetworkSubnetType
 import com.morpheusdata.model.NetworkType
 import com.morpheusdata.model.OptionType
+import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.StorageControllerType
 import com.morpheusdata.model.StorageVolumeType
+import com.morpheusdata.model.VirtualImage
+import com.morpheusdata.model.VirtualImageLocation
+import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
+import org.bouncycastle.util.test.FixedSecureRandom
+
+import java.security.MessageDigest
 
 /**
  * Cloud provider for the Nutanix Prism Element Plugin
@@ -388,7 +416,119 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
+		log.debug("nutanixPrismElementPluginCloudProvider.refresh: ${cloudInfo}")
+
+		try {
+			def syncDate = new Date()
+			def apiUrl = NutanixPrismElementApiService.getNutanixApiUrl(cloudInfo)
+			def apiUrlObj = new URL(apiUrl)
+			def apiHost = apiUrlObj.getHost()
+			def apiPort = apiUrlObj.getPort() > 0 ? apiUrlObj.getPort() : (apiUrlObj?.getProtocol()?.toLowerCase() == 'https' ? 443 : 80)
+
+			def proxySettings = cloudInfo.apiProxy
+			def hostOnline = ConnectionUtils.testHostConnectivity(apiHost, apiPort, true, true, proxySettings)
+			log.debug("nutanix online: ${apiHost} ${hostOnline}")
+			if(hostOnline) {
+				def testResults = NutanixPrismElementApiService.testConnection(cloudInfo)
+
+				if(testResults.success) {
+					def regionCode = calculateRegionCode(cloudInfo)
+					if (cloudInfo.regionCode != regionCode) {
+						convertOldRegionCodes(cloudInfo.regionCode, regionCode)
+						cloudInfo.regionCode = regionCode
+						context.async.cloud.save(cloudInfo)
+					}
+					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
+//					cacheNetworks([zone: zone, proxySettings: proxySettings])
+//					cacheContainers([zone: zone])
+//					cacheImages([zone: zone])
+//					cacheHosts([zone: zone])
+
+//					def doInventory = cloudInfo.getConfigProperty('importExisting')
+//					if (cloudInfo.serviceVersion != 'v3') {
+//						if (doInventory == 'on' || doInventory == 'true' || doInventory == true)
+//							cacheVirtualMachinesV2([zone: zone, createNew: true])
+//						else
+//							cacheVirtualMachinesV2([zone: zone, createNew: false])
+//					} else {
+//						if (doInventory == 'on' || doInventory == 'true' || doInventory == true)
+//							cacheVirtualMachines([zone: zone, createNew: true])
+//						else
+//							cacheVirtualMachines([zone: zone, createNew: false])
+//					}
+//					cacheSnapshotsV2([zone: zone])
+					context.services.operationNotification.clearZoneAlarm(cloudInfo)
+					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.ok, null, syncDate)
+				} else {
+					if(testResults.invalidLogin) {
+						context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix invalid credentials', syncDate)
+						context.services.operationNotification.createZoneAlarm(cloudInfo,'nutanix invalid credentials')
+					} else {
+						context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
+						context.services.operationNotification.createZoneAlarm(cloudInfo,'nutanix invalid credentials')
+					}
+				}
+			} else {
+				context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
+				context.services.operationNotification.createZoneAlarm(cloudInfo,'nutanix host not reachable')
+			}
+		} catch(e) {
+			log.error("refresh cloud error: ${e}", e)
+			return ServiceResponse.error()
+		}
 		return ServiceResponse.success()
+	}
+
+    static String calculateRegionCode(Cloud cloudInfo) {
+		def apiUrl = cloudInfo?.getConfigProperty('apiUrl')
+		def regionString = "${apiUrl}"
+		MessageDigest md = MessageDigest.getInstance("SHA3-224")
+		md.update(regionString.bytes)
+		byte[] checksum = md.digest()
+		return checksum.encodeHex().toString()
+	}
+
+	void convertOldRegionCodes(String oldRegionCode,String newRegionCode) {
+		if (oldRegionCode && newRegionCode) {
+			List<VirtualImageLocation> imageLocations = context.async.virtualImage.location.list(new DataQuery().withFilter("imageRegion", oldRegionCode))
+					.filter{ it.imageRegion == oldRegionCode }
+					.map {
+						it.imageRegion = newRegionCode
+						it
+					}
+					.collect()
+
+			def imageLocationSaveResult = context.services.virtualImage.location.bulkSave(imageLocations)
+			if (imageLocationSaveResult.hasFailures()) {
+				log.error("Failed to update new region code for virtual image locations: ${imageLocationSaveResult.failedItems.code}")
+			}
+
+			List<VirtualImage> images = context.async.virtualImage.list(new DataQuery().withFilter("imageRegion", oldRegionCode))
+					.filter{ it.imageRegion == oldRegionCode }
+					.map {
+						it.imageRegion = newRegionCode
+						it
+					}
+					.collect()
+
+			def imageSaveResult = context.services.virtualImage.bulkSave(images)
+			if (imageSaveResult.hasFailures()) {
+				log.error("Failed to update new region code for virtual images: ${imageSaveResult.failedItems.code}")
+			}
+
+			List<ServicePlan> servicePlans = context.async.servicePlan.list(new DataQuery().withFilter("regionCode", oldRegionCode))
+					.filter{ it.regionCode == oldRegionCode }
+					.map {
+						it.regionCode = newRegionCode
+						it
+					}
+					.collect()
+
+			def servicePlanSaveResult = context.services.servicePlan.bulkSave(servicePlans)
+			if (servicePlanSaveResult.hasFailures()) {
+				log.error("Failed to update new region code for service plans: ${servicePlanSaveResult.failedItems.code}")
+			}
+		}
 	}
 
 	/**
