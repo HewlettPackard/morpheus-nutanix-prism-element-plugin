@@ -1,0 +1,177 @@
+resource "option-type" "provisionType-nutanix-custom-containerType-virtualImageId" {
+  code = "provisionType.nutanix.custom.containerType.virtualImageId"
+  type = "select"
+  name = "virtual image"
+  category = "provisionType.nutanix.custom"
+  optionSource = "nutanixVirtualImages"
+  fieldName = "virtualImageId"
+  fieldCode =  "gomorpheus.optiontype.VirtualImage"
+  fieldLabel = "Virtual Image"
+  fieldContext = "containerType"
+  fieldGroup = "Nutanix VM Options"
+  required = true
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = null
+  custom = false
+  displayOrder = 1
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-custom-containerType-config-logVolume" {
+  code = "provisionType.nutanix.custom.containerType.config.logVolume"
+  type = "text"
+  name = "log volume"
+  category = "provisionType.nutanix.custom"
+  fieldName = "logVolume"
+  fieldCode =  "gomorpheus.optiontype.LogVolume"
+  fieldLabel = "Log Volume"
+  fieldContext = "containerType.config"
+  fieldGroup = "Nutanix VM Options"
+  required = false
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = null
+  custom = false
+  displayOrder = 2
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-custom-instanceType-backupType" {
+  code = "provisionType.nutanix.custom.instanceType.backupType"
+  type = "hidden"
+  name = "backup type"
+  category = "provisionType.nutanix.custom"
+  fieldName = "backupType"
+  fieldCode =  "gomorpheus.optiontype.BackupType"
+  fieldLabel = "Backup Type"
+  fieldContext = "instanceType"
+  fieldGroup = "Nutanix VM Options"
+  required = false
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = "nutanixSnapshot"
+  custom = false
+  displayOrder = 4
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-custom-containerType-statTypeCode" {
+  code = "provisionType.nutanix.custom.containerType.statTypeCode"
+  type = "hidden"
+  name = "stat type code"
+  category = "provisionType.nutanix.custom"
+  fieldName = "statTypeCode"
+  fieldCode =  "gomorpheus.optiontype.StatTypeCode"
+  fieldLabel = "Stat Type Code"
+  fieldContext = "containerType"
+  fieldGroup = "Nutanix VM Options"
+  required = false
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = "nutanix"
+  custom = false
+  displayOrder = 6
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-custom-containerType-logTypeCode" {
+  code = "provisionType.nutanix.custom.containerType.logTypeCode"
+  type = "hidden"
+  name = "log type code"
+  category = "provisionType.nutanix.custom"
+  fieldName = "logTypeCode"
+  fieldCode =  "gomorpheus.optiontype.LogTypeCode"
+  fieldLabel = "Log Type Code"
+  fieldContext = "containerType"
+  fieldGroup = "Nutanix VM Options"
+  required = false
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = "nutanix"
+  custom = false
+  displayOrder = 7
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-custom-containerType-serverType" {
+  code = "provisionType.nutanix.custom.containerType.serverType"
+  type = "hidden"
+  name = "server type"
+  category = "provisionType.nutanix.custom"
+  fieldName = "serverType"
+  fieldCode =  "gomorpheus.optiontype.ServerType"
+  fieldLabel = "Server Type"
+  fieldContext = "containerType"
+  fieldGroup = "Nutanix VM Options"
+  required = false
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = "vm"
+  custom = false
+  displayOrder = 8
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-custom-instanceTypeLayout-description" {
+  code = "provisionType.nutanix.custom.instanceTypeLayout.description"
+  type = "hidden"
+  name = "layout description"
+  category = "provisionType.nutanix.custom"
+  fieldName = "description"
+  fieldCode =  "gomorpheus.optiontype.LayoutDescription"
+  fieldLabel = "Layout Description"
+  fieldContext = "instanceTypeLayout"
+  fieldGroup = "Nutanix VM Options"
+  required = false
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = "This will provision a single vm container"
+  custom = false
+  displayOrder = 9
+  fieldClass = null
+}
+
+resource "option-type" "provisionType-nutanix-imageId" {
+  code = "provisionType.nutanix.imageId"
+  type = "select"
+  name = "image"
+  category = "provisionType.nutanix"
+  optionSource = "nutanixImages"
+  fieldName = "imageId"
+  fieldCode =  "gomorpheus.optiontype.Image"
+  fieldLabel = "Image"
+  fieldContext = "config"
+  fieldGroup = "Options"
+  required = true
+  enabled = true
+  editable = false
+  global = false
+  placeHolder = null
+  helpBlock = ""
+  defaultValue = null
+  custom = false
+  displayOrder = 1
+  fieldClass = null
+}

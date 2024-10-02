@@ -5,12 +5,15 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.model.ComputeServer
+import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.provisioning.WorkloadRequest
+import com.morpheusdata.model.VirtualImageType
+import com.morpheusdata.nutanix.prismelement.plugin.util.NutanixPrismElementStorageUtility
 import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
@@ -73,7 +76,22 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	@Override
 	Collection<OptionType> getOptionTypes() {
 		Collection<OptionType> options = []
-		// TODO: create some option types for provisioning and add them to collection
+		options << new OptionType(
+				name:'skip agent install',
+				code: 'provisionType.general.noAgent',
+				category:'provisionType.amazon',
+				fieldName: 'noAgent',
+				fieldCode: 'gomorpheus.optiontype.SkipAgentInstall',
+				fieldLabel: 'Skip Agent Install',
+				fieldContext: 'config',
+				fieldGroup: "Advanced Options",
+				required: false,
+				enabled: true,
+				editable: false,
+				global: false,
+				displayOrder: 104,
+				inputType: OptionType.InputType.CHECKBOX,
+				helpBlock: 'Skipping Agent installation will result in a lack of logging and guest operating system statistics. Automation scripts may also be adversely affected.')
 		return options
 	}
 
@@ -94,9 +112,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	Collection<StorageVolumeType> getRootVolumeStorageTypes() {
-		Collection<StorageVolumeType> volumeTypes = []
-		// TODO: create some storage volume types and add to collection
-		return volumeTypes
+		NutanixPrismElementStorageUtility.getDefaultStorageVolumes()
 	}
 
 	/**
@@ -105,9 +121,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	Collection<StorageVolumeType> getDataVolumeStorageTypes() {
-		Collection<StorageVolumeType> dataVolTypes = []
-		// TODO: create some data volume types and add to collection
-		return dataVolTypes
+		NutanixPrismElementStorageUtility.getDefaultStorageVolumes()
 	}
 
 	/**
@@ -297,5 +311,40 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	@Override
 	String getDefaultInstanceTypeDescription() {
 		return 'Spin up any VM Image on your Nutanix Prism Element infrastructure.'
+	}
+
+	@Override
+	Collection<ComputeServerInterfaceType> getComputeServerInterfaceTypes() {
+		Collection<ComputeServerInterfaceType> ifaces = []
+
+		ifaces << new ComputeServerInterfaceType(
+				code: 'nutanix.virtio',
+				externalId: 'NORMAL_NIC',
+				name: 'Nutanix Prism Element VirtIO NIC',
+				defaultType: true,
+				enabled: true,
+				displayOrder: 1
+		)
+
+		ifaces << new ComputeServerInterfaceType(
+				code: 'nutanix.E1000',
+				externalId: 'NORMAL_NIC',
+				name: 'Nutanix Prism Element E1000 NIC',
+				defaultType: false,
+				enabled: true,
+				displayOrder: 2
+		)
+
+		ifaces
+	}
+
+	@Override
+	Collection<VirtualImageType> getVirtualImageTypes() {
+		Collection<VirtualImageType> virtualImageTypes = []
+
+		virtualImageTypes << new VirtualImageType(code: 'raw', name: 'RAW')
+		virtualImageTypes << new VirtualImageType(code: 'qcow2', name: 'QCOW2')
+
+		virtualImageTypes
 	}
 }

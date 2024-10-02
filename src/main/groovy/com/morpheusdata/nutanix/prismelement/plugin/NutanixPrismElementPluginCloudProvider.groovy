@@ -44,6 +44,7 @@ import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.VirtualImageLocation
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
+import com.morpheusdata.nutanix.prismelement.plugin.util.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
@@ -61,7 +62,6 @@ import java.security.MessageDigest
 class NutanixPrismElementPluginCloudProvider implements CloudProvider {
 	public static final String CLOUD_PROVIDER_CODE = 'nutanix'
 	public static final String CLOUD_PROVIDER_NAME = 'Nutanix Prism Element'
-	private final oneGB = (1024 * 1024 * 1024) as Long
 
 	protected MorpheusContext context
 	protected Plugin plugin
@@ -206,45 +206,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	Collection<StorageVolumeType> getStorageVolumeTypes() {
-		Collection<StorageVolumeType> volumeTypes = []
-
-		volumeTypes << new StorageVolumeType(
-				code: 'nutanix-scsi',
-				externalId: 'nutanix_SCSI',
-				displayName: 'Nutanix SCSI',
-				name: 'scsi',
-				description: 'Nutanix - SCSI',
-				displayOrder: 1,
-				defaultType: true,
-				minStorage: oneGB,
-				allowSearch: true,
-		)
-
-		volumeTypes << new StorageVolumeType(
-				code: 'nutanix-sata',
-				externalId: 'nutanix_SATA',
-				displayName: 'Nutanix SATA',
-				name: 'sata',
-				description: 'Nutanix - SATA',
-				displayOrder: 2,
-				defaultType: true,
-				minStorage: oneGB,
-				allowSearch: true,
-		)
-
-		volumeTypes << new StorageVolumeType(
-				code: 'nutanix-ide',
-				externalId: 'nutanix_IDE',
-				displayName: 'Nutanix IDE',
-				name: 'ide',
-				description: 'Nutanix - IDE',
-				displayOrder: 3,
-				defaultType: true,
-				minStorage: oneGB,
-				allowSearch: true,
-		)
-
-		volumeTypes
+		NutanixPrismElementStorageUtility.getDefaultStorageVolumes()
 	}
 
 	/**
