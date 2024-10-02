@@ -69,7 +69,7 @@ resource "instance-type-layout" "nutanix-1_0-single" {
   enabled         = true
   creatable       = true
   workloads = [
-    { code = "nutanix-1.0-set" }
+    workload-type-set.nutanix-1_0-set
   ]
   actions = [
     { code = "generic-add-node" }
