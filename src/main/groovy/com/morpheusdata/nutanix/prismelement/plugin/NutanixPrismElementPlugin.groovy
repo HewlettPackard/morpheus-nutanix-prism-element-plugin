@@ -29,6 +29,8 @@ class NutanixPrismElementPlugin extends Plugin {
     void initialize() {
         this.setName("Nutanix Prism Element Plugin")
         this.registerProvider(new NutanixPrismElementPluginCloudProvider(this,this.morpheus))
+        this.registerProvider(new NutanixPrismElementVersionDatasetProvider(this,this.morpheus))
+        this.registerProvider(new NutanixPrismElementImageStoreDatasetProvider(this,this.morpheus))
         this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this,this.morpheus))
         this.registerProvider(new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus))
     }
