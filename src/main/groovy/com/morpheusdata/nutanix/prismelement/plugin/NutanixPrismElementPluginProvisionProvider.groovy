@@ -13,7 +13,7 @@ import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.model.VirtualImageType
-import com.morpheusdata.nutanix.prismelement.plugin.util.NutanixPrismElementStorageUtility
+import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse

@@ -44,7 +44,7 @@ import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.VirtualImageLocation
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
-import com.morpheusdata.nutanix.prismelement.plugin.util.NutanixPrismElementStorageUtility
+import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j

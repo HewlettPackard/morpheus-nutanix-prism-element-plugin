@@ -1,4 +1,4 @@
-package com.morpheusdata.nutanix.prismelement.plugin.util
+package com.morpheusdata.nutanix.prismelement.plugin.utils
 
 import com.morpheusdata.model.StorageVolumeType
 
