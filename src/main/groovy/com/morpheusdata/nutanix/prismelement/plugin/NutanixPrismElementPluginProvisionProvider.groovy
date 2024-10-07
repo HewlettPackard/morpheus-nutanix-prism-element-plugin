@@ -135,7 +135,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldContext: 'domain',
 			fieldName: 'mountConfig',
 			displayOrder: 30,
-			inputType: 'OptionType.InputType.TEXT',
+			inputType: OptionType.InputType.TEXT,
 		)
 
 		nodeOptions << new OptionType(
@@ -145,7 +145,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldContext: 'domain',
 			fieldName: 'mountData',
 			displayOrder: 40,
-			inputType: 'OptionType.InputType.TEXT',
+			inputType: OptionType.InputType.TEXT,
 		)
 
 		/* TODO the PE GSP has this hidden field. Does it go here or in the backup provider?
@@ -156,7 +156,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldName: 'backupType',
 			defaultValue: 'nutanixSnapshot',
 			displayOrder: 50,
-			inputType: 'OptionType.InputType.HIDDEN',
+			inputType: OptionType.InputType.HIDDEN,
 		)
 		*/
 		nodeOptions << new OptionType(
@@ -166,7 +166,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldName: 'statTypeCode',
 			defaultValue: 'vm',
 			displayOrder: 60,
-			inputType: 'OptionType.InputType.HIDDEN',
+			inputType: OptionType.InputType.HIDDEN,
 		)
 
 		nodeOptions << new OptionType(
@@ -176,7 +176,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldName: 'logTypeCode',
 			defaultValue: 'vm',
 			displayOrder: 70,
-			inputType: 'OptionType.InputType.HIDDEN',
+			inputType: OptionType.InputType.HIDDEN,
 		)
 
 		nodeOptions << new OptionType(
@@ -186,7 +186,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldName: 'showServerLogs',
 			defaultValue: 'true',
 			displayOrder: 80,
-			inputType: 'OptionType.InputType.HIDDEN',
+			inputType: OptionType.InputType.HIDDEN,
 		)
 
 		nodeOptions << new OptionType(
@@ -196,7 +196,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			fieldName: 'serverType',
 			defaultValue: 'vm',
 			displayOrder: 90,
-			inputType: 'OptionType.InputType.HIDDEN',
+			inputType: OptionType.InputType.HIDDEN,
 		)
 
 		return nodeOptions
