@@ -103,6 +103,102 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	@Override
 	Collection<OptionType> getNodeOptionTypes() {
 		Collection<OptionType> nodeOptions = []
+
+		// TODO make the "things" in _nutanix.gsp (morpheus-ui) appear here
+		// crib off of getNodeOptionTypes() in morpheus-nutanix-prism-plugin/src/main/groovy/com/morpheusdata/nutanix/prism/plugin/NutanixPrismProvisionProvider.groovy
+		// for the various field values
+		nodeOptions << new OptionType(
+			name: 'virtual image',
+			code: 'nutanix-prism-element-node-virtualImageId-type',
+			fieldCode: 'gomorpheus.label.vmImage',
+			fieldContext: 'domain',
+			fieldName: 'virtualImage.id',
+			displayOrder: 10,
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'selectNutanixImage',
+		)
+
+		nodeOptions << new OptionType(
+			name: 'log folder',
+			code: 'nutanix-prism-element-node-logFolder-type',
+			fieldCode: 'gomorpheus.label.logFolder',
+			fieldContext: 'domain',
+			fieldName: 'mountLogs',
+			displayOrder: 20,
+			inputType: OptionType.InputType.TEXT,
+		)
+
+		nodeOptions << new OptionType(
+			name: 'config folder',
+			code: 'nutanix-prism-element-node-configFolder-type',
+			fieldCode: 'gomorpheus.label.configFolder',
+			fieldContext: 'domain',
+			fieldName: 'mountConfig',
+			displayOrder: 30,
+			inputType: 'OptionType.InputType.TEXT',
+		)
+
+		nodeOptions << new OptionType(
+			name: 'deploy folder',
+			code: 'nutanix-prism-element-node-deployFolder-type',
+			fieldCode: 'gomorpheus.label.deployFolder',
+			fieldContext: 'domain',
+			fieldName: 'mountData',
+			displayOrder: 40,
+			inputType: 'OptionType.InputType.TEXT',
+		)
+
+		/* TODO the PE GSP has this hidden field. Does it go here or in the backup provider?
+		nodeOptions << new OptionType(
+			name: 'backup type',
+			code: 'nutanix-prism-element-node-backup-type',
+			fieldContext: '???',
+			fieldName: 'backupType',
+			defaultValue: 'nutanixSnapshot',
+			displayOrder: 50,
+			inputType: 'OptionType.InputType.HIDDEN',
+		)
+		*/
+		nodeOptions << new OptionType(
+			name: 'statTypeCode',
+			code: 'nutanix-prism-element-node-stat-code-type',
+			fieldContext: 'domain',
+			fieldName: 'statTypeCode',
+			defaultValue: 'vm',
+			displayOrder: 60,
+			inputType: 'OptionType.InputType.HIDDEN',
+		)
+
+		nodeOptions << new OptionType(
+			name: 'logTypeCode',
+			code: 'nutanix-prism-element-node-log-code-type',
+			fieldContext: 'domain',
+			fieldName: 'logTypeCode',
+			defaultValue: 'vm',
+			displayOrder: 70,
+			inputType: 'OptionType.InputType.HIDDEN',
+		)
+
+		nodeOptions << new OptionType(
+			name: 'showServerLogs',
+			code: 'nutanix-prism-element-node-show-server-logs',
+			fieldContext: 'domain',
+			fieldName: 'showServerLogs',
+			defaultValue: 'true',
+			displayOrder: 80,
+			inputType: 'OptionType.InputType.HIDDEN',
+		)
+
+		nodeOptions << new OptionType(
+			name: 'serverType',
+			code: 'nutanix-prism-element-node-server-type',
+			fieldContext: 'domain',
+			fieldName: 'serverType',
+			defaultValue: 'vm',
+			displayOrder: 90,
+			inputType: 'OptionType.InputType.HIDDEN',
+		)
+
 		return nodeOptions
 	}
 
