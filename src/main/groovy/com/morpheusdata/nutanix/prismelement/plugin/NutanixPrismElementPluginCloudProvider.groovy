@@ -68,7 +68,7 @@ class NutanixPrismElementPluginCloudProvider implements CloudProvider {
 	protected MorpheusContext context
 	protected Plugin plugin
 
-    NutanixPrismElementPluginCloudProvider(Plugin plugin, MorpheusContext ctx) {
+	NutanixPrismElementPluginCloudProvider(Plugin plugin, MorpheusContext ctx) {
 		super()
 		this.@plugin = plugin
 		this.@context = ctx
@@ -110,7 +110,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	Collection<OptionType> getOptionTypes() {
-        Collection<OptionType> options = []
+		Collection<OptionType> options = []
 		options << new OptionType(
 				name: 'Api Url',
 				code: 'nutanix-prism-element-api-url',
@@ -122,24 +122,24 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				inputType: OptionType.InputType.TEXT,
 				placeHolder: 'https://nutanix.domain.com:9440'
 		)
-        options << new OptionType(
-                code: 'zoneType.nutanix.credential',
-                inputType: OptionType.InputType.CREDENTIAL,
-                name: 'Credentials',
-                fieldName: 'type',
-                fieldLabel: 'Credentials',
-                fieldContext: 'credential',
-                fieldCode: 'gomorpheus.label.credentials',
-                fieldSet: '',
-                fieldGroup: 'Connection Config',
-                required: true,
-                global: false,
-                helpBlock: '',
-                defaultValue: 'local',
-                displayOrder: 1,
-                optionSource: 'credentials',
+		options << new OptionType(
+				code: 'zoneType.nutanix.credential',
+				inputType: OptionType.InputType.CREDENTIAL,
+				name: 'Credentials',
+				fieldName: 'type',
+				fieldLabel: 'Credentials',
+				fieldContext: 'credential',
+				fieldCode: 'gomorpheus.label.credentials',
+				fieldSet: '',
+				fieldGroup: 'Connection Config',
+				required: true,
+				global: false,
+				helpBlock: '',
+				defaultValue: 'local',
+				displayOrder: 1,
+				optionSource: 'credentials',
 				config: '{"credentialTypes":["username-password"]}'
-        )
+		)
 
 		options << new OptionType(
 				name: 'Username',
@@ -223,7 +223,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				inputType: OptionType.InputType.CHECKBOX,
 		)
 
-        return options
+		return options
 	}
 
 	/**
@@ -233,7 +233,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	Collection<ProvisionProvider> getAvailableProvisionProviders() {
-	    return this.@plugin.getProvidersByType(ProvisionProvider) as Collection<ProvisionProvider>
+		return this.@plugin.getProvidersByType(ProvisionProvider) as Collection<ProvisionProvider>
 	}
 
 	/**
@@ -526,11 +526,15 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					]
 					HttpApiClient apiClient = new HttpApiClient()
 					apiClient.networkProxy = cloudInfo.apiProxy
-					def containerList = NutanixPrismElementApiService.listContainers(apiClient, authConfig)
-					if(containerList.success == true) {
-						return ServiceResponse.success()
-					} else {
-						return ServiceResponse.error('Invalid credentials')
+					try {
+						def containerList = NutanixPrismElementApiService.listContainers(apiClient, authConfig)
+						if(containerList.success == true) {
+							return ServiceResponse.success()
+						} else {
+							return ServiceResponse.error('Invalid credentials')
+						}
+					} finally {
+						apiClient.shutdownClient()
 					}
 				}
 			} else {
@@ -574,6 +578,8 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	ServiceResponse refresh(Cloud cloudInfo) {
 		log.debug("refresh: ${cloudInfo}")
 
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = cloudInfo.apiProxy
 		try {
 			def syncDate = new Date()
 			def apiUrl = NutanixPrismElementApiService.getNutanixApiUrl(cloudInfo)
@@ -585,7 +591,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			def hostOnline = ConnectionUtils.testHostConnectivity(apiHost, apiPort, true, true, proxySettings)
 			log.debug("nutanix online: ${apiHost} ${hostOnline}")
 			if(hostOnline) {
-				def testResults = NutanixPrismElementApiService.testConnection(cloudInfo)
+				def testResults = NutanixPrismElementApiService.testConnection(client, [zone:cloudInfo])
 
 				if(testResults.success) {
 					def regionCode = calculateRegionCode(cloudInfo)
@@ -631,11 +637,13 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		} catch(e) {
 			log.error("refresh cloud error: ${e}", e)
 			return ServiceResponse.error()
+		} finally {
+			client.shutdownClient()
 		}
 		return ServiceResponse.success()
 	}
 
-    static String calculateRegionCode(Cloud cloudInfo) {
+	static String calculateRegionCode(Cloud cloudInfo) {
 		def apiUrl = cloudInfo?.getConfigProperty('apiUrl')
 		def regionString = "${apiUrl}"
 		MessageDigest md = MessageDigest.getInstance("SHA3-224")
