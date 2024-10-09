@@ -1334,34 +1334,29 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static getConsoleUrl(opts,vmId) {
+	static getConsoleUrl(HttpApiClient client, opts,vmId) {
 		try {
 			def apiUrl = getNutanixApiUrl(opts.zone)
-			URL apiURL = new URL(apiUrl)
-			org.apache.http.client.utils.URIBuilder uriBuilder = new org.apache.http.client.utils.URIBuilder("${apiURL.protocol}://${apiURL.host}${apiURL.port ? ':' + apiURL.port : ''}/PrismGateway/j_spring_security_check")
-
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
-			HttpRequestBase request
-			request = new HttpPost(uriBuilder.build())
-			def cookies = []
-			def sessionCookie
-			HttpEntityEnclosingRequestBase postRequest = (HttpEntityEnclosingRequestBase)request
-			def formEntity = new UrlEncodedFormEntity([new BasicNameValuePair('j_username',username), new BasicNameValuePair('j_password', password)])
-			postRequest.setEntity(formEntity)
-			postRequest.addHeader('Accept','text/html')
-			withClient([ignoreSSL: true]) { HttpClient client ->
-				CloseableHttpResponse response = client.execute(request)
-				response.getHeaders("Set-Cookie").each {
-					String cookie = it.value.split(';')[0]
-					cookies.add(cookie)
-					if(cookie.startsWith("JSESSIONID")) {
-						sessionCookie = cookie
-					}
+
+			HttpApiClient.RequestOptions requestOpts = new HttpApiClient.RequestOptions()
+			requestOpts.ignoreSSL = true
+			requestOpts.headers = [
+				'Accept': 'text/html',
+			]
+			requestOpts.body = [
+				'j_username': username,
+				'j_password': password,
+			]
+			def resp = client.callApi(apiUrl, "/PrismGateway/j_spring_security_check", null, null, requestOpts)
+			if (resp.success) {
+				def sessionCookie = resp.getCookie('JSESSIONID')
+				if (sessionCookie != null) {
+
+					def apiURL = new URI(apiUrl)
+					return [success:true,url: "wss://${apiURL.host}:${apiURL.port}/vnc/vm/${vmId}/proxy", sessionCookie:sessionCookie]
 				}
-			}
-			if(sessionCookie) {
-				return [success:true,url: "wss://${apiURL.host}:${apiURL.port}/vnc/vm/${vmId}/proxy", sessionCookie:sessionCookie]
 			}
 		} catch(ex) {
 			log.error("nutanix exception: ${ex.message}",ex)
