@@ -13,6 +13,9 @@ class NutanixPrismElementBackupTypeProvider extends AbstractBackupTypeProvider {
     public static final String PROVIDER_CODE = 'nutanixBackup'
     public static final String PROVIDER_NAME = 'Nutanix VM Snapshot'
 
+    protected NutanixPrismElementBackupExecutionProvider executionProvider
+    protected NutanixPrismElementBackupRestoreProvider restoreProvider
+
 
     NutanixPrismElementBackupTypeProvider(Plugin plugin, MorpheusContext context) {
         super(plugin, context)
@@ -111,7 +114,10 @@ class NutanixPrismElementBackupTypeProvider extends AbstractBackupTypeProvider {
      */
     @Override
     BackupExecutionProvider getExecutionProvider() {
-        return null // TODO
+        if (executionProvider == null) {
+            executionProvider = new NutanixPrismElementBackupExecutionProvider(plugin, morpheus)
+        }
+        return executionProvider
     }
 
     /**
@@ -119,7 +125,10 @@ class NutanixPrismElementBackupTypeProvider extends AbstractBackupTypeProvider {
      */
     @Override
     BackupRestoreProvider getRestoreProvider() {
-        return null // TODO
+        if (restoreProvider == null) {
+            restoreProvider = new NutanixPrismElementBackupRestoreProvider(plugin, morpheus)
+        }
+        return restoreProvider
     }
 
     /**
