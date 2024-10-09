@@ -10,7 +10,7 @@ import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
 
 class NutanixPrismElementBackupTypeProvider extends AbstractBackupTypeProvider {
-    public static final String PROVIDER_CODE = 'nutanixBackup'
+    public static final String PROVIDER_CODE = 'nutanixSnapshot'
     public static final String PROVIDER_NAME = 'Nutanix VM Snapshot'
 
     protected NutanixPrismElementBackupExecutionProvider executionProvider

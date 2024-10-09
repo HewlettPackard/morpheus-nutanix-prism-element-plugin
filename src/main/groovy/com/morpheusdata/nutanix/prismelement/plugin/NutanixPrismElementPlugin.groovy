@@ -29,15 +29,10 @@ class NutanixPrismElementPlugin extends Plugin {
     @Override
     void initialize() {
         this.setName("Nutanix Prism Element Plugin")
-        def backupProvider = new NutanixPrismElementBackupProvider(this, morpheus)
-
         this.registerProvider(new NutanixPrismElementPluginCloudProvider(this,this.morpheus))
         this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this,this.morpheus))
         this.registerProvider(new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus))
-        this.registerProvider(backupProvider)
-
-        pluginProviders.put(backupProvider.code, backupProvider)
-
+        this.registerProvider(new NutanixPrismElementBackupProvider(this, morpheus))
     }
 
     /**

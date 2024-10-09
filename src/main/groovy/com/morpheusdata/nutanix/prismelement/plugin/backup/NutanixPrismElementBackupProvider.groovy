@@ -9,7 +9,7 @@ class NutanixPrismElementBackupProvider extends MorpheusBackupProvider {
         super(plugin, morpheusContext)
 
         NutanixPrismElementBackupTypeProvider nutanixPrismSnapshotProvider = new NutanixPrismElementBackupTypeProvider(plugin, morpheusContext)
-        plugin.pluginProviders.put(nutanixPrismSnapshotProvider.code, nutanixPrismSnapshotProvider)
-        addScopedProvider(nutanixPrismSnapshotProvider, "nutanix-prism-element-provision-provider", null)
+        plugin.registerProvider(nutanixPrismSnapshotProvider)
+        addScopedProvider(nutanixPrismSnapshotProvider, "nutanix", null)
     }
 }
