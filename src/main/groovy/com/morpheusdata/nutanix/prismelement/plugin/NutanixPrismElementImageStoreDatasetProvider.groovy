@@ -48,10 +48,11 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
      */
     @Override
     Observable<Datastore> list(DatasetQuery query) {
+        Long cloudId = query.get("zoneId")?.toLong()
         morpheusContext.async.cloud.datastore.list(
                 new DataQuery()
                         .withFilter('refType', 'ComputeZone')
-//                        .withFilter('refId', zoneId) // TODO: how do I do this, no params to pull from?
+                        .withFilter('refId', cloudId)
                         .withFilter('type', 'generic')
         )
     }

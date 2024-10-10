@@ -16,6 +16,7 @@
 package com.morpheusdata.nutanix.prismelement.plugin
 
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBackupProvider
 
 @SuppressWarnings("unused") // picked up by plugin framework
 class NutanixPrismElementPlugin extends Plugin {
@@ -33,6 +34,7 @@ class NutanixPrismElementPlugin extends Plugin {
         this.registerProvider(new NutanixPrismElementImageStoreDatasetProvider(this,this.morpheus))
         this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this,this.morpheus))
         this.registerProvider(new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus))
+        this.registerProvider(new NutanixPrismElementBackupProvider(this, morpheus))
     }
 
     /**

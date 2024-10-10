@@ -140,7 +140,6 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				optionSource: 'credentials',
 				config: '{"credentialTypes":["username-password"]}'
 		)
-
 		options << new OptionType(
 				name: 'Username',
 				code: 'nutanix-prism-element-username',

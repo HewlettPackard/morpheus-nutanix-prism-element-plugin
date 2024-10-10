@@ -24,6 +24,7 @@ import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
+import com.morpheusdata.response.ServiceResponse
 
 @Slf4j
 class NutanixPrismElementApiService {
