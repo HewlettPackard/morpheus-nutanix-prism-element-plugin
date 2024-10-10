@@ -24,6 +24,8 @@ import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
+import com.morpheusdata.core.util.HttpApiClient
+import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.BackupProvider
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudFolder
@@ -104,12 +106,22 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	}
 
 	/**
-	 * Provides a Collection of OptionType inputs that define the required input fields for defining a cloud integration
-	 * @return Collection of OptionType
+	 * {@inheritDoc}
 	 */
 	@Override
 	Collection<OptionType> getOptionTypes() {
         Collection<OptionType> options = []
+		options << new OptionType(
+				name: 'Api Url',
+				code: 'nutanix-prism-element-api-url',
+				displayOrder: 0,
+				fieldContext: 'domain',
+				fieldName: 'serviceUrl',
+				fieldCode: 'gomorpheus.label.apiUrl',
+				required: true,
+				inputType: OptionType.InputType.TEXT,
+				placeHolder: 'https://nutanix.domain.com:9440'
+		)
         options << new OptionType(
                 code: 'zoneType.nutanix.credential',
                 inputType: OptionType.InputType.CREDENTIAL,
@@ -128,6 +140,89 @@ It streamlines operations with powerful automation, analytics, and one-click sim
                 optionSource: 'credentials',
 				config: '{"credentialTypes":["username-password"]}'
         )
+
+		options << new OptionType(
+				name: 'Username',
+				code: 'nutanix-prism-element-username',
+				displayOrder: 2,
+				fieldContext: 'domain',
+				fieldName: 'serviceUsername',
+				fieldCode: 'gomorpheus.label.username',
+				required: true,
+				inputType: OptionType.InputType.TEXT,
+				localCredential: true,
+		)
+
+		options << new OptionType(
+				name: 'Password',
+				code: 'nutanix-prism-element-password',
+				displayOrder: 3,
+				fieldContext: 'domain',
+				fieldName: 'servicePassword',
+				fieldCode: 'gomorpheus.label.password',
+				required: true,
+				inputType: OptionType.InputType.PASSWORD,
+				localCredential: true,
+		)
+
+		options << new OptionType(
+				name: 'Api Version',
+				code: 'nutanix-prism-element-api-version',
+				displayOrder: 4,
+				fieldContext: 'domain',
+				fieldName: 'serviceVersion',
+				fieldCode: 'gomorpheus.label.apiVersion',
+				required: true,
+				inputType: OptionType.InputType.SELECT,
+				optionSourceType: NutanixPrismElementVersionDatasetProvider.PROVIDER_NAMESPACE,
+				optionSource: NutanixPrismElementVersionDatasetProvider.PROVIDER_KEY,
+		)
+
+		options << new OptionType(
+				name: 'Import Existing',
+				code: 'nutanix-prism-element-import-existing',
+				displayOrder: 5,
+				fieldContext: 'config',
+				fieldName: 'importExisting',
+				fieldCode: 'gomorpheus.label.inventoryExistingInstances',
+				inputType: OptionType.InputType.CHECKBOX,
+		)
+
+		options << new OptionType(
+				name: 'Enable VNC',
+				code: 'nutanix-prism-element-enable-hypervisor-console',
+				displayOrder: 6,
+				fieldContext: 'config',
+				fieldName: 'enableVnc',
+				fieldCode: 'gomorpheus.label.enableHyperVConsole',
+				fieldGroup:'Advanced',
+				inputType: OptionType.InputType.CHECKBOX,
+		)
+
+		options << new OptionType(
+				name: 'Default Image Store',
+				code: 'nutanix-prism-element-default-image-store',
+				displayOrder: 7,
+				fieldContext: 'config',
+				fieldName: 'imageStoreId',
+				fieldCode: 'gomorpheus.label.defaultImageStore',
+				fieldGroup:'Advanced',
+				inputType: OptionType.InputType.SELECT,
+				optionSourceType: NutanixPrismElementImageStoreDatasetProvider.PROVIDER_NAMESPACE,
+				optionSource: NutanixPrismElementImageStoreDatasetProvider.PROVIDER_KEY,
+		)
+
+		options << new OptionType(
+				name: 'Enable Network Type Selection',
+				code: 'nutanix-prism-element-enable-network-type-selection',
+				displayOrder: 8,
+				fieldContext: 'config',
+				fieldName: 'enableNetworkTypeSelection',
+				fieldCode: 'gomorpheus.label.enableNetworkTypeSelection',
+				fieldGroup: 'Advanced',
+				inputType: OptionType.InputType.CHECKBOX,
+		)
+
         return options
 	}
 
@@ -392,7 +487,59 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse validate(Cloud cloudInfo, ValidateCloudRequest validateCloudRequest) {
-		return ServiceResponse.success()
+		log.info("validate: {}", cloudInfo)
+		try {
+			if(cloudInfo) {
+				String username = ""
+				String password = ""
+				def url = (cloudInfo.serviceUrl ?: cloudInfo.configMap.apiUrl) as String
+				if(validateCloudRequest.credentialType?.toString()?.isNumber()) {
+					AccountCredential accountCredential = morpheus.async.accountCredential.get(validateCloudRequest.credentialType.toLong()).blockingGet()
+					password = accountCredential.data.password
+					username = accountCredential.data.username
+				} else if(validateCloudRequest.credentialType == 'username-password') {
+					password = validateCloudRequest.credentialPassword ?: cloudInfo.servicePassword ?: cloudInfo.configMap.password
+					username = validateCloudRequest.credentialUsername ?: cloudInfo.servicePassword ?: cloudInfo.configMap.username
+				} else if(validateCloudRequest.credentialType == 'local') {
+					if(validateCloudRequest.opts?.zone?.servicePassword && validateCloudRequest.opts?.zone?.servicePassword != '************') {
+						password = validateCloudRequest.opts?.zone?.servicePassword
+					} else {
+						password = cloudInfo.servicePassword ?: cloudInfo.configMap.password
+					}
+					username = validateCloudRequest.opts?.zone?.serviceUsername ?: cloudInfo.serviceUsername ?: cloudInfo.configMap.username
+				}
+
+				if(username?.isBlank()) {
+					return ServiceResponse.error('Enter a username')
+				} else if(password?.isBlank()) {
+					return ServiceResponse.error('Enter a password')
+				} else if(url?.isBlank()) {
+					return ServiceResponse.error('Enter an api url')
+				} else {
+					def authConfig = [
+							username: username,
+							password: password,
+							basePath: '/api/nutanix/v3/',
+							apiVersion:  cloudInfo.serviceVersion ?: 'v1',
+							apiUrl: url,
+							apiNumber: cloudInfo.serviceVersion.replace('v', '').toDouble(),
+					]
+					HttpApiClient apiClient = new HttpApiClient()
+					apiClient.networkProxy = cloudInfo.apiProxy
+					def containerList = NutanixPrismElementApiService.listContainers(apiClient, authConfig)
+					if(containerList.success == true) {
+						return ServiceResponse.success()
+					} else {
+						return ServiceResponse.error('Invalid credentials')
+					}
+				}
+			} else {
+				return ServiceResponse.error('No cloud found')
+			}
+		} catch(e) {
+			log.error('Error validating cloud', e)
+			return ServiceResponse.error('Error validating cloud')
+		}
 	}
 
 	/**
@@ -403,6 +550,15 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse initializeCloud(Cloud cloudInfo) {
+		log.info("initializeCloud: ${cloudInfo}")
+		if (cloudInfo) {
+			if (cloudInfo.enabled) {
+				return refresh(cloudInfo)
+			}
+		} else {
+			return ServiceResponse.error('No cloud found')
+		}
+
 		return ServiceResponse.success()
 	}
 
@@ -416,7 +572,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
-		log.debug("nutanixPrismElementPluginCloudProvider.refresh: ${cloudInfo}")
+		log.debug("refresh: ${cloudInfo}")
 
 		try {
 			def syncDate = new Date()

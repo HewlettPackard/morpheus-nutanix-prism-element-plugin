@@ -18,7 +18,9 @@
 
 package com.morpheusdata.nutanix.prismelement.plugin.utils
 
+import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.response.ServiceResponse
 
 class NutanixPrismElementApiService {
     static Object testConnection(Cloud cloud) {
@@ -27,5 +29,9 @@ class NutanixPrismElementApiService {
 
     static String getNutanixApiUrl(Cloud cloud) {
        "http://localhost:9440"
+    }
+
+    static ServiceResponse listContainers(HttpApiClient httpApiClient, Map authConfig) {
+        ServiceResponse.success([])
     }
 }
