@@ -104,9 +104,6 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	Collection<OptionType> getNodeOptionTypes() {
 		Collection<OptionType> nodeOptions = []
 
-		// TODO make the "things" in _nutanix.gsp (morpheus-ui) appear here
-		// crib off of getNodeOptionTypes() in morpheus-nutanix-prism-plugin/src/main/groovy/com/morpheusdata/nutanix/prism/plugin/NutanixPrismProvisionProvider.groovy
-		// for the various field values
 		nodeOptions << new OptionType(
 			name: 'virtual image',
 			code: 'nutanix-prism-element-node-virtualImageId-type',
@@ -148,17 +145,16 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			inputType: OptionType.InputType.TEXT,
 		)
 
-		/* TODO the PE GSP has this hidden field. Does it go here or in the backup provider?
 		nodeOptions << new OptionType(
 			name: 'backup type',
 			code: 'nutanix-prism-element-node-backup-type',
-			fieldContext: '???',
+			fieldContext: 'instanceType',
 			fieldName: 'backupType',
 			defaultValue: 'nutanixSnapshot',
 			displayOrder: 50,
 			inputType: OptionType.InputType.HIDDEN,
 		)
-		*/
+
 		nodeOptions << new OptionType(
 			name: 'statTypeCode',
 			code: 'nutanix-prism-element-node-stat-code-type',
@@ -197,6 +193,16 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			defaultValue: 'vm',
 			displayOrder: 90,
 			inputType: OptionType.InputType.HIDDEN,
+		)
+
+		nodeOptions << new OptionType(
+				name: 'layout description',
+				code: 'nutanix-prism-element-node-description-type',
+				fieldContext: 'instanceTypeLayout',
+				fieldName: 'description',
+				defaultValue: 'This will provision a single vm container',
+				displayOrder: 100,
+				inputType: OptionType.InputType.HIDDEN,
 		)
 
 		return nodeOptions
