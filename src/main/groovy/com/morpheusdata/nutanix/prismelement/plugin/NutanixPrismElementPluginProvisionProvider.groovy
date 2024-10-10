@@ -48,14 +48,15 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			true, // successful
 			'', // no message
 			null, // no errors
-			new PrepareWorkloadResponse(workload:workload) // adding the workload to the response for convenience
+			new PrepareWorkloadResponse(workload: workload) // adding the workload to the response for convenience
 		)
 		return resp
 	}
 
 	@Override
 	String getProvisionTypeCode() {
-		return NutanixPrismElementPluginCloudProvider.CLOUD_PROVIDER_CODE // cloud code and provision code match for existing plugin
+		return NutanixPrismElementPluginCloudProvider.CLOUD_PROVIDER_CODE
+		// cloud code and provision code match for existing plugin
 	}
 
 	/**
@@ -66,7 +67,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	Icon getCircularIcon() {
-		return new Icon(path:'nutanix-circular.svg', darkPath:'nutanix-circular-dark.svg')
+		return new Icon(path: 'nutanix-circular.svg', darkPath: 'nutanix-circular-dark.svg')
 	}
 
 	/**
@@ -77,21 +78,21 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	Collection<OptionType> getOptionTypes() {
 		Collection<OptionType> options = []
 		options << new OptionType(
-				name:'skip agent install',
-				code: 'provisionType.general.noAgent',
-				category:'provisionType.amazon',
-				fieldName: 'noAgent',
-				fieldCode: 'gomorpheus.optiontype.SkipAgentInstall',
-				fieldLabel: 'Skip Agent Install',
-				fieldContext: 'config',
-				fieldGroup: "Advanced Options",
-				required: false,
-				enabled: true,
-				editable: false,
-				global: false,
-				displayOrder: 104,
-				inputType: OptionType.InputType.CHECKBOX,
-				helpBlock: 'Skipping Agent installation will result in a lack of logging and guest operating system statistics. Automation scripts may also be adversely affected.')
+			name: 'skip agent install',
+			code: 'provisionType.general.noAgent',
+			category: 'provisionType.amazon',
+			fieldName: 'noAgent',
+			fieldCode: 'gomorpheus.optiontype.SkipAgentInstall',
+			fieldLabel: 'Skip Agent Install',
+			fieldContext: 'config',
+			fieldGroup: "Advanced Options",
+			required: false,
+			enabled: true,
+			editable: false,
+			global: false,
+			displayOrder: 104,
+			inputType: OptionType.InputType.CHECKBOX,
+			helpBlock: 'Skipping Agent installation will result in a lack of logging and guest operating system statistics. Automation scripts may also be adversely affected.')
 		return options
 	}
 
@@ -196,13 +197,13 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		)
 
 		nodeOptions << new OptionType(
-				name: 'layout description',
-				code: 'nutanix-prism-element-node-description-type',
-				fieldContext: 'instanceTypeLayout',
-				fieldName: 'description',
-				defaultValue: 'This will provision a single vm container',
-				displayOrder: 100,
-				inputType: OptionType.InputType.HIDDEN,
+			name: 'layout description',
+			code: 'nutanix-prism-element-node-description-type',
+			fieldContext: 'instanceTypeLayout',
+			fieldName: 'description',
+			defaultValue: 'This will provision a single vm container',
+			displayOrder: 100,
+			inputType: OptionType.InputType.HIDDEN,
 		)
 
 		return nodeOptions
@@ -268,7 +269,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			true,
 			null, // no message
 			null, // no errors
-			new ProvisionResponse(success:true)
+			new ProvisionResponse(success: true)
 		)
 	}
 
@@ -336,7 +337,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse<ProvisionResponse> getServerDetails(ComputeServer server) {
-		return new ServiceResponse<ProvisionResponse>(true, null, null, new ProvisionResponse(success:true))
+		return new ServiceResponse<ProvisionResponse>(true, null, null, new ProvisionResponse(success: true))
 	}
 
 	/**
@@ -420,21 +421,21 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		Collection<ComputeServerInterfaceType> ifaces = []
 
 		ifaces << new ComputeServerInterfaceType(
-				code: 'nutanix.virtio',
-				externalId: 'NORMAL_NIC',
-				name: 'Nutanix Prism Element VirtIO NIC',
-				defaultType: true,
-				enabled: true,
-				displayOrder: 1
+			code: 'nutanix.virtio',
+			externalId: 'NORMAL_NIC',
+			name: 'Nutanix Prism Element VirtIO NIC',
+			defaultType: true,
+			enabled: true,
+			displayOrder: 1
 		)
 
 		ifaces << new ComputeServerInterfaceType(
-				code: 'nutanix.E1000',
-				externalId: 'NORMAL_NIC',
-				name: 'Nutanix Prism Element E1000 NIC',
-				defaultType: false,
-				enabled: true,
-				displayOrder: 2
+			code: 'nutanix.E1000',
+			externalId: 'NORMAL_NIC',
+			name: 'Nutanix Prism Element E1000 NIC',
+			defaultType: false,
+			enabled: true,
+			displayOrder: 2
 		)
 
 		ifaces

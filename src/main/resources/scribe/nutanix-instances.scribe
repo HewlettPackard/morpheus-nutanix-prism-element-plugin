@@ -1,106 +1,106 @@
 resource "instance-type" "nutanix" {
-  name                 = "Nutanix Prism Element"
-  code                 = "nutanix"
-  description          = "Spin up any VM Image on your Nutanix Prism Element infrastructure."
-  category             = "cloud"
-  active               = true
-  enabled              = true
-  hasConfig            = false
-  hasSettings          = false
-  hasDeployment        = false
-  hasAutoScale         = true
-  provisionTypeDefault = true
-  optionTypes = [
-    { code = "instanceType.exposePorts" },
-    { code = "provisionType.nutanix.imageId" }
-  ]
-  versions = [
-    "1.0"
-  ]
-  environmentPrefix = "NUTANIX"
-  backupType        = "nutanixSnapshot"
-  stack-tier        = 30
-  viewSet           = "nutanix"
+	name                 = "Nutanix Prism Element"
+	code                 = "nutanix"
+	description          = "Spin up any VM Image on your Nutanix Prism Element infrastructure."
+	category             = "cloud"
+	active               = true
+	enabled              = true
+	hasConfig            = false
+	hasSettings          = false
+	hasDeployment        = false
+	hasAutoScale         = true
+	provisionTypeDefault = true
+	optionTypes = [
+		{ code = "instanceType.exposePorts" },
+		{ code = "provisionType.nutanix.imageId" }
+	]
+	versions = [
+		"1.0"
+	]
+	environmentPrefix = "NUTANIX"
+	backupType        = "nutanixSnapshot"
+	stack-tier        = 30
+	viewSet           = "nutanix"
 
-  pluginIconPath          = "nutanix.svg"
-  pluginIconHidpiPath     = "nutanix.svg"
-  pluginIconDarkPath      = "nutanix-dark.svg"
-  pluginIconDarkHidpiPath = "nutanix-dark.svg"
+	pluginIconPath          = "nutanix.svg"
+	pluginIconHidpiPath     = "nutanix.svg"
+	pluginIconDarkPath      = "nutanix-dark.svg"
+	pluginIconDarkHidpiPath = "nutanix-dark.svg"
 }
 
 resource "workload-type" "nutanix-1_0" {
-  code             = "nutanix-1.0",
-  shortName        = "nutanix"
-  name             = "Nutanix"
-  ports = []
-  containerVersion = "1.0",
-  repositoryImage  = "",
-  serverType       = "vm",
-  entryPoint       = "",
-  category         = "nutanix",
-  statTypeCode     = "vm",
-  logTypeCode      = "nutanix",
-  checkTypeCode    = "containerCheck",
-  mountPoint       = "/data",
-  actions = [
-    { code = "generic-remove-node" }
-  ],
-  provisionType = "nutanix",
-  backupType    = "nutanixSnapshot"
+	code             = "nutanix-1.0",
+	shortName        = "nutanix"
+	name             = "Nutanix"
+	ports = []
+	containerVersion = "1.0",
+	repositoryImage  = "",
+	serverType       = "vm",
+	entryPoint       = "",
+	category         = "nutanix",
+	statTypeCode     = "vm",
+	logTypeCode      = "nutanix",
+	checkTypeCode    = "containerCheck",
+	mountPoint       = "/data",
+	actions = [
+		{ code = "generic-remove-node" }
+	],
+	provisionType = "nutanix",
+	backupType    = "nutanixSnapshot"
 }
 
 resource "workload-type-set" "nutanix-1_0-set" {
-  code           = "nutanix-1.0-set",
-  containerType  = workload-type.nutanix-1_0,
-  priorityOrder  = 0,
-  dynamicCount   = true,
-  containerCount = 1
+	code           = "nutanix-1.0-set",
+	containerType  = workload-type.nutanix-1_0,
+	priorityOrder  = 0,
+	dynamicCount   = true,
+	containerCount = 1
 }
 
 resource "instance-type-layout" "nutanix-1_0-single" {
-  code            = "nutanix-1.0-single"
-  name            = "Nutanix Element VM"
-  sortOrder       = 0
-  instanceVersion = "1.0"
-  description     = "This will provision a single vm"
-  instanceType    = instance-type.nutanix
-  serverCount     = 1
-  portCount       = 0
-  enabled         = true
-  creatable       = true
-  workloads = [
-    workload-type-set.nutanix-1_0-set
-  ]
-  actions = [
-    { code = "generic-add-node" }
-  ]
-  provisionType = "nutanix"
-  optionTypes = []
+	code            = "nutanix-1.0-single"
+	name            = "Nutanix Element VM"
+	sortOrder       = 0
+	instanceVersion = "1.0"
+	description     = "This will provision a single vm"
+	instanceType    = instance-type.nutanix
+	serverCount     = 1
+	portCount       = 0
+	enabled         = true
+	creatable       = true
+	workloads = [
+		workload-type-set.nutanix-1_0-set
+	]
+	actions = [
+		{ code = "generic-add-node" }
+	]
+	provisionType = "nutanix"
+	optionTypes = []
 }
 
 resource "scale-action" "nutanix-1_0-single" {
-  code      = "nutanix-1.0-single"
-  scaleType = "action"
-  layout    = instance-type-layout.nutanix-1_0-single
-  upAction {
-    code = "generic-add-node"
-  }
-  downAction {
-    code = "generic-remove-node"
-  }
+	code      = "nutanix-1.0-single"
+	scaleType = "action"
+	layout    = instance-type-layout.nutanix-1_0-single
+	upAction {
+		code = "generic-add-node"
+	}
+	downAction {
+		code = "generic-remove-node"
+	}
 }
 
 resource "virtual-image" "nutanix-acropolis-image-morpheus-ubuntu-14_04" {
-  code         = "nutanix.acropolis.image.morpheus.ubuntu.14.04",
-  category     = "nutanix.acropolis.image.morpheus",
-  sshUsername  = "ubuntu",
-  sshPassword  = null,
-  name         = "morpheus ubuntu 14.04",
-  imageType    = "qcow2",
-  isCloudInit  = true,
-  remotePath   = "https=//s3-us-west-1.amazonaws.com/morpheus-images/kvm/ubuntu/ubuntu-14_04/ubuntu-14_04.qcow2",
-  imagePath    = "kvm/ubuntu/ubuntu-14_04",
-  systemImage  = true,
-  installAgent = true,
-  osType       = "ubuntu.14.04.64"
+	code         = "nutanix.acropolis.image.morpheus.ubuntu.14.04",
+	category     = "nutanix.acropolis.image.morpheus",
+	sshUsername  = "ubuntu",
+	sshPassword  = null,
+	name         = "morpheus ubuntu 14.04",
+	imageType    = "qcow2",
+	isCloudInit  = true,
+	remotePath   = "https=//s3-us-west-1.amazonaws.com/morpheus-images/kvm/ubuntu/ubuntu-14_04/ubuntu-14_04.qcow2",
+	imagePath    = "kvm/ubuntu/ubuntu-14_04",
+	systemImage  = true,
+	installAgent = true,
+	osType       = "ubuntu.14.04.64"
 }

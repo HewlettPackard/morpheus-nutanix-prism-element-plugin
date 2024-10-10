@@ -29,144 +29,144 @@ import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
 
 class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
-    public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
-    public static final String NETWORK_POOL_PROVIDER_NAME = 'Nutanix Prism Element'
+	public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
+	public static final String NETWORK_POOL_PROVIDER_NAME = 'Nutanix Prism Element'
 
-    protected MorpheusContext context
-    protected Plugin plugin
+	protected MorpheusContext context
+	protected Plugin plugin
 
-    NutanixPrismElementPluginNetworkPoolProvider(Plugin plugin, MorpheusContext ctx) {
-        super()
-        this.@plugin = plugin
-        this.@context = ctx
-    }
+	NutanixPrismElementPluginNetworkPoolProvider(Plugin plugin, MorpheusContext ctx) {
+		super()
+		this.@plugin = plugin
+		this.@context = ctx
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse verifyNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse verifyNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse createNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse createNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse updateNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse updateNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    void refresh(NetworkPoolServer poolServer) {
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	void refresh(NetworkPoolServer poolServer) {
 
-    }
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse initializeNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse initializeNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse createHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp, NetworkDomain domain, Boolean createARecord, Boolean createPtrRecord) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse createHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp, NetworkDomain domain, Boolean createARecord, Boolean createPtrRecord) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse updateHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse updateHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    ServiceResponse deleteHostRecord(NetworkPool networkPool, NetworkPoolIp poolIp, Boolean deleteAssociatedRecords) {
-        ServiceResponse.success()
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse deleteHostRecord(NetworkPool networkPool, NetworkPoolIp poolIp, Boolean deleteAssociatedRecords) {
+		ServiceResponse.success()
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    Collection<NetworkPoolType> getNetworkPoolTypes() {
-        def networkPoolType = new NetworkPoolType(
-                code: 'nutanix',
-                name: 'Nutanix',
-                creatable: false,
-                description: 'Nutanix network ip pool',
-                rangeSupportsCidr: false,
-                hostRecordEditable: false
-        )
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Collection<NetworkPoolType> getNetworkPoolTypes() {
+		def networkPoolType = new NetworkPoolType(
+			code: 'nutanix',
+			name: 'Nutanix',
+			creatable: false,
+			description: 'Nutanix network ip pool',
+			rangeSupportsCidr: false,
+			hostRecordEditable: false
+		)
 
-        [networkPoolType]
-    }
+		[networkPoolType]
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    List<OptionType> getIntegrationOptionTypes() {
-        []
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	List<OptionType> getIntegrationOptionTypes() {
+		[]
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    Icon getIcon() {
-        new Icon(path: 'nutanix.svg', darkPath: 'nutanix-dark.svg')
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Icon getIcon() {
+		new Icon(path: 'nutanix.svg', darkPath: 'nutanix-dark.svg')
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    MorpheusContext getMorpheus() {
-        this.@context
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	MorpheusContext getMorpheus() {
+		this.@context
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    Plugin getPlugin() {
-        this.@plugin
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Plugin getPlugin() {
+		this.@plugin
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    String getCode() {
-        NETWORK_POOL_PROVIDER_CODE
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	String getCode() {
+		NETWORK_POOL_PROVIDER_CODE
+	}
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    String getName() {
-        NETWORK_POOL_PROVIDER_NAME
-    }
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	String getName() {
+		NETWORK_POOL_PROVIDER_NAME
+	}
 }

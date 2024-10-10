@@ -5,11 +5,11 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.backup.MorpheusBackupProvider
 
 class NutanixPrismElementBackupProvider extends MorpheusBackupProvider {
-    NutanixPrismElementBackupProvider(Plugin plugin, MorpheusContext morpheusContext) {
-        super(plugin, morpheusContext)
+	NutanixPrismElementBackupProvider(Plugin plugin, MorpheusContext morpheusContext) {
+		super(plugin, morpheusContext)
 
-        NutanixPrismElementBackupTypeProvider nutanixPrismSnapshotProvider = new NutanixPrismElementBackupTypeProvider(plugin, morpheusContext)
-        plugin.registerProvider(nutanixPrismSnapshotProvider)
-        addScopedProvider(nutanixPrismSnapshotProvider, "nutanix", null)
-    }
+		NutanixPrismElementBackupTypeProvider nutanixPrismSnapshotProvider = new NutanixPrismElementBackupTypeProvider(plugin, morpheusContext)
+		plugin.registerProvider(nutanixPrismSnapshotProvider)
+		addScopedProvider(nutanixPrismSnapshotProvider, "nutanix", null)
+	}
 }

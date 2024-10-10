@@ -18,30 +18,31 @@ package com.morpheusdata.nutanix.prismelement.plugin
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBackupProvider
 
-@SuppressWarnings("unused") // picked up by plugin framework
+@SuppressWarnings("unused")
+// picked up by plugin framework
 class NutanixPrismElementPlugin extends Plugin {
 
-    @Override
-    String getCode() {
-        return 'nutanix-prism-element-plugin'
-    }
+	@Override
+	String getCode() {
+		return 'nutanix-prism-element-plugin'
+	}
 
-    @Override
-    void initialize() {
-        this.setName("Nutanix Prism Element Plugin")
-        this.registerProvider(new NutanixPrismElementPluginCloudProvider(this,this.morpheus))
-        this.registerProvider(new NutanixPrismElementVersionDatasetProvider(this,this.morpheus))
-        this.registerProvider(new NutanixPrismElementImageStoreDatasetProvider(this,this.morpheus))
-        this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this,this.morpheus))
-        this.registerProvider(new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus))
-        this.registerProvider(new NutanixPrismElementBackupProvider(this, morpheus))
-    }
+	@Override
+	void initialize() {
+		this.setName("Nutanix Prism Element Plugin")
+		this.registerProvider(new NutanixPrismElementPluginCloudProvider(this, this.morpheus))
+		this.registerProvider(new NutanixPrismElementVersionDatasetProvider(this, this.morpheus))
+		this.registerProvider(new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus))
+		this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this, this.morpheus))
+		this.registerProvider(new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus))
+		this.registerProvider(new NutanixPrismElementBackupProvider(this, morpheus))
+	}
 
-    /**
-     * Called when a plugin is being removed from the plugin manager (aka Uninstalled)
-     */
-    @Override
-    void onDestroy() {
-        //nothing to do for now
-    }
+	/**
+	 * Called when a plugin is being removed from the plugin manager (aka Uninstalled)
+	 */
+	@Override
+	void onDestroy() {
+		//nothing to do for now
+	}
 }
