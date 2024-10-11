@@ -18,7 +18,10 @@
 
 package com.morpheusdata.nutanix.prismelement.plugin
 
+import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.model.AccountCredential
+import com.morpheusdata.model.Cloud
 import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBackupProvider
 
 @SuppressWarnings("unused")
@@ -47,5 +50,37 @@ class NutanixPrismElementPlugin extends Plugin {
 	@Override
 	void onDestroy() {
 		//nothing to do for now
+	}
+
+	static getAuthConfig(MorpheusContext context, Cloud cloud) {
+		if (!cloud.accountCredentialLoaded) {
+			AccountCredential accountCredential
+			try {
+				accountCredential = context.services.cloud.loadCredentials(cloud.id)
+				cloud.accountCredentialLoaded = true
+				cloud.accountCredentialData = accountCredential?.data
+			} catch (e) {
+			}
+		}
+
+		def version = cloud.serviceVersion ?: 'v1'
+		def config = [
+			basePath  : '/api/nutanix/v3/',
+			apiVersion: version,
+			apiUrl    : (cloud.serviceUrl ?: cloud.configMap.apiUrl),
+			apiNumber : version.replace('v', '').toDouble(),
+		]
+		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('username')) {
+			config.username = cloud.accountCredentialData['username']
+		} else {
+			config.username = cloud.serviceUsername ?: cloud.configMap.username
+		}
+		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('password')) {
+			config.password = cloud.accountCredentialData['password']
+		} else {
+			config.password = cloud.servicePassword ?: cloud.configMap.password
+		}
+
+		return config
 	}
 }

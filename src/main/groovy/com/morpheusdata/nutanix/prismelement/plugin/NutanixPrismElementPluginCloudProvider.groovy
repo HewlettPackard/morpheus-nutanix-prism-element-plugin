@@ -32,6 +32,7 @@ import com.morpheusdata.model.CloudFolder
 import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
+import com.morpheusdata.model.Container
 import com.morpheusdata.model.Datastore
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.Network
@@ -45,6 +46,7 @@ import com.morpheusdata.model.StorageControllerType
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.VirtualImageLocation
+import com.morpheusdata.nutanix.prismelement.plugin.sync.ContainersSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
@@ -537,7 +539,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
-		log.debug("refresh: ${cloudInfo}")
+		log.info("refresh: ${cloudInfo}")
 
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = cloudInfo.apiProxy
@@ -563,7 +565,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					}
 					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
 //					cacheNetworks([zone: zone, proxySettings: proxySettings])
-//					cacheContainers([zone: zone])
+					new ContainersSync(context, cloudInfo, client).execute()
 //					cacheImages([zone: zone])
 //					cacheHosts([zone: zone])
 
