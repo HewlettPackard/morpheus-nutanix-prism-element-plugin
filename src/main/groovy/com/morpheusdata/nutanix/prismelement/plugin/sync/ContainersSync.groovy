@@ -65,9 +65,9 @@ class ContainersSync {
 				syncTask.addMatchFunction { DatastoreIdentity datastoreIdentity, Map cloudItem ->
 					datastoreIdentity?.externalId == cloudItem?.uuid
 				}.onAdd { List<Map> cloudItems ->
-					cloudItems?.each { cloudItem ->
+					def datastores = cloudItems?.collect { cloudItem ->
 						log.debug("adding boot policy: ${cloudItem}")
-						context.services.cloud.datastore.create(new Datastore(
+						new Datastore(
 							owner: cloud.owner,
 							code: "nutanix.acropolis.datastore.${cloud.id}.${cloudItem.id}",
 							cloud: cloud,
@@ -80,13 +80,13 @@ class ContainersSync {
 							storageSize: Long.valueOf(cloudItem.maxStorage ?: 0),
 							freeSpace: Long.valueOf(cloudItem.freeStorage ?: 0),
 							active: cloud.defaultDatastoreSyncActive
-						))
+						)
 					}
+
+					context.services.cloud.datastore.bulkCreate(datastores)
 				}.onDelete { List<Datastore> morpheusItems ->
-					morpheusItems?.each { morpheusItem ->
-						log.debug("removing datastore ${morpheusItem}")
-						context.services.cloud.datastore.remove(morpheusItem)
-					}
+					log.debug("removing datastores: ${morpheusItems}")
+					context.services.cloud.datastore.bulkRemove(morpheusItems)
 				}.start()
 			}
 		} catch (e) {
