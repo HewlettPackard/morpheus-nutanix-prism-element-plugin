@@ -24,8 +24,13 @@ import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
-import com.morpheusdata.response.ServiceResponse
 
+/**
+ * API service for interfacing with Nutanix Prism Element (NPE)
+ *
+ * Helpful links:
+ * - What is each API version for? -- https://www.nutanix.dev/api-versions/
+ */
 @Slf4j
 class NutanixPrismElementApiService {
 
