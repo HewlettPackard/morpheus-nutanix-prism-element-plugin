@@ -25,34 +25,14 @@ import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.core.util.HttpApiClient
-import com.morpheusdata.model.AccountCredential
-import com.morpheusdata.model.BackupProvider
-import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.CloudFolder
-import com.morpheusdata.model.CloudPool
-import com.morpheusdata.model.ComputeServer
-import com.morpheusdata.model.ComputeServerType
-import com.morpheusdata.model.Container
-import com.morpheusdata.model.Datastore
-import com.morpheusdata.model.Icon
-import com.morpheusdata.model.Network
-import com.morpheusdata.model.NetworkPool
-import com.morpheusdata.model.NetworkPoolRange
-import com.morpheusdata.model.NetworkSubnetType
-import com.morpheusdata.model.NetworkType
-import com.morpheusdata.model.OptionType
-import com.morpheusdata.model.ServicePlan
-import com.morpheusdata.model.StorageControllerType
-import com.morpheusdata.model.StorageVolumeType
-import com.morpheusdata.model.VirtualImage
-import com.morpheusdata.model.VirtualImageLocation
+import com.morpheusdata.model.*
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ContainersSync
+import com.morpheusdata.nutanix.prismelement.plugin.sync.HostsSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
-import org.bouncycastle.util.test.FixedSecureRandom
 
 import java.security.MessageDigest
 
@@ -568,7 +548,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 //					cacheNetworks([zone: zone, proxySettings: proxySettings])
 					new ContainersSync(context, cloudInfo, client).execute()
 //					cacheImages([zone: zone])
-//					cacheHosts([zone: zone])
+					new HostsSync(context, cloudInfo, client).execute()
 
 //					def doInventory = cloudInfo.getConfigProperty('importExisting')
 //					if (cloudInfo.serviceVersion != 'v3') {

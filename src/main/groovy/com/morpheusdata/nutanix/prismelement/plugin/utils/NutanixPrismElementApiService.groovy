@@ -24,7 +24,6 @@ import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
-import com.morpheusdata.response.ServiceResponse
 
 @Slf4j
 class NutanixPrismElementApiService {
@@ -582,7 +581,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listHosts(HttpApiClient client, Map authConfig, Map opts) {
+	static listHosts(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, hosts: [], total: 0]
 		try {
 			def apiPath = authConfig.basePath + 'hosts/list'
