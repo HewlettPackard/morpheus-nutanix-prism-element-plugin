@@ -331,6 +331,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			computeService: 'nutanixComputeService',
 			displayOrder: 1,
 			hasAutomation: false,
+			vmHypervisor: true,
 			bareMetalHost: true,
 			agentType: null,
 			provisionTypeCode: CLOUD_PROVIDER_CODE)
