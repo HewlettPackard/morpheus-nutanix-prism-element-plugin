@@ -135,13 +135,17 @@ class ImagesSync {
 	}
 
 	void addMissingVirtualImages(Collection<Map> cloudImages) {
+		def locations = []
 		def images = cloudImages.collect {
 			def image = buildVirtualImage(cloud, it)
-			image.imageLocations << buildVirtualImageLocation(cloud, it)
+			def location = buildVirtualImageLocation(cloud, it)
+			location.virtualImage = image
+			locations << location
 			image
 		}
 
-		context.services.virtualImage.bulkCreate(images) // takes care of both image + location
+		context.services.virtualImage.bulkCreate(images)
+		context.services.virtualImage.location.bulkCreate(locations)
 	}
 
 	private static VirtualImage buildVirtualImage(Cloud cloud, Map cloudImage) {
