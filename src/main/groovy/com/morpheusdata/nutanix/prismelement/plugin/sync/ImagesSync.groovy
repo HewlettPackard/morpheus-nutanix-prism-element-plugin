@@ -235,7 +235,7 @@ class ImagesSync {
 	}
 
 	private removeSyncedImagesWithoutLocations() {
-		def images = context.async.virtualImage.list(new DataQuery().withFilters(
+		def images = context.services.virtualImage.list(new DataQuery().withFilters(
 			new DataFilter("category", "nutanix.acropolis.image.${cloud.id}"),
 			new DataFilter("userUploaded", false),
 			new DataOrFilter(
@@ -246,7 +246,7 @@ class ImagesSync {
 				new DataFilter('owner', null),
 				new DataFilter('owner.id', cloud.owner.id)
 			)
-		)).toList().blockingGet().findAll { it.imageLocations.size() == 0 }
+		)).findAll { it.imageLocations.size() == 0 }
 		if (images) {
 			log.debug("Removing ${images.size()} images without locations")
 			context.services.virtualImage.bulkRemove(images)
