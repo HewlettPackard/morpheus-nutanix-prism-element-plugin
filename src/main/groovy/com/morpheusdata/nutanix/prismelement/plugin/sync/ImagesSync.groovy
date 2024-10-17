@@ -90,6 +90,10 @@ class ImagesSync {
 					new DataOrFilter(
 						new DataFilter('owner', null),
 						new DataFilter('owner.id', '==', cloud.owner.id)
+					),
+					new DataOrFilter(
+						new DataFilter('externalId', 'in', (addItems.collect { it.uuid } + addItems.collect { it.vmDiskId }).unique()),
+						new DataFilter('name', 'in', addItems.collect { it.name })
 					)
 				)
 		)
