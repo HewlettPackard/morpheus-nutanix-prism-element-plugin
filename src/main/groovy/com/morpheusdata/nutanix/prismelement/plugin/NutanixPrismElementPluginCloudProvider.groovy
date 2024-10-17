@@ -28,6 +28,7 @@ import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ContainersSync
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ImagesSync
+import com.morpheusdata.nutanix.prismelement.plugin.sync.HostsSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
@@ -311,6 +312,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			computeService: 'nutanixComputeService',
 			displayOrder: 1,
 			hasAutomation: false,
+			vmHypervisor: true,
 			bareMetalHost: true,
 			agentType: null,
 			provisionTypeCode: CLOUD_PROVIDER_CODE)
@@ -547,7 +549,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 //					cacheNetworks([zone: zone, proxySettings: proxySettings])
 					new ContainersSync(context, cloudInfo, client).execute()
 					new ImagesSync(context, cloudInfo, client).execute()
-//					cacheHosts([zone: zone])
+					new HostsSync(context, cloudInfo, client).execute()
 
 //					def doInventory = cloudInfo.getConfigProperty('importExisting')
 //					if (cloudInfo.serviceVersion != 'v3') {

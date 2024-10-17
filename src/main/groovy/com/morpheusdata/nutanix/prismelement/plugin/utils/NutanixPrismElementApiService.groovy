@@ -587,7 +587,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listHosts(HttpApiClient client, Map authConfig, Map opts) {
+	static listHosts(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, hosts: [], total: 0]
 		try {
 			def apiPath = authConfig.basePath + 'hosts/list'
