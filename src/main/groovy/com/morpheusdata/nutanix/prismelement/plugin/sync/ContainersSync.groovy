@@ -87,6 +87,10 @@ class ContainersSync {
 				}.onDelete { List<Datastore> morpheusItems ->
 					log.debug("removing datastores: ${morpheusItems}")
 					context.services.cloud.datastore.bulkRemove(morpheusItems)
+				}.onUpdate {
+					// do nothing
+				}.withLoadObjectDetailsFromFinder { updateItems ->
+					context.async.cloud.datastore.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()
 			}
 		} catch (e) {

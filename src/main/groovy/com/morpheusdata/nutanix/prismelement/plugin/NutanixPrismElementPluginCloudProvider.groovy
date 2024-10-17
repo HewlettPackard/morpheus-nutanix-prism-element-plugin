@@ -27,6 +27,7 @@ import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ContainersSync
+import com.morpheusdata.nutanix.prismelement.plugin.sync.ImagesSync
 import com.morpheusdata.nutanix.prismelement.plugin.sync.HostsSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
@@ -547,7 +548,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
 //					cacheNetworks([zone: zone, proxySettings: proxySettings])
 					new ContainersSync(context, cloudInfo, client).execute()
-//					cacheImages([zone: zone])
+					new ImagesSync(context, cloudInfo, client).execute()
 					new HostsSync(context, cloudInfo, client).execute()
 
 //					def doInventory = cloudInfo.getConfigProperty('importExisting')
