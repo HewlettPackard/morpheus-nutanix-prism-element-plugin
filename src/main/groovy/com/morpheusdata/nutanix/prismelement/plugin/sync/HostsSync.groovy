@@ -104,10 +104,12 @@ class HostsSync {
 
 			def ipmiAddress = item.status.resources.ipmi?.ip
 			if (ipmiAddress) {
-				newServer.accesses << new ComputeServerAccess(
+				def access = new ComputeServerAccess(
 					accessType: 'ipmi',
 					host: ipmiAddress
 				)
+				access = context.async.computeServer.access.create(access).blockingGet()
+				newServer.accesses << access
 			}
 
 			newServer.powerState = (isHostPoweredOn(item)) ? ComputeServer.PowerState.on : ComputeServer.PowerState.off
