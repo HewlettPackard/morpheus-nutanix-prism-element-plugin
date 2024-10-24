@@ -20,6 +20,8 @@ package com.morpheusdata.nutanix.prismelement.plugin
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.providers.CloudProvider
+import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBackupProvider
@@ -27,6 +29,8 @@ import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBa
 @SuppressWarnings("unused")
 // picked up by plugin framework
 class NutanixPrismElementPlugin extends Plugin {
+	protected ProvisionProvider provisionProvider
+	private CloudProvider cloudProvider
 
 	@Override
 	String getCode() {
@@ -36,12 +40,22 @@ class NutanixPrismElementPlugin extends Plugin {
 	@Override
 	void initialize() {
 		this.setName("Nutanix Prism Element Plugin")
-		this.registerProvider(new NutanixPrismElementPluginCloudProvider(this, this.morpheus))
-		this.registerProvider(new NutanixPrismElementVersionDatasetProvider(this, this.morpheus))
-		this.registerProvider(new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus))
-		this.registerProvider(new NutanixPrismElementPluginProvisionProvider(this, this.morpheus))
-		this.registerProvider(new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus))
-		this.registerProvider(new NutanixPrismElementBackupProvider(this, morpheus))
+
+		cloudProvider = new NutanixPrismElementPluginCloudProvider(this, this.morpheus)
+		def versionDatasetProvider = new NutanixPrismElementVersionDatasetProvider(this, this.morpheus)
+		def imageStoreDatasetProvider = new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus)
+		provisionProvider = new NutanixPrismElementPluginProvisionProvider(this, this.morpheus)
+		def networkPoolProvider = new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus)
+		def backupProvider = new NutanixPrismElementBackupProvider(this, morpheus)
+
+		this.registerProviders(
+			backupProvider,
+			this.cloudProvider,
+			imageStoreDatasetProvider,
+			networkPoolProvider,
+			this.provisionProvider,
+			versionDatasetProvider,
+		)
 	}
 
 	/**

@@ -383,8 +383,8 @@ class NutanixPrismElementApiService {
 			def apiPath = v2Api + 'vms'
 			def headers = buildHeaders(null, authConfig.username, authConfig.password)
 
-			def query = [include_vm_disk_config: true, include_vm_nic_config: true]
-			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, query: query)
+			def query = [include_vm_disk_config: 'true', include_vm_nic_config: 'true']
+			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 			//get v1 data
 			def vmList = listVirtualMachinesV1(client, authConfig, opts)
 			def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'GET')
