@@ -29,6 +29,7 @@ import com.morpheusdata.model.*
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ContainersSync
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ImagesSync
 import com.morpheusdata.nutanix.prismelement.plugin.sync.HostsSync
+import com.morpheusdata.nutanix.prismelement.plugin.sync.NetworkSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
@@ -546,7 +547,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 						context.async.cloud.save(cloudInfo)
 					}
 					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
-//					cacheNetworks([zone: zone, proxySettings: proxySettings])
+					new NetworkSync(context, cloudInfo, client).execute()
 					new ContainersSync(context, cloudInfo, client).execute()
 					new ImagesSync(context, cloudInfo, client).execute()
 					new HostsSync(context, cloudInfo, client).execute()
