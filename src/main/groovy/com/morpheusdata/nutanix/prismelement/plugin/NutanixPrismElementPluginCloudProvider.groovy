@@ -34,6 +34,7 @@ import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 
 import java.security.MessageDigest
+import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPluginProvisionProvider
 
 /**
  * Cloud provider for the Nutanix Prism Element Plugin
@@ -766,7 +767,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	String getDefaultProvisionTypeCode() {
-		return CLOUD_PROVIDER_CODE // cloud code and provision code match for existing plugin
+		return NutanixPrismElementPluginProvisionProvider.PROVISION_PROVIDER_CODE
 	}
 
 	/**
