@@ -589,7 +589,7 @@ class VirtualMachinesSync {
 
 						def network = networks.find { it.externalId == nicInfo.network_uuid }
 						def save = false
-						if (network && existingInterface.networkId != network?.id) {
+						if (network && existingInterface.network?.id != network?.id) {
 							existingInterface.network = network
 							save = true
 						}
