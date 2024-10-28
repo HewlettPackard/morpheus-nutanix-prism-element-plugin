@@ -193,20 +193,28 @@ class VirtualMachinesSync {
 					server.capacityInfo.maxStorage = server.maxStorage
 				}
 
-				context.services.computeServer.save(server)
+				server = saveAndGet(server)
 			}
 		}
 
 		if (server.status != 'provisioning' && cloudItem.legacyVm) {
 			def savedRequired = updateVirtualMachineStats(server, cloudItem.legacyVm)
 			if (savedRequired) {
-				context.services.computeServer.save(server)
+				server = saveAndGet(server)
 			}
 		}
 
 		if (server.status != 'resizing') {
 			cacheVirtualMachineInterfaces(cloudItem.vm_nics as List<Map>, server, systemNetworks, netTypes)
 		}
+	}
+
+	protected ComputeServer saveAndGet(ComputeServer server) {
+		def saveSuccessful = context.async.computeServer.bulkSave([server]).blockingGet()
+		if (!saveSuccessful) {
+			log.warn("Error saving server: ${server?.id}")
+		}
+		return context.async.computeServer.get(server.id).blockingGet()
 	}
 
 	private static boolean updateVirtualMachineStats(ComputeServer server, Map vm) {
