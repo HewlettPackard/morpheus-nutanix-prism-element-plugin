@@ -21,22 +21,16 @@ package com.morpheusdata.nutanix.prismelement.plugin
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
-import com.morpheusdata.model.ComputeServer
-import com.morpheusdata.model.ComputeServerInterfaceType
-import com.morpheusdata.model.Icon
-import com.morpheusdata.model.OptionType
-import com.morpheusdata.model.ServicePlan
-import com.morpheusdata.model.StorageVolumeType
-import com.morpheusdata.model.Workload
+import com.morpheusdata.model.*
 import com.morpheusdata.model.provisioning.WorkloadRequest
-import com.morpheusdata.model.VirtualImageType
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 
-class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider {
+class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider, ProvisionProvider.SnapshotFacet {
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
