@@ -56,7 +56,10 @@ class HostsSync {
 			def serverOs = context.services.osType.find(new DataQuery().withFilter('code', 'linux'))
 			def existingItems = context.async.computeServer.listIdentityProjections(new DataQuery()
 				.withFilter('refType', 'ComputeZone')
-				.withFilter('refId', cloud.id))
+				.withFilter('refId', cloud.id)
+				.withFilter('computeServerType.code', "nutanixMetalHypervisor")
+			)
+			
 
 			SyncTask<ComputeServerIdentityProjection, Map, ComputeServer> sync = new SyncTask<>(existingItems, objList)
 			sync.addMatchFunction { ComputeServerIdentityProjection existingHost, Map cloudHost ->

@@ -27,9 +27,10 @@ import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
 import com.morpheusdata.nutanix.prismelement.plugin.sync.ContainersSync
-import com.morpheusdata.nutanix.prismelement.plugin.sync.ImagesSync
 import com.morpheusdata.nutanix.prismelement.plugin.sync.HostsSync
 import com.morpheusdata.nutanix.prismelement.plugin.sync.NetworkSync
+import com.morpheusdata.nutanix.prismelement.plugin.sync.ImagesSync
+import com.morpheusdata.nutanix.prismelement.plugin.sync.VirtualMachinesSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
@@ -50,9 +51,9 @@ class NutanixPrismElementPluginCloudProvider implements CloudProvider {
 	public static final String CLOUD_PROVIDER_NAME = 'Nutanix Prism Element'
 
 	protected MorpheusContext context
-	protected Plugin plugin
+	protected NutanixPrismElementPlugin plugin
 
-	NutanixPrismElementPluginCloudProvider(Plugin plugin, MorpheusContext ctx) {
+	NutanixPrismElementPluginCloudProvider(NutanixPrismElementPlugin plugin, MorpheusContext ctx) {
 		super()
 		this.@plugin = plugin
 		this.@context = ctx
@@ -551,19 +552,8 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					new ContainersSync(context, cloudInfo, client).execute()
 					new ImagesSync(context, cloudInfo, client).execute()
 					new HostsSync(context, cloudInfo, client).execute()
+					new VirtualMachinesSync(context, cloudInfo, client, plugin.provisionProvider.getComputeServerInterfaceTypes(), plugin.cloudProvider.getComputeServerTypes()).execute()
 
-//					def doInventory = cloudInfo.getConfigProperty('importExisting')
-//					if (cloudInfo.serviceVersion != 'v3') {
-//						if (doInventory == 'on' || doInventory == 'true' || doInventory == true)
-//							cacheVirtualMachinesV2([zone: zone, createNew: true])
-//						else
-//							cacheVirtualMachinesV2([zone: zone, createNew: false])
-//					} else {
-//						if (doInventory == 'on' || doInventory == 'true' || doInventory == true)
-//							cacheVirtualMachines([zone: zone, createNew: true])
-//						else
-//							cacheVirtualMachines([zone: zone, createNew: false])
-//					}
 //					cacheSnapshotsV2([zone: zone])
 					context.services.operationNotification.clearZoneAlarm(cloudInfo)
 					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.ok, null, syncDate)
