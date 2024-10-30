@@ -550,7 +550,6 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					new HostsSync(context, cloudInfo, client).execute()
 					new VirtualMachinesSync(context, cloudInfo, client, plugin.provisionProvider.getComputeServerInterfaceTypes(), plugin.cloudProvider.getComputeServerTypes()).execute()
 					new SnapshotsSync(context, cloudInfo, client).execute()
-
 					context.services.operationNotification.clearZoneAlarm(cloudInfo)
 					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.ok, null, syncDate)
 				} else {
