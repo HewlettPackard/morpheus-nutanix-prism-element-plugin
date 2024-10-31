@@ -530,4 +530,29 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 
 		virtualImageTypes
 	}
+
+	@Override
+	Boolean hasNetworks() {
+		return true
+	}
+
+	@Override
+	Boolean canCustomizeRootVolume() {
+		return true
+	}
+
+	@Override
+	Boolean disableRootDatastore() {
+		return true
+	}
+
+	@Override
+	Boolean canAddVolumes() {
+		return true
+	}
+
+	@Override
+	Boolean canCustomizeDataVolumes() {
+		return true
+	}
 }
