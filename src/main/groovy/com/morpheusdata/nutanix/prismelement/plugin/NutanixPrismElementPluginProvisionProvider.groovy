@@ -496,6 +496,16 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		return 'Spin up any VM Image on your Nutanix Prism Element infrastructure.'
 	}
 
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * We already have an instance type defined in a scribe file, no need to create a default
+	 */
+	@Override
+	Boolean createDefaultInstanceType() {
+		return false
+	}
+
 	@Override
 	Collection<ComputeServerInterfaceType> getComputeServerInterfaceTypes() {
 		Collection<ComputeServerInterfaceType> ifaces = []
