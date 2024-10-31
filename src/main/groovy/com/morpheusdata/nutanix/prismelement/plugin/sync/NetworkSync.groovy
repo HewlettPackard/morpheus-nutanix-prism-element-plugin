@@ -72,7 +72,7 @@ class NetworkSync {
 				def managedNetwork = it.ipConfig?.networkAddress ? true : false
 				def networkType = managedNetwork ? nutanixManagedVlan : nutanixVlan
 				def add = new Network(
-					owner: new Account(id: cloud.owner.id),
+					owner: cloud.owner,
 					category: "nutanix.acropolis.network.${cloud.id}",
 					name: it.name ?: it.uuid,
 					code: "nutanix.acropolis.network.${cloud.id}.${it.uuid}",
@@ -110,8 +110,8 @@ class NetworkSync {
 						subnetAddress: it.ipConfig.networkAddress,
 						gateway: it.ipConfig.defaultGateway,
 						type: poolType,
-						owner: new Account(id: cloud.owner.id),
-						account: new Account(id: cloud.account.id)
+						owner: cloud.owner,
+						account: cloud.account
 					)
 					//ip ranges
 					poolRanges.each { poolRange ->
@@ -122,7 +122,13 @@ class NetworkSync {
 							addNetworkPool.addToIpRanges(newRange)
 						}
 					}
-					add.pool = addNetworkPool
+
+					// TODO: replace with newer api when fixed, use deprecated api for now
+					// The deprecated API properly looks up the poolType by code, which we need, but unfortunately only operates on
+					// a list and returns a boolean. If successful, we look the pool back up after the fact.
+					if (morpheusContext.async.network.pool.create([addNetworkPool]).blockingGet()) {
+						add.pool = morpheusContext.async.network.pool.find(new DataQuery().withFilter('externalId', addNetworkPool.externalId)).blockingGet()
+					}
 				}
 				networkAdds << add
 			}
