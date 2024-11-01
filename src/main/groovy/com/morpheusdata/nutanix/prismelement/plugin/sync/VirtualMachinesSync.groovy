@@ -103,7 +103,8 @@ class VirtualMachinesSync {
 				}.onUpdate { List<SyncList.UpdateItem<ComputeServer, Map>> updateItems ->
 					updateMatchedVirtualMachines(updateItems, availablePlans, availablePlanPermissions, fallbackPlan)
 				}.onDelete { deleteItems ->
-					context.services.computeServer.bulkRemove(deleteItems)
+					// TODO: switch back to bulkRemove once fixed
+					context.services.computeServer.remove(deleteItems)
 				}.withLoadObjectDetailsFromFinder { updateItems ->
 					context.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()
