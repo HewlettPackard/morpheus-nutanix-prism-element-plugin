@@ -28,6 +28,7 @@ import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
 import com.morpheusdata.nutanix.prismelement.plugin.sync.*
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
+import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
@@ -736,7 +737,8 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse stopServer(ComputeServer computeServer) {
-		return ServiceResponse.success()
+		HttpApiClient client = new HttpApiClient()
+		return NutanixPrismElementComputeUtility.doStop(client, computeServer, computeServer.cloud, "stopServer")
 	}
 
 	/**
