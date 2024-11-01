@@ -726,7 +726,8 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse startServer(ComputeServer computeServer) {
-		return ServiceResponse.success()
+		HttpApiClient client = new HttpApiClient()
+		return NutanixPrismElementComputeUtility.doStart(client, computeServer, computeServer.cloud, "startServer")
 	}
 
 	/**

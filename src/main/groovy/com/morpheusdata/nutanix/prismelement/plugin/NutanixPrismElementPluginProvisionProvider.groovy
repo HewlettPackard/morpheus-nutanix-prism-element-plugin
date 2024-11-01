@@ -320,33 +320,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse startWorkload(Workload workload) {
-		ServiceResponse rtn = ServiceResponse.prepare()
-		try {
-			ComputeServer server = workload.server
-			Cloud cloud = server.cloud
-			def vmOpts = [
-				server       : server,
-				zone         : cloud,
-				proxySettings: cloud.apiProxy,
-				externalId   : server.externalId
-			]
-			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
-			if (vmResults?.virtualMachine?.state == "on") {
-				log.debug("startWorkload >> vm already started")
-				rtn.success = true
-			} else {
-				log.debug("startWorkload >> vm needs starting")
-				if (vmResults?.virtualMachine?.logicalTimestamp)
-					vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
-				def startResults = NutanixPrismElementApiService.startVm(client, vmOpts, vmOpts.externalId)
-				rtn.success = startResults.success
-				rtn.msg = startResults.msg
-			}
-		} catch (e) {
-			log.error("startContainer error: ${e}", e)
-			rtn.msg = e.message
-		}
-		return rtn
+		return NutanixPrismElementComputeUtility.doStart(client, workload.server, workload.server.cloud, "startWorkload")
 	}
 
 	/**
@@ -413,7 +387,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse startServer(ComputeServer computeServer) {
-		return ServiceResponse.success()
+		return NutanixPrismElementComputeUtility.doStart(client, computeServer, computeServer.cloud, "startServer")
 	}
 
 	/**

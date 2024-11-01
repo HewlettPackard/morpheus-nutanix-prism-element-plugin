@@ -36,4 +36,32 @@ class NutanixPrismElementComputeUtility {
 		}
 		return rtn
 	}
+
+	static ServiceResponse doStart(HttpApiClient client, ComputeServer server, Cloud cloud, String label) {
+		ServiceResponse rtn = ServiceResponse.prepare()
+		try {
+			def vmOpts = [
+				server       : server,
+				zone         : cloud,
+				proxySettings: cloud.apiProxy,
+				externalId   : server.externalId
+			]
+			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
+			if (vmResults?.virtualMachine?.state == "on") {
+				log.debug("${label} >> vm already started")
+				rtn.success = true
+			} else {
+				log.debug("${label} >> vm needs starting")
+				if (vmResults?.virtualMachine?.logicalTimestamp)
+					vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+				def startResults = NutanixPrismElementApiService.startVm(client, vmOpts, vmOpts.externalId)
+				rtn.success = startResults.success
+				rtn.msg = startResults.msg
+			}
+		} catch (e) {
+			log.error("${label} error: ${e}", e)
+			rtn.msg = e.message
+		}
+		return rtn
+	}
 }
