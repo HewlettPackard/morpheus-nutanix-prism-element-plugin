@@ -18,24 +18,35 @@
 
 package com.morpheusdata.nutanix.prismelement.plugin
 
+import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.ProvisionProvider
+import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
+import com.morpheusdata.model.ComputeServer
+import com.morpheusdata.model.ComputeServerInterfaceType
+import com.morpheusdata.model.Icon
+import com.morpheusdata.model.OptionType
+import com.morpheusdata.model.ServicePlan
+import com.morpheusdata.model.StorageVolumeType
+import com.morpheusdata.model.Workload
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
+import com.morpheusdata.model.provisioning.HostRequest
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.model.VirtualImageType
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
+import com.morpheusdata.request.ResizeRequest
 import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider, ProvisionProvider.SnapshotFacet {
+class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider, HostProvisionProvider, ProvisionProvider.SnapshotFacet, HostProvisionProvider.ResizeFacet  {
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
@@ -520,5 +531,33 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		virtualImageTypes << new VirtualImageType(code: 'qcow2', name: 'QCOW2')
 
 		virtualImageTypes
+	}
+
+	@Override
+	ServiceResponse validateHost(ComputeServer computeServer, Map map) {
+		// todo nick
+		return new ServiceResponse(success: true, msg: e.message, error: e.message, data: null)
+	}
+
+	@Override
+	ServiceResponse<PrepareHostResponse> prepareHost(ComputeServer computeServer, HostRequest hostRequest, Map map) {
+		return null
+	}
+
+	@Override
+	ServiceResponse<ProvisionResponse> runHost(ComputeServer computeServer, HostRequest hostRequest, Map map) {
+		// todo nick
+		ProvisionResponse provisionResponse = new ProvisionResponse(success: true, installAgent: false)
+		return new ServiceResponse(success: true, msg: e.message, error: e.message, data: null)
+	}
+
+	@Override
+	ServiceResponse finalizeHost(ComputeServer computeServer) {
+		return null
+	}
+
+	@Override
+	ServiceResponse resizeServer(ComputeServer computeServer, ResizeRequest resizeRequest, Map map) {
+		return null
 	}
 }
