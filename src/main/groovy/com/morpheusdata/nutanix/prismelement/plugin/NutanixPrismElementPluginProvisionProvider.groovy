@@ -534,9 +534,63 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	}
 
 	@Override
-	ServiceResponse validateHost(ComputeServer computeServer, Map map) {
+	ServiceResponse validateHost(ComputeServer server, Map opts) {
 		// todo nick
-		return new ServiceResponse(success: true, msg: e.message, error: e.message, data: null)
+		log.info("validateServiceConfiguration: {}", server)
+		def success = false
+		Map<String, String> errors = [:]
+		try {
+			def validationOpts = opts
+			validationOpts.networkId = (opts?.config?.nutanixNetworkId ?: opts?.nutanixNetworkId)
+			if(opts?.config?.templateTypeSelect == 'custom')
+				validationOpts += [imageId:opts?.config?.imageId]
+			if(opts?.config?.containsKey('nodeCount')){
+				validationOpts += [nodeCount: opts.config.nodeCount]
+			}
+			if(validationOpts.networkId) {
+				// great
+			} else if (validationOpts?.networkInterfaces) {
+				// JSON (or Map from parseNetworks)
+				log.debug("validateServerConfig networkInterfaces: ${validationOpts?.networkInterfaces}")
+				validationOpts?.networkInterfaces?.eachWithIndex { nic, index ->
+					def networkId = nic.network?.id ?: nic.network.group
+					log.debug("network.id: ${networkId}")
+					if(!networkId) {
+						errors << [field:'networkInterface', msg:'Network is required']
+					}
+					if (nic.ipMode == 'static' && !nic.ipAddress) {
+						errors = [field:'networkInterface', msg:'You must enter an ip address']
+					}
+				}
+			} else if (validationOpts?.networkInterface && !validationOpts?.networkInterface?.network?.id instanceof String) {
+				// UI params
+				log.debug("validateServerConfig networkInterface: ${validationOpts.networkInterface}")
+				def optsList = [validationOpts?.networkInterface?.network?.id].flatten()
+				optsList?.eachWithIndex { networkId, index ->
+					log.debug("network.id: ${networkId}")
+					if(networkId?.length() < 1) {
+						errors << [field:'networkInterface', msg:'Network is required']
+					}
+					if (networkInterface[index].ipMode == 'static' && !networkInterface[index].ipAddress) {
+						errors = [field:'networkInterface', msg:'You must enter an ip address']
+					}
+				}
+			} else {
+				errors << [field:'networkId', msg:'Network is required']
+			}
+			if(validationOpts.containsKey('imageId') && !validationOpts.imageId)
+				errors += [field:'imageId', msg:'You must choose an image']
+			if(validationOpts.containsKey('nodeCount') && (!validationOpts.nodeCount || validationOpts.nodeCount == '')){
+				errors += [field:'config.nodeCount', msg:'You must enter a Host Count']
+				errors += [field:'nodeCount', msg:'You must enter a Host Count']
+			}
+			success = (errors.size() == 0)
+		} catch(e) {
+			log.error("error in validateServerConfig: ${e}", e)
+		}
+		log.debug("validateHost success ${}, errors ${}", success, errors)
+		return new ServiceResponse(success: success, msg: "", errors: errors)
+		//return new ServiceResponse(success: true, msg: e.message, error: e.message, data: null)
 	}
 
 	@Override
@@ -547,8 +601,162 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	@Override
 	ServiceResponse<ProvisionResponse> runHost(ComputeServer computeServer, HostRequest hostRequest, Map map) {
 		// todo nick
-		ProvisionResponse provisionResponse = new ProvisionResponse(success: true, installAgent: false)
-		return new ServiceResponse(success: true, msg: e.message, error: e.message, data: null)
+
+		def rtn = [success:false]
+		try {
+			def config = opts.server.getConfigMap()
+			opts.zone = zoneService.loadFullZone(opts.zone ?: opts.server.zone)
+			opts.account = opts.server.account
+			def layout = opts.server.layout
+			def typeSet = opts.server.typeSet
+			def zoneConfig = opts.zone.getConfigMap()
+			def imageType = config.templateTypeSelect ?: 'default'
+			opts.proxySettings = zoneService.getZoneProxySettings(opts.zone)
+			def imageId
+			def virtualImage
+			def rootVolume = opts.server.volumes?.find{it.rootVolume == true}
+			def maxStorage = getServerRootSize(opts.server)
+			def datastore = nutanixProvisionService.getDatastoreOption(opts.zone, opts.account, rootVolume?.datastore, rootVolume?.datastoreOption, maxStorage)
+			def datastoreId = datastore?.externalId
+			if(layout && typeSet) {
+				virtualImage = typeSet.containerType.virtualImage
+				imageId = virtualImage.externalId
+			} else if(imageType == 'custom' && config.imageId) {
+				def virtualImageId = config.imageId?.toLong()
+				virtualImage = VirtualImage.get(virtualImageId)
+				imageId = virtualImage.externalId
+			} else {
+				virtualImage = VirtualImage.findByCode('nutanix.image.morpheus.ubuntu.16.04') //better this later
+			}
+			if(!imageId) { //If its userUploaded and still needs uploaded
+				def cloudFiles = virtualImageService.getVirtualImageFiles(virtualImage)
+				def imageFile = cloudFiles?.find{cloudFile -> cloudFile.name.toLowerCase().endsWith(".qcow2")}
+				def containerImage = [name:virtualImage.name, imageSrc:imageFile?.getURL(), minDisk:virtualImage.minDisk ?: 5, minRam:virtualImage.minRam ?: 512,
+									  tags:'morpheus, ubuntu', imageType:'disk_image', containerType:'qemu', cloudFiles:cloudFiles, imageFile:imageFile]
+				def imageResults = NutanixComputeUtility.insertContainerImage([zone:opts.zone, containerId:datastoreId, image:containerImage,
+																			   cachePath:virtualImageService.getLocalCachePath(), proxySettings: opts.proxySettings])
+				if(imageResults.success == true) {
+					imageId = imageResults.imageDiskId
+					virtualImage.refresh()
+					virtualImageService.addVirtualImageLocation(virtualImage, imageId, opts.zone.id, 'ComputeZone', null, opts.zone.regionCode)
+				}
+			}
+			if(imageId) {
+				setAgentInstallConfig(opts)
+				def createdBy = getServerCreateUser(opts.server)
+				def userGroups = opts.server.userGroups?.toList() ?: []
+				if(opts.server.userGroup && userGroups.contains(opts.server.userGroup) == false) {
+					userGroups << opts.server.userGroup
+				}
+				opts.userConfig = userGroupService.buildContainerUserGroups(opts.account, virtualImage, userGroups,
+					createdBy, opts)
+				opts.server.sshUsername = opts.userConfig.sshUsername
+				opts.server.sshPassword = opts.userConfig.sshPassword
+				opts.server.sourceImage = virtualImage
+				opts.server.save(flush:true)
+				def maxMemory = opts.server.maxMemory ?: opts.server.plan.maxMemory
+				def maxCpu = opts.server.maxCpu ?: opts.server.plan?.maxCpu ?: 1
+				def maxCores = opts.server.maxCores ?: opts.server.plan.maxCores ?: 1
+				def coresPerSocket = opts.server.coresPerSocket ?: opts.server.plan.coresPerSocket ?: 1
+				def dataDisks = getServerDataDiskList(opts.server)
+				def createOpts = [account:opts.account, name:opts.server.name, maxMemory:maxMemory, maxStorage:maxStorage,
+								  cpuCount:maxCpu, imageId:imageId, server:opts.server, zone:opts.zone, externalId:opts.server.externalId,
+								  maxCores:maxCores, coresPerSocket: coresPerSocket, networkType:config.networkType, uuid:opts.server.apiKey, dataDisks:dataDisks, containerId:datastoreId,
+								  rootVolume:rootVolume, platform:opts.server.osType]
+				createOpts.hostname = opts.server.getExternalHostname()
+				createOpts.domainName = opts.server.getExternalDomain()
+				createOpts.networkConfig = networkConfigService.getNetworkConfig(opts.server, createOpts)
+				def cloudFileResults = [success:true]
+				if(virtualImage?.isCloudInit) {
+					def cloudConfigOpts = nutanixProvisionService.buildCloudConfigOpts(opts.zone, opts.server, opts.installAgent, [timezone: opts.timezone])
+					morpheusComputeService.buildCloudNetworkConfig(createOpts.platform, virtualImage, cloudConfigOpts, createOpts.networkConfig)
+					opts.server.cloudConfigUser = morpheusComputeService.buildCloudUserData(createOpts.platform, opts.userConfig, cloudConfigOpts)
+					opts.server.cloudConfigMeta = morpheusComputeService.buildCloudMetaData(createOpts.platform, "morpheus-${opts.server.id}", cloudConfigOpts.hostname, cloudConfigOpts)
+					opts.server.cloudConfigNetwork = morpheusComputeService.buildCloudNetworkData(createOpts.platform, cloudConfigOpts)
+					opts.server.save(flush:true)
+					opts.installAgent = (cloudConfigOpts.installAgent != true)
+					def insertIso = nutanixProvisionService.isCloudInitIso(createOpts)
+					if(insertIso == true) {
+						def applianceServerUrl = applianceService.getApplianceUrl(opts.server.zone)
+						def cloudFileUrl = applianceServerUrl + (applianceServerUrl.endsWith('/') ? '' : '/') + 'api/cloud-config/' + opts.server.apiKey
+						def cloudFileDiskName = 'morpheus_' + opts.server.id + '.iso'
+						cloudFileResults = NutanixComputeUtility.insertContainerImage([zone:opts.zone, proxySettings: opts.proxySettings, containerId:datastoreId,
+																					   image:[name:cloudFileDiskName, imageUrl:cloudFileUrl, imageType:'iso_image']])
+					} else {
+						//v1 of the api works with cloud config on linux - windows expects sysprep not cloudbase
+						createOpts.cloudConfig = morpheusComputeService.buildCloudUserData(createOpts.platform, opts.userConfig, cloudConfigOpts)
+					}
+				} else {
+					opts.createUserList = opts.userConfig.createUsers
+				}
+				//create it
+				if(cloudFileResults.success == true) {
+					createOpts.cloudFileId = cloudFileResults.imageDiskId
+					log.debug("create server")
+					def createResults = findOrCreateServer(createOpts)
+					log.info("create server: ${createResults}")
+					if(createResults.success == true && createResults.results?.uuid) {
+						opts.server.externalId = createResults.results.uuid
+						opts.server.save(flush:true)
+						def vmResults = NutanixComputeUtility.loadVirtualMachine(opts, opts.server.externalId)
+						def startResults = NutanixComputeUtility.startVm(opts + [timestamp:vmResults?.virtualMachine?.logicalTimestamp ?: 1], opts.server.externalId)
+						log.debug("start: ${startResults.success}")
+						if(startResults.success == true) {
+							if(startResults.error == true) {
+								opts.server.statusMessage = 'Failed to start server'
+								//ouch - delet it?
+							} else {
+								//good to go
+								def serverDetail = checkServerReady([zone:opts.zone, proxySettings: opts.proxySettings, externalId:opts.server.externalId])
+								log.debug("serverDetail: ${serverDetail}")
+								if(serverDetail.success == true) {
+									def privateIp = serverDetail.vmDetails?.ipAddresses[0]
+									def publicIp = serverDetail.vmDetails?.ipAddresses[0]
+									if(privateIp)
+										opts.network = nutanixProvisionService.applyComputeServerNetworkIp(opts.server, privateIp, publicIp, null, null, 0)
+									opts.server.managed = true
+									opts.server.save(flush:true, failOnError:true)
+									//need to figure how to know when its fully ready
+									//sleep(30000)
+									def finalizeOpts = buildFinalizeOpts(opts)
+									processService.finishAndRunNextStep(opts.processMap?.process, opts.processStepMap?.process,[:],[status:'finalizing'],
+										[runResults:[success:true],opts:finalizeOpts])
+									rtn.success = true
+								} else {
+									opts.server.statusMessage = 'Failed to load server details'
+								}
+							}
+						} else {
+							opts.server.statusMessage = 'Failed to start server'
+						}
+					} else {
+						opts.server.statusMessage = 'Failed to create server'
+					}
+				} else {
+					opts.server.statusMessage = 'Failed to load cloud config'
+				}
+				if(cloudFileResults.imageId) {
+					//ok - done - delete cloud disk
+					NutanixComputeUtility.deleteImage(opts, cloudFileResults.imageId)
+				}
+			} else {
+				opts.server.statusMessage = 'Image not found'
+			}
+		} catch(e) {
+			log.error("initializeServer error: ${e}", e)
+			opts.server.statusMessage = getStatusMessage("Failed to create server: ${e.message}")
+		}
+		if(rtn.success == false) {
+			try {
+				opts.server.save(flush:true)
+				ComputeServer.withNewSession {
+					ComputeServer.where { id == opts.server.id }.updateAll(status:'failed', statusMessage:opts.server.statusMessage)
+				}
+			} catch(e) {
+				log.error("initializeServer error updating error - ${e}", e)
+			}
+		}
+		return rtn
 	}
 
 	@Override

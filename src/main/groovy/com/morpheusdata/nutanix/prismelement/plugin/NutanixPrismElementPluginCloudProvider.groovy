@@ -418,6 +418,24 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			computeTypeCode: 'kube-worker',
 		)
 
+		def list = [
+			'selfManagedLinux',
+			'unmanaged',
+			'managed',
+			'unmanagedWindows',
+			'managedWindows',
+			'unmanagedMac',
+			'managedMac',
+		]
+
+		list.each {
+			def t = context.async.cloud.findComputeServerTypeByCode(it).blockingGet()
+			if (t != null) {
+				serverTypes << t
+			}
+		}
+
+
 		serverTypes
 	}
 
