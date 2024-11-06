@@ -271,12 +271,14 @@ class VirtualMachinesSync {
 			.flatten()
 			.unique()
 			.with { networkIds ->
-				context.services.network.list(
-					new DataQuery()
-						.withFilter('refType', 'ComputeZone')
-						.withFilter('refId', cloud.id)
-						.withFilter('externalId', 'in', networkIds)
-				)
+				if (networkIds) {
+					context.services.network.list(
+						new DataQuery()
+							.withFilter('refType', 'ComputeZone')
+							.withFilter('refId', cloud.id)
+							.withFilter('externalId', 'in', networkIds)
+					)
+				}
 			}
 
 		for (final def update in updateList) {
