@@ -35,7 +35,6 @@ import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 
 import java.security.MessageDigest
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPluginProvisionProvider
 
 /**
  * Cloud provider for the Nutanix Prism Element Plugin
@@ -543,7 +542,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					if (cloudInfo.regionCode != regionCode) {
 						convertOldRegionCodes(cloudInfo.regionCode, regionCode)
 						cloudInfo.regionCode = regionCode
-						context.async.cloud.save(cloudInfo)
+						context.async.cloud.save(cloudInfo).blockingGet()
 					}
 					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
 					new NetworkSync(context, cloudInfo, client).execute()
