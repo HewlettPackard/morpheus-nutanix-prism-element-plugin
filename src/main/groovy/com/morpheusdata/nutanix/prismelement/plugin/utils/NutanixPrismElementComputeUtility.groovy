@@ -1,10 +1,11 @@
 package com.morpheusdata.nutanix.prismelement.plugin.utils
 
-import com.morpheusdata.core.util.HttpApiClient;
-import com.morpheusdata.model.Cloud;
-import com.morpheusdata.model.ComputeServer;
+import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.util.HttpApiClient
+import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.response.ServiceResponse
-import groovy.util.logging.Slf4j;
+import groovy.util.logging.Slf4j
 
 @Slf4j
 class NutanixPrismElementComputeUtility {
@@ -12,7 +13,7 @@ class NutanixPrismElementComputeUtility {
 		ServiceResponse rtn = ServiceResponse.prepare()
 		try {
 			def vmOpts = [
-			server       : server,
+				server       : server,
 				zone         : cloud,
 				proxySettings: cloud.apiProxy,
 				externalId   : server.externalId
@@ -24,7 +25,7 @@ class NutanixPrismElementComputeUtility {
 			} else {
 				log.debug("${label} >> vm needs stopping")
 				if (vmResults?.virtualMachine?.logicalTimestamp)
-				vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+					vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
 				def stopResults = NutanixPrismElementApiService.stopVm(client, vmOpts, vmOpts.externalId)
 				rtn.success = stopResults.success
 				rtn.msg = stopResults.msg
@@ -63,5 +64,13 @@ class NutanixPrismElementComputeUtility {
 			rtn.msg = e.message
 		}
 		return rtn
+	}
+
+	static ComputeServer saveAndGet(MorpheusContext context, ComputeServer server) {
+		def saveSuccessful = context.async.computeServer.bulkSave([server]).blockingGet()
+		if (!saveSuccessful) {
+			log.warn("Error saving server: ${server?.id}")
+		}
+		return context.async.computeServer.get(server.id).blockingGet()
 	}
 }
