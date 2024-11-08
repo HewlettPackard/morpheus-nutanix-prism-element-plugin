@@ -26,7 +26,7 @@ import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
 import com.morpheusdata.model.provisioning.WorkloadRequest
-import com.morpheusdata.model.VirtualImageType
+import com.morpheusdata.model.projection.SnapshotIdentityProjection
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
@@ -42,7 +42,6 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 
 	protected MorpheusContext context
 	protected Plugin plugin
-	private HttpApiClient client = new HttpApiClient()
 
 	NutanixPrismElementPluginProvisionProvider(Plugin plugin, MorpheusContext ctx) {
 		super()
@@ -310,7 +309,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse stopWorkload(Workload workload) {
-		return NutanixPrismElementComputeUtility.doStop(client, workload.server, workload.server.cloud, "stopWorkload")
+		HttpApiClient client = new HttpApiClient()
+		try {
+			return NutanixPrismElementComputeUtility.doStop(client, workload.server, workload.server.cloud, "stopWorkload")
+		} finally {
+			client.shutdownClient()
+		}
 	}
 
 	/**
@@ -320,7 +324,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse startWorkload(Workload workload) {
-		return NutanixPrismElementComputeUtility.doStart(client, workload.server, workload.server.cloud, "startWorkload")
+		HttpApiClient client = new HttpApiClient()
+		try {
+			return NutanixPrismElementComputeUtility.doStart(client, workload.server, workload.server.cloud, "startWorkload")
+		} finally {
+			client.shutdownClient()
+		}
 	}
 
 	/**
@@ -344,7 +353,49 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse removeWorkload(Workload workload, Map opts) {
-		return ServiceResponse.success()
+		ServiceResponse rtn = ServiceResponse.prepare()
+		if (!workload.server?.externalId) {
+			rtn.msg = 'vm not found'
+			return rtn
+		}
+		def cloud = workload.server.cloud
+		def vmOpts = [
+			server:workload.server,
+			zone:cloud,
+			proxySettings: cloud.apiProxy,
+			externalId:workload.server.externalId
+		]
+
+		HttpApiClient client = new HttpApiClient()
+		try {
+			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
+			if(vmResults?.virtualMachine?.logicalTimestamp)
+				vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+			def stopResults = stopServer(workload.server)
+			if (!stopResults.success) {
+				return stopResults
+			}
+
+			if(!opts.keepBackups) {
+				List<SnapshotIdentityProjection> snapshots = workload.server.snapshots
+				snapshots?.each { snap ->
+					NutanixPrismElementApiService.deleteSnapshot(client, vmOpts, snap.externalId)
+				}
+			}
+			def removeResults = NutanixPrismElementApiService.deleteServer(client, vmOpts, vmOpts.externalId)
+			log.debug("remove results: ${removeResults}")
+			if(removeResults.success == true) {
+				rtn.success = true
+			} else {
+				rtn.msg = 'Failed to remove container'
+			}
+		} catch (e) {
+			log.error("removeWorkload error: ${e}", e)
+			rtn.msg = e.message
+		} finally {
+			client.shutdownClient()
+		}
+		return rtn
 	}
 
 	/**
@@ -377,7 +428,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse stopServer(ComputeServer computeServer) {
-		return NutanixPrismElementComputeUtility.doStop(client, computeServer, computeServer.cloud, "stopServer")
+		HttpApiClient client = new HttpApiClient()
+		try {
+			return NutanixPrismElementComputeUtility.doStop(client, computeServer, computeServer.cloud, "stopServer")
+		} finally {
+			client.shutdownClient()
+		}
 	}
 
 	/**
@@ -387,7 +443,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse startServer(ComputeServer computeServer) {
-		return NutanixPrismElementComputeUtility.doStart(client, computeServer, computeServer.cloud, "startServer")
+		HttpApiClient client = new HttpApiClient()
+		try {
+			return NutanixPrismElementComputeUtility.doStart(client, computeServer, computeServer.cloud, "startServer")
+		} finally {
+			client.shutdownClient()
+		}
 	}
 
 	/**
