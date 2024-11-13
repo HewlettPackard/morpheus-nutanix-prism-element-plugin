@@ -274,11 +274,11 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static getTask(HttpApiClient client, opts, taskId) {
+	static getTask(HttpApiClient client, zone, taskId) {
 		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
+		def apiUrl = getNutanixApiUrl(zone)
+		def username = getNutanixUsername(zone)
+		def password = getNutanixPassword(zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/tasks/' + taskId, null, null, requestOpts, 'GET')
@@ -513,32 +513,33 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static getVirtualMachineDisks(HttpApiClient client, opts, vmId) {
+	static getVirtualMachineDisks(HttpApiClient client, cloud, vmId) {
 		def rtn = [success: false, disks: []]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def query = [includeDiskSizes: 'true']
+		def apiUrl = getNutanixApiUrl(cloud)
+		def username = getNutanixUsername(cloud)
+		def password = getNutanixPassword(cloud)
+		def query = [include_vm_disk_config: 'true']
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks', null, null, requestOpts, 'GET')
-
+		// v2 api doesn't let you get just the disks
+		def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId, null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			log.debug("getVirtualMachineDisks results: ${rtn.results}")
-			rtn.results.entities?.each { entity ->
+			def disk_info = rtn.results.vm_disk_info
+			log.debug("getVirtualMachineDisks results: ${disk_info}")
+			rtn.results.vm_disk_info?.each { entity ->
 				rtn.disks << entity
 			}
 		}
 		return rtn
 	}
 
-	static getVirtualMachineNics(HttpApiClient client, opts, vmId) {
+	static getVirtualMachineNics(HttpApiClient client, cloud, vmId) {
 		def rtn = [success: false, nics: []]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
+		def apiUrl = getNutanixApiUrl(cloud)
+		def username = getNutanixUsername(cloud)
+		def password = getNutanixPassword(cloud)
 		def query = [includeAddressAssignments: 'true']
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
@@ -819,7 +820,7 @@ class NutanixPrismElementApiService {
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true && results.data?.taskUuid) {
 			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(opts, taskId)
+			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
 				def vmCheckResults = checkVmReady(opts, opts.uuid)
 				if (vmCheckResults.success == true)
@@ -963,7 +964,7 @@ class NutanixPrismElementApiService {
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true && results.data?.task_uuid) {
 			def taskId = results.data.task_uuid
-			def taskResults = checkTaskReady(client, opts, taskId)
+			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
 				def vmCheckResults = checkVmReady(client, opts, opts.uuid)
 				if (vmCheckResults.success == true)
@@ -1004,6 +1005,7 @@ class NutanixPrismElementApiService {
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def maxMemory = opts.maxMemory.div(ComputeUtility.ONE_MEGABYTE)
+			// In the nutanix api vcpu == socket b/c one vcpu per socket
 			def maxVcpus = ((opts.maxCores ?: 1) / (opts.coresPerSocket ?: 1)).toLong()
 			def body = [memoryMb       : maxMemory,
 						numVcpus       : maxVcpus,
@@ -1016,7 +1018,7 @@ class NutanixPrismElementApiService {
 			log.info("updateServer: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1028,8 +1030,8 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static resizeDisk(HttpApiClient client, opts, vmId, diskAddress, diskId, sizeGB) {
-		log.debug("resizeDisk ${opts}, vm:${vmId}, disk:${diskId}")
+	static resizeDisk(HttpApiClient client, cloud, vmId, diskAddress, diskId, sizeGB) {
+		log.debug("resizeDisk ${cloud}, vm:${vmId}, disk:${diskId}")
 		def rtn = [success: false]
 		if (!vmId) {
 			rtn.error = 'Please specify a VM ID'
@@ -1040,9 +1042,9 @@ class NutanixPrismElementApiService {
 		} else if (!sizeGB) {
 			rtn.error = 'Please specify a disk size'
 		} else {
-			def apiUrl = getNutanixApiUrl(opts.zone)
-			def username = getNutanixUsername(opts.zone)
-			def password = getNutanixPassword(opts.zone)
+			def apiUrl = getNutanixApiUrl(cloud)
+			def username = getNutanixUsername(cloud)
+			def password = getNutanixPassword(cloud)
 			def diskSize = (int) sizeGB * ComputeUtility.ONE_GIGABYTE
 			def updateSpec = [vmDiskClone: [minimumSize: diskSize, vmDiskUuid: diskId]]
 			def body = [updateSpec: updateSpec]
@@ -1053,7 +1055,7 @@ class NutanixPrismElementApiService {
 			log.info("resizeDisk results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, cloud, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1086,7 +1088,7 @@ class NutanixPrismElementApiService {
 			log.info("ejectDisk results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1123,7 +1125,7 @@ class NutanixPrismElementApiService {
 
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1160,7 +1162,7 @@ class NutanixPrismElementApiService {
 			log.info("addNic results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1192,7 +1194,7 @@ class NutanixPrismElementApiService {
 			log.info("addDisk results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1204,25 +1206,26 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static deleteDisk(HttpApiClient client, opts, vmId, diskAddress) {
-		log.debug("deleteServerDisk ${opts}")
+	static deleteDisk(HttpApiClient client, cloud, vmId, nutanixDiskObject) {
+		log.debug("deleteServerDisk ${nutanixDiskObject}")
 		def rtn = [success: false]
 		if (!vmId) {
 			rtn.error = 'Please specify a VM ID'
-		} else if (!diskAddress) {
-			rtn.error = 'Please specify a disk address'
+		} else if (!nutanixDiskObject) {
+			rtn.error = 'Please provide a disk to delete'
 		} else {
-			def apiUrl = getNutanixApiUrl(opts.zone)
-			def username = getNutanixUsername(opts.zone)
-			def password = getNutanixPassword(opts.zone)
+			def apiUrl = getNutanixApiUrl(cloud)
+			def username = getNutanixUsername(cloud)
+			def password = getNutanixPassword(cloud)
 			def headers = buildHeaders(null, username, password)
-			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks/' + diskAddress, null, null, requestOpts, 'DELETE')
+			def body = [vm_disks: [nutanixDiskObject]]
+			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
+			def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId + '/disks/detach', null, null, requestOpts, 'POST')
 
 			log.info("deleteDisk: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskId = results.data.task_uuid
+				def taskResults = checkTaskReady(client, cloud, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1261,7 +1264,7 @@ class NutanixPrismElementApiService {
 			log.info("deleteNic: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid ?: results.data.task_uuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
 					rtn.success = true
@@ -1341,7 +1344,7 @@ class NutanixPrismElementApiService {
 			log.info("cloneServer: ${results}")
 			if (results.success == true) {
 				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
 					def vmCheckResults = checkVmReady(client, opts, opts.uuid)
 					if (vmCheckResults.success == true)
@@ -1355,9 +1358,9 @@ class NutanixPrismElementApiService {
 						if (vm) {
 							if (opts.cloudFileId) {
 								log.debug("CDROM Detected on Nutanix Clone, Swapping out cloud init file!")
-								def cdromDisk = getVirtualMachineDisks(client, opts, vm.uuid)?.disks?.find { it.isCdrom }
+								def cdromDisk = getVirtualMachineDisks(client, opts.zone, vm.uuid)?.disks?.find { it.isCdrom }
 								if (cdromDisk) {
-									deleteDisk(client, opts, vm.uuid, cdromDisk.id)
+									deleteDisk(client, opts.zone, vm.uuid, cdromDisk)
 								}
 								addCdrom(client, opts, vm.uuid, opts.cloudFileId, cdromDisk?.addr ?: ['deviceBus': 'ide', 'deviceIndex': 0])
 							}
@@ -1391,7 +1394,7 @@ class NutanixPrismElementApiService {
 		log.debug("startVm: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(client, opts, taskId)
+			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
 			if (taskSuccess == true) {
 				rtn.taskUuid = taskId
@@ -1420,7 +1423,7 @@ class NutanixPrismElementApiService {
 				log.debug("stopVm: ${results}")
 				if (results.success == true && results.data) {
 					def taskId = results.data.taskUuid
-					def taskResults = checkTaskReady(client, opts, taskId)
+					def taskResults = checkTaskReady(client, opts.zone, taskId)
 					def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
 					if (taskSuccess == true) {
 						rtn.taskUuid = taskId
@@ -1452,7 +1455,7 @@ class NutanixPrismElementApiService {
 		log.debug("deleteVm: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(client, opts, taskId)
+			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
 				rtn.success = true
@@ -1475,7 +1478,7 @@ class NutanixPrismElementApiService {
 		log.debug("deleteImage: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(client, opts, taskId)
+			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
 				rtn.success = true
@@ -1587,7 +1590,7 @@ class NutanixPrismElementApiService {
 		log.debug("deleteSnapshot: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(client, opts, taskId)
+			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
 				rtn.success = true
@@ -1657,7 +1660,7 @@ class NutanixPrismElementApiService {
 			if (createResults.success == true) {
 				//wait here?
 				def taskId = createResults.taskUuid
-				def taskResults = checkTaskReady(client, opts, taskId)
+				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					def imageId = taskResults.results.entity_list[0].entity_id
 					def imageResults = findImage(client, opts, image.name)
@@ -1687,7 +1690,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static checkTaskReady(HttpApiClient client, opts, taskId) {
+	static checkTaskReady(HttpApiClient client, zone, taskId) {
 		def rtn = [success: false]
 		try {
 			if (taskId == null)
@@ -1696,7 +1699,7 @@ class NutanixPrismElementApiService {
 			def attempts = 0
 			while (pending) {
 				sleep(1000l * 10l)
-				def taskDetail = getTask(client, opts, taskId)
+				def taskDetail = getTask(client, zone, taskId)
 				log.info("taskDetail - ${taskId}: ${taskDetail}")
 				if (taskDetail.success == true && taskDetail.results.progress_status) {
 					if (taskDetail.results.progress_status == 'Succeeded') {
