@@ -172,7 +172,7 @@ class NetworkSync {
 									if (rangeAddrs.size() > 1) {
 										log.debug("NetworkSync >> updateMatchedNetworks >> adding pool range ${rangeAddrs[0]}-${rangeAddrs[1]}")
 										def newRange = new NetworkPoolRange(networkPool: existingItem.pool, startAddress: rangeAddrs[0], endAddress: rangeAddrs[1], externalId: poolRange)
-										log.debug("new range: ${newRange.errors}")
+										log.debug("new range: ${newRange}")
 										existingItem.pool.addToIpRanges(newRange)
 										itemChanged = true
 									}
@@ -206,20 +206,30 @@ class NetworkSync {
 
 	private checkForDupePools(NetworkPool pool, NetworkPoolType poolType) {
 		try {
-			def pools = NetworkPool.where { externalId == pool.externalId && type == poolType && id != pool.id }
+			def pools = morpheusContext.services.network.pool.list(
+				new DataQuery()
+					.withFilter('externalId', pool.externalId)
+					.withFilter('type.id', poolType.id)
+					.withFilter('id', pool.id)
+			)
 			def nutanixZone = morpheusContext.services.cloud.find(new DataQuery().withFilter('code', 'nutanix'))
+			def dupes = []
 			for (dupe in pools) {
 				def delete = true
 				for (zone in nutanixZone) {
-					def poolIds = Network.where { category == "nutanix.acropolis.network.${zone.id}" }.collect { it.pool?.id }
+					def poolIds = morpheusContext.services.network.list(
+						new DataQuery().withFilter('category', "nutanix.acropolis.network.${zone.id}")
+					).collect {it.pool?.id}
 					if (poolIds.contains(dupe.id)) {
 						delete = false
 					}
 				}
 				if (delete) {
-					dupe.delete()
+					dupes << dupe
 				}
 			}
+
+			morpheusContext.services.network.pool.bulkRemove(dupes)
 		} catch (e) {
 			log.error("checkfordupepools error: ${e}", e)
 		}
