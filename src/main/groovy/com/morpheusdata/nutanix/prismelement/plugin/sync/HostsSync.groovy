@@ -59,7 +59,7 @@ class HostsSync {
 				.withFilter('refId', cloud.id)
 				.withFilter('computeServerType.code', "nutanixMetalHypervisor")
 			)
-			
+
 
 			SyncTask<ComputeServerIdentityProjection, Map, ComputeServer> sync = new SyncTask<>(existingItems, objList)
 			sync.addMatchFunction { ComputeServerIdentityProjection existingHost, Map cloudHost ->
@@ -200,7 +200,8 @@ class HostsSync {
 			}
 		}
 
-		context.services.computeServer.bulkRemove(deleteItems)
+		// TODO: switch back to bulkRemove once fixed
+		context.async.computeServer.remove(deleteItems).blockingGet()
 	}
 
 	/**
