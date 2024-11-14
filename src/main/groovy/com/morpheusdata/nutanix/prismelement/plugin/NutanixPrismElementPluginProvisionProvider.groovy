@@ -21,10 +21,15 @@ package com.morpheusdata.nutanix.prismelement.plugin
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataOrFilter
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
+import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
+import com.morpheusdata.model.projection.DatastoreIdentity
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
@@ -34,6 +39,8 @@ import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
+
+import static com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility.saveAndGet
 
 @Slf4j
 class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisionProvider, ProvisionProvider.SnapshotFacet {
@@ -50,24 +57,40 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	}
 
 	/**
-	 * This method is called before runWorkload and provides an opportunity to perform action or obtain configuration
-	 * that will be needed in runWorkload. At the end of this method, if deploying a ComputeServer with a VirtualImage,
-	 * the sourceImage on ComputeServer should be determined and saved.
-	 * @param workload the Workload object we intend to provision along with some of the associated data needed to determine
-	 *                 how best to provision the workload
-	 * @param workloadRequest the RunWorkloadRequest object containing the various configurations that may be needed
-	 *                        in running the Workload. This will be passed along into runWorkload
-	 * @param opts additional configuration options that may have been passed during provisioning
-	 * @return Response from API
+	 * {@inheritDoc}
 	 */
 	@Override
 	ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
-		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<PrepareWorkloadResponse>(
-			true, // successful
-			'', // no message
-			null, // no errors
-			new PrepareWorkloadResponse(workload: workload) // adding the workload to the response for convenience
-		)
+		log.debug "prepareWorkload: ${workload} ${workloadRequest} ${opts}"
+
+		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
+		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false], disableCloudInit: false)
+		try {
+			Long virtualImageId = workload.getConfigProperty('imageId')?.toLong() ?: workload?.workloadType?.virtualImage?.id ?: opts?.config?.imageId
+			if (!virtualImageId) {
+				resp.msg = "No virtual image selected"
+			} else {
+				VirtualImage virtualImage
+				try {
+					virtualImage = context.services.virtualImage.get(virtualImageId)
+				} catch (e) {
+					log.error "error in get image: ${e}"
+				}
+				if (!virtualImage) {
+					resp.msg = "No virtual image found for ${virtualImageId}"
+				} else {
+					workload.server.sourceImage = virtualImage
+					saveAndGet(context, workload.server)
+					resp.success = true
+				}
+			}
+		} catch (e) {
+			resp.msg = "Error in PrepareWorkload: ${e}"
+			log.error "${resp.msg}, ${e}", e
+		}
+		if (!resp.success) {
+			log.error "prepareWorkload: error - ${resp.msg}"
+		}
 		return resp
 	}
 
@@ -259,47 +282,432 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	}
 
 	/**
-	 * Validates the provided provisioning options of a workload. A return of success = false will halt the
-	 * creation and display errors
-	 * @param opts options
-	 * @return Response from API. Errors should be returned in the errors Map with the key being the field name and the error
-	 * message as the value.
+	 * {@inheritDoc}
 	 */
 	@Override
 	ServiceResponse validateWorkload(Map opts) {
-		return ServiceResponse.success()
+		def rtn = ServiceResponse.success()
+		try {
+			def validationOpts = opts
+			validationOpts.networkId = (opts?.config?.nutanixNetworkId ?: opts?.nutanixNetworkId)
+			def imageId = opts?.config?.imageId ?: opts?.imageId
+			if (imageId) {
+				validationOpts += [imageId: imageId]
+			}
+			def validationResults = NutanixPrismElementApiService.validateServerConfig(validationOpts)
+			if (!validationResults.success) {
+				rtn = ServiceResponse.error("Server config validation failed", validationResults.errors)
+			}
+		} catch (e) {
+			log.error("validate container error: ${e}", e)
+			rtn = ServiceResponse.error("validate container error: ${e.message}")
+		}
+		log.debug("validateContainer: ${rtn}")
+		return rtn
 	}
 
 	/**
-	 * This method is a key entry point in provisioning a workload. This could be a vm, a container, or something else.
-	 * Information associated with the passed Workload object is used to kick off the workload provision request
-	 * @param workload the Workload object we intend to provision along with some of the associated data needed to determine
-	 *                 how best to provision the workload
-	 * @param workloadRequest the RunWorkloadRequest object containing the various configurations that may be needed
-	 *                        in running the Workload
-	 * @param opts additional configuration options that may have been passed during provisioning
-	 * @return Response from API
+	 * {@inheritDoc}
 	 */
 	@Override
 	ServiceResponse<ProvisionResponse> runWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
-		// TODO: this is where you will implement the work to create the workload in your cloud environment
-		return new ServiceResponse<ProvisionResponse>(
-			true,
-			null, // no message
-			null, // no errors
-			new ProvisionResponse(success: true)
+		log.debug("runWorkload: ${workload} ${workloadRequest} ${opts}")
+
+		ProvisionResponse provisionResponse = new ProvisionResponse(success: false, noAgent: opts.noAgent)
+		HttpApiClient client = new HttpApiClient()
+		// use proxy from workload since this can be either the cloud or global proxy
+		client.networkProxy = buildNetworkProxy(workloadRequest.proxyConfiguration)
+
+		try {
+			def server = workload.server
+			def cloud = workload.server.cloud
+
+			server.setConfigProperty('osUsername', workload.getConfigProperty('nutanixUsr'))
+			server.setConfigProperty('osPassword', workload.getConfigProperty('nutanixPwd'))
+			server.setConfigProperty('publicKeyId', workload.getConfigProperty('publicKeyId'))
+			server = saveAndGet(context, server)
+
+			Map createOpts = buildCreateVmOpts(cloud, server, workload, opts)
+
+			// ensure image is uploaded
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+			def imageId = getOrUploadImage(client, authConfig, cloud, workload.server.sourceImage, workload.instance.createdBy, createOpts.containerId)
+			if (!imageId) {
+				return ServiceResponse.error("No image file found for virtual image ${server.sourceImage?.id}:${server.sourceImage?.name}")
+			}
+			createOpts.imageId = imageId
+
+			// configure cloud init
+			Map cloudFileResults = [success: true]
+			if (server.sourceImage?.isCloudInit) {
+				def insertIso = isCloudInitIso(createOpts)
+				if (insertIso) {
+					def applianceServerUrl = workloadRequest?.cloudConfigOpts?.applianceUrl ?: null
+					if (applianceServerUrl) {
+						def cloudFileUrl = applianceServerUrl + (applianceServerUrl.endsWith('/') ? '' : '/') + 'api/cloud-config/' + server.apiKey
+						def cloudFileDiskName = 'morpheus_' + server.id + '.iso'
+						cloudFileResults = NutanixPrismElementApiService.insertContainerImage(
+							client,
+							[
+								zone       : cloud,
+								containerId: createOpts.datastoreId,
+								image      : [
+									name     : cloudFileDiskName,
+									imageUrl : cloudFileUrl,
+									imageType: 'iso_image',
+								]
+							])
+
+						createOpts.cloudFileId = cloudFileResults.imageDiskId
+					} else {
+						log.warn("Error configuring cloud-init - no appliance url")
+					}
+				} else {
+					createOpts.cloudConfig = workloadRequest.cloudConfigUser
+					provisionResponse.licenseApplied = workloadRequest.cloudConfigOpts.licenseApplied
+					provisionResponse.unattendCustomized = workloadRequest.cloudConfigOpts.unattendCustomized
+				}
+			} else {
+				provisionResponse.createUsers = workloadRequest.usersConfiguration.createUsers
+			}
+
+			if (cloudFileResults.success == true) {
+				provisionResponse.success = createAndStartVM(client, cloud, server, createOpts)
+
+				// if we created a cloudinit iso as part of provisioning, clean it up
+				if (cloudFileResults.imageId) {
+					NutanixPrismElementApiService.deleteImage(client, [zone: cloud], cloudFileResults.imageId)
+				}
+			} else {
+				log.warn("error on cloud config: ${cloudFileResults}")
+				server.statusMessage = 'Failed to load cloud config'
+				saveAndGet(context, server)
+			}
+
+			if (provisionResponse.success != true) {
+				return new ServiceResponse(success: false, msg: provisionResponse.message ?: 'vm config error', error: provisionResponse.message, data: provisionResponse)
+			} else {
+				return new ServiceResponse<ProvisionResponse>(success: true, data: provisionResponse)
+			}
+		} catch (e) {
+			log.error("runWorkload error: ${e}", e)
+			return new ServiceResponse(success: false, msg: provisionResponse.message ?: 'vm config error', error: provisionResponse.message, data: provisionResponse)
+		} finally {
+			client.shutdownClient()
+		}
+	}
+
+	private static NetworkProxy buildNetworkProxy(ProxyConfiguration proxyConfiguration) {
+		NetworkProxy networkProxy = new NetworkProxy()
+		if (proxyConfiguration) {
+			networkProxy.proxyDomain = proxyConfiguration.proxyDomain
+			networkProxy.proxyHost = proxyConfiguration.proxyHost
+			networkProxy.proxyPassword = proxyConfiguration.proxyPassword
+			networkProxy.proxyUser = proxyConfiguration.proxyUser
+			networkProxy.proxyPort = (Integer) proxyConfiguration.proxyPort
+			networkProxy.proxyWorkstation = proxyConfiguration.proxyWorkstation
+		}
+		return networkProxy
+	}
+
+	private String getOrUploadImage(HttpApiClient client, Map authConfig, Cloud cloud, VirtualImage virtualImage, User createdBy, String datastoreId) {
+		def imageExternalId = null
+		def lockId = null
+		def location = null
+		def lockKey = "nutanix.imageupload.${cloud.regionCode}.${virtualImage?.id}".toString()
+		try {
+			//hold up to a 1 hour lock for image upload
+			lockId = context.acquireLock(lockKey, [timeout: 60l * 60l * 1000l, ttl: 60l * 60l * 1000l]).blockingGet()
+
+			// Check if it already exists
+			if (virtualImage) {
+				VirtualImageLocation virtualImageLocation
+				try {
+					virtualImageLocation = context.services.virtualImage.location.find(
+						new DataQuery()
+							.withFilter('virtualImage.id', virtualImage.id)
+							.withFilter('refType', 'ComputeZone')
+							.withFilter('refId', cloud.id)
+							.withFilter('imageRegion', cloud.regionCode)
+					)
+
+					imageExternalId = virtualImageLocation?.externalId
+				} catch (e) {
+					log.info("Error in findVirtualImageLocation.. could be not found ${e}", e)
+				}
+
+				// validate it exists in nutanix
+				if (imageExternalId) {
+					imageExternalId = NutanixPrismElementApiService.checkImageId(client, [zone: cloud], imageExternalId)
+				}
+			}
+
+			// Either we don't have a location or it's not uploaded to nutanix.
+			// Check if nutanix has the image already. If so, make a location for it
+			if (!imageExternalId && virtualImage.systemImage || virtualImage.userUploaded) {
+				def imageList = NutanixPrismElementApiService.listImages(client, authConfig)
+				if (imageList.success) {
+					def existingImage = imageList.data.find { it.status?.name == virtualImage.name }
+					if (existingImage) {
+						imageExternalId = existingImage.metadata?.uuid
+						VirtualImageLocation virtualImageLocation = new VirtualImageLocation([
+							virtualImage: virtualImage,
+							externalId  : imageExternalId,
+							imageRegion : cloud.regionCode,
+							code        : "nutanix.prism.image.${cloud.id}.${imageExternalId}",
+							internalId  : imageExternalId,
+							refId       : cloud.id,
+							refType     : 'ComputeZone'
+						])
+						location = context.async.virtualImage.location.create(virtualImageLocation, cloud).blockingGet()
+					}
+				}
+			}
+
+			// If nutanix didn't have it either, let's do the full upload
+			if (!imageExternalId) {
+				// Create the image
+				def cloudFiles = context.async.virtualImage.getVirtualImageFiles(virtualImage).blockingGet()
+				def imageFile = cloudFiles?.find { cloudFile -> cloudFile.name.toLowerCase().endsWith(".qcow2") }
+				// The url given will be used by Nutanix to download the image.. it will be in a RUNNING status until the download is complete
+				// For morpheus images, this is fine as it is publicly accessible. But, for customer uploaded images, need to upload the bytes
+				def copyUrl = context.async.virtualImage.getCloudFileStreamUrl(virtualImage, imageFile, createdBy, cloud).blockingGet()
+				def containerImage = [
+					name         : virtualImage.name,
+					imageSrc     : imageFile?.getURL(),
+					minDisk      : virtualImage.minDisk ?: 5,
+					minRam       : virtualImage.minRam ?: (512 * ComputeUtility.ONE_MEGABYTE),
+					tags         : 'morpheus, ubuntu',
+					imageType    : 'disk_image',
+					containerType: 'qemu',
+					cloudFiles   : cloudFiles,
+					imageFile    : imageFile,
+					imageUrl     : copyUrl]
+
+				def imageResults = NutanixPrismElementApiService.insertContainerImage(client,
+					[zone       : cloud,
+					 containerId: datastoreId,
+					 image      : containerImage,
+					])
+
+				if (imageResults.success) {
+					imageExternalId = imageResults.imageDiskId
+					// Create the VirtualImageLocation before waiting for the upload
+					VirtualImageLocation virtualImageLocation = new VirtualImageLocation([
+						virtualImage : virtualImage,
+						externalId   : imageExternalId,
+						imageRegion  : cloud.regionCode,
+						code         : "nutanix.acropolis.image.${cloud.id}.${imageExternalId}",
+						internalId   : imageExternalId,
+						refId        : cloud.id,
+						refType      : 'ComputeZone',
+						sharedStorage: true
+					])
+					location = context.services.virtualImage.location.create(virtualImageLocation, cloud)
+				} else {
+					log.error("Error in creating the image: ${imageResults.msg}")
+				}
+			}
+		} finally {
+			if (lockId) {
+				context.releaseLock(lockKey, [lock: lockId]).blockingGet()
+			}
+		}
+		return imageExternalId
+	}
+
+	private Map buildCreateVmOpts(Cloud cloud, ComputeServer server, Workload workload, Map runWorkloadOpts) {
+		def rootVolume = workload.server.volumes?.find { it.rootVolume == true }
+		def maxStorage = rootVolume.maxStorage ?: workload.maxStorage ?: workload.instance.plan.maxStorage
+		def datastore = getDatastoreOption(cloud, server.account, rootVolume?.datastore, rootVolume?.datastoreOption, maxStorage)
+		def datastoreId = datastore?.externalId
+		def dataDisks = workload.server?.volumes?.findAll { it.rootVolume == false }?.sort { it.id }
+		def maxMemory = workload.maxMemory ?: workload.instance.plan.maxMemory
+		def coresPerSocket = workload.coresPerSocket ?: workload.instance.plan.coresPerSocket ?: 1
+		def maxCores = workload.maxCores ?: workload.instance.plan.maxCores
+
+		def createOpts = [
+			account       : server.account,
+			containerId   : datastoreId,
+			coresPerSocket: coresPerSocket,
+			dataDisks     : dataDisks,
+			domainName    : server.getExternalHostname(),
+			externalId    : server.externalId,
+			hostname      : server.getExternalHostname(),
+			isSysprep     : server.sourceImage?.isSysprep,
+			maxCores      : maxCores,
+			maxMemory     : maxMemory,
+			maxStorage    : maxStorage,
+			name          : server.name,
+			networkConfig : runWorkloadOpts.networkConfig,
+			platform      : server.serverOs?.platform ?: 'linux',
+			rootVolume    : rootVolume,
+			server        : server,
+			uefi          : server.sourceImage?.uefi,
+			uuid          : server.apiKey,
+			zone          : server.cloud,
+		]
+		createOpts.fqdn = createOpts.hostname
+		if (createOpts.domainName) {
+			createOpts.fqdn += '.' + createOpts.domainName
+		}
+		createOpts
+	}
+
+	def getDatastoreOption(Cloud cloud, Account account, DatastoreIdentity datastore, String datastoreOption, Long size) {
+		def rtn = null
+		if (datastore) {
+			rtn = datastore
+		} else if (datastoreOption == 'auto' || !datastoreOption) {
+			def datastores = context.services.cloud.datastore.list(
+				new DataQuery().withFilters(
+					new DataFilter('refType', 'ComputeZone'),
+					new DataFilter('refId', cloud.id),
+					new DataFilter('type', 'generic'),
+					new DataFilter('online', true),
+					new DataFilter('active', true),
+					new DataFilter('freeSpace', '>', size),
+					new DataOrFilter(
+						new DataFilter('owner.id', account.id),
+						new DataFilter('visibility', 'public')
+					)
+				).withSort("freeSpace", DataQuery.SortOrder.desc)
+			)
+			rtn = datastores.find { ds ->
+				ds.externalId != null && ds.externalId != ""
+			}
+		}
+		return rtn
+	}
+
+	static boolean isCloudInitIso(Map createOpts) {
+		def rtn = false
+		if (createOpts.platform == 'windows' && createOpts.isSysprep != true) {
+			rtn = true
+		} else if (createOpts.snapshotId) {
+			rtn = true
+		} else {
+			//check for unmanaged non dhcp networks
+			if (createOpts.networkConfig?.primaryInterface?.network?.type?.code != 'nutanixManagedVlan' &&
+				createOpts.networkConfig?.primaryInterface?.doDhcp == false) {
+				rtn = true
+			} else {
+				def badMatch = createOpts.networkConfig?.extraInterfaces?.find { it.network?.type?.code != 'nutanixManagedVlan' && it.doDhcp == false }
+				if (badMatch) {
+					rtn = true
+				}
+			}
+		}
+		return rtn
+	}
+
+	private boolean createAndStartVM(HttpApiClient client, Cloud cloud, ComputeServer server, Map createOpts) {
+		log.debug("create server")
+		def createResults
+		if (createOpts.snapshotId) {
+			//cloning off a snapshot
+			createResults = NutanixPrismElementApiService.cloneServer(client, createOpts)
+		} else {
+			//creating off an image
+			createResults = NutanixPrismElementApiService.createServer(client, createOpts)
+		}
+
+		if (!createResults.success || !createResults.results?.uuid) {
+			server.statusMessage = 'Failed to create server'
+			saveAndGet(context, server)
+			return false
+		}
+
+		log.debug("create server: ${createResults}")
+		server.externalId = createResults.results.uuid
+		server.powerState = ComputeServer.PowerState.on
+		server = saveAndGet(context, server)
+
+		def loadVmResults = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: cloud], server.externalId)
+		def startResults = NutanixPrismElementApiService.startVm(
+			client,
+			[zone: cloud, timestamp: loadVmResults?.virtualMachine?.logicalTimestamp],
+			server.externalId
 		)
+		if (!startResults.success) {
+			server.statusMessage = 'Failed to start server'
+			saveAndGet(context, server)
+			return false
+		}
+
+		log.debug("start: ${startResults.success}")
+		def serverDetail = NutanixPrismElementApiService.checkServerReady(client, [zone: cloud], server.externalId)
+		if (serverDetail.success == true) {
+			return true
+		} else {
+			server.statusMessage = 'Failed to load server details'
+			saveAndGet(context, server)
+			return false
+		}
 	}
 
 	/**
-	 * This method is called after successful completion of runWorkload and provides an opportunity to perform some final
-	 * actions during the provisioning process. For example, ejected CDs, cleanup actions, etc
-	 * @param workload the Workload object that has been provisioned
-	 * @return Response from the API
+	 * {@inheritDoc}
 	 */
 	@Override
 	ServiceResponse finalizeWorkload(Workload workload) {
-		return ServiceResponse.success()
+		def rtn = [success: true, msg: null]
+		log.debug("finalizeWorkload: ${workload?.id}")
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = workload.server.cloud.apiProxy
+
+		try {
+			ComputeServer server = workload.server
+			Cloud cloud = server.cloud
+
+			def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, [zone: cloud], server.externalId)?.disks
+			updateVolumes(server, vmDisks)
+
+			def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, [zone: cloud], server.externalId)?.nics
+			updateNics(server, vmNics)
+		} catch (e) {
+			rtn.success = false
+			rtn.msg = "Error in finalizing server: ${e.message}"
+			log.error("Error in finalizeWorkload: ${e}", e)
+		} finally {
+			client.shutdownClient()
+		}
+		return new ServiceResponse(rtn.success, rtn.msg, null, null)
+	}
+
+	def updateVolumes(ComputeServer server, List<Map> disks) {
+		// update storage volumes with disk id
+		// order in disks matches the order in server.volumes
+		if (disks) {
+			def volumes = server.volumes.sort { it.displayOrder }
+			volumes.eachWithIndex { StorageVolume volume, index ->
+				def vmDisk = disks.size() > index ? disks[index] : null
+				volume.externalId = vmDisk?.vmDiskUuid
+				volume.internalId = vmDisk?.id
+				volume.setConfigProperty("address", vmDisk?.id)
+				context.services.storageVolume.save(volume)
+			}
+		}
+	}
+
+	def updateNics(ComputeServer server, List<Map> nics) {
+		if (nics) {
+			def networkInterfaces = server.interfaces
+			def existingMacs = networkInterfaces?.collect { it.externalId }
+			networkInterfaces.each { networkInterface ->
+				if (networkInterface.externalId == null) {
+					//find a free one
+					nics?.each { nic ->
+						def existingMatch = existingMacs.find { it == nic.macAddress }
+						if (!existingMatch) {
+							existingMacs << nic.macAddress
+							networkInterface.externalId = nic.macAddress
+							context.services.computeServer.computeServerInterface.save(networkInterface)
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -360,23 +768,23 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		}
 		def cloud = workload.server.cloud
 		def vmOpts = [
-			server:workload.server,
-			zone:cloud,
+			server       : workload.server,
+			zone         : cloud,
 			proxySettings: cloud.apiProxy,
-			externalId:workload.server.externalId
+			externalId   : workload.server.externalId
 		]
 
 		HttpApiClient client = new HttpApiClient()
 		try {
 			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
-			if(vmResults?.virtualMachine?.logicalTimestamp)
+			if (vmResults?.virtualMachine?.logicalTimestamp)
 				vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
 			def stopResults = stopServer(workload.server)
 			if (!stopResults.success) {
 				return stopResults
 			}
 
-			if(!opts.keepBackups) {
+			if (!opts.keepBackups) {
 				List<SnapshotIdentityProjection> snapshots = workload.server.snapshots
 				snapshots?.each { snap ->
 					NutanixPrismElementApiService.deleteSnapshot(client, vmOpts, snap.externalId)
@@ -384,7 +792,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			}
 			def removeResults = NutanixPrismElementApiService.deleteServer(client, vmOpts, vmOpts.externalId)
 			log.debug("remove results: ${removeResults}")
-			if(removeResults.success == true) {
+			if (removeResults.success == true) {
 				rtn.success = true
 			} else {
 				rtn.msg = 'Failed to remove container'
@@ -407,7 +815,31 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse<ProvisionResponse> getServerDetails(ComputeServer server) {
-		return new ServiceResponse<ProvisionResponse>(true, null, null, new ProvisionResponse(success: true))
+		ProvisionResponse rtn = new ProvisionResponse()
+		def serverUuid = server.externalId
+		if(server && server.uuid) {
+			Cloud cloud = server.cloud
+			HttpApiClient client = new HttpApiClient()
+			client.networkProxy = cloud.apiProxy
+			try {
+				Map serverDetails = NutanixPrismElementApiService.checkServerReady(client, [zone: cloud], serverUuid)
+				if(serverDetails.success && serverDetails.virtualMachine) {
+					rtn.externalId = serverUuid
+					rtn.success = serverDetails.success
+					rtn.publicIp = serverDetails.vmDetails?.ipAddresses[0]
+					rtn.privateIp = serverDetails.vmDetails?.ipAddresses[0]
+					rtn.hostname = serverDetails.vmDetails?.hostName
+					return ServiceResponse.success(rtn)
+
+				} else {
+					return ServiceResponse.error("Server not ready/does not exist")
+				}
+			} finally {
+				client.shutdownClient()
+			}
+		} else {
+			return ServiceResponse.error("Could not find server uuid")
+		}
 	}
 
 	/**
@@ -496,6 +928,16 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		return 'Spin up any VM Image on your Nutanix Prism Element infrastructure.'
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * We already have an instance type defined in a scribe file, no need to create a default
+	 */
+	@Override
+	Boolean createDefaultInstanceType() {
+		return false
+	}
+
 	@Override
 	Collection<ComputeServerInterfaceType> getComputeServerInterfaceTypes() {
 		Collection<ComputeServerInterfaceType> ifaces = []
@@ -529,5 +971,30 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		virtualImageTypes << new VirtualImageType(code: 'qcow2', name: 'QCOW2')
 
 		virtualImageTypes
+	}
+
+	@Override
+	Boolean hasNetworks() {
+		return true
+	}
+
+	@Override
+	Boolean canCustomizeRootVolume() {
+		return true
+	}
+
+	@Override
+	Boolean disableRootDatastore() {
+		return true
+	}
+
+	@Override
+	Boolean canAddVolumes() {
+		return true
+	}
+
+	@Override
+	Boolean canCustomizeDataVolumes() {
+		return true
 	}
 }

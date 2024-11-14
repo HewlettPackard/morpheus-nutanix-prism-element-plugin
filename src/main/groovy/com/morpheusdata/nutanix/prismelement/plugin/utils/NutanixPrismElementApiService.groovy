@@ -65,9 +65,8 @@ class NutanixPrismElementApiService {
 
 	static validateServerConfig(Map opts = [:]) {
 		log.debug("validateServerConfig: ${opts}")
-		def rtn = [success: false, errors: []]
+		def rtn = [success: false, errors: [:]]
 		try {
-			// def zone = ComputeZone.read(opts.zoneId)
 			if (opts.networkId) {
 				// great
 			} else if (opts?.networkInterfaces) {
@@ -519,9 +518,9 @@ class NutanixPrismElementApiService {
 		def apiUrl = getNutanixApiUrl(opts.zone)
 		def username = getNutanixUsername(opts.zone)
 		def password = getNutanixPassword(opts.zone)
-		def query = [includeDiskSizes: true]
+		def query = [includeDiskSizes: 'true']
 		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, query: query)
+		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks', null, null, requestOpts, 'GET')
 
 		if (results.success == true) {
@@ -540,9 +539,9 @@ class NutanixPrismElementApiService {
 		def apiUrl = getNutanixApiUrl(opts.zone)
 		def username = getNutanixUsername(opts.zone)
 		def password = getNutanixPassword(opts.zone)
-		def query = [includeAddressAssignments: true]
+		def query = [includeAddressAssignments: 'true']
 		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, query: query)
+		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
