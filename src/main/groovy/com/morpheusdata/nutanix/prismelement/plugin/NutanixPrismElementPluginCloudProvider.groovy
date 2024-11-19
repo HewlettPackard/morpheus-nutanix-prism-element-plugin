@@ -748,7 +748,31 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse deleteServer(ComputeServer computeServer) {
-		return ServiceResponse.success()
+		log.debug("deleteServer: ${computeServer}")
+		def rtn = [success: false]
+		try {
+			Cloud cloud = computeServer.cloud
+			def serverId = computeServer.externalId
+			HttpApiClient client = new HttpApiClient()
+			client.networkProxy = cloud.apiProxy
+			def removeOpts = [zone: cloud]
+			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, removeOpts, serverId)
+			if (vmResults.success) {
+				if (vmResults.virtualMachine?.logicalTimestamp)
+					removeOpts.timestamp = vmResults.virtualMachine?.logicalTimestamp
+				def stopResults = NutanixPrismElementApiService.stopVm(client, removeOpts, serverId)
+				if (stopResults.success) {
+					def removeResults = NutanixPrismElementApiService.deleteServer(client, removeOpts, serverId)
+					if (removeResults.success) {
+						rtn.success = true
+					}
+				}
+			}
+		} catch (e) {
+			rtn.msg = "Error deleting server: ${e.message}"
+			log.error("deleteServer error: ${e}", e)
+		}
+		return new ServiceResponse(rtn)
 	}
 
 	/**
