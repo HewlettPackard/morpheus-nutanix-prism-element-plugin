@@ -696,20 +696,14 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static createServer(HttpApiClient client, opts) {
+	static createServer(HttpApiClient client, Map opts) {
 		def rtn = [success: false]
 		if (!opts.imageId) {
 			rtn.error = 'Please specify an image type'
 		} else if (!opts.name) {
 			rtn.error = 'Please specify a name'
 		} else {
-			def apiVersion = opts.zone.serviceVersion
-			def body
-			if (MorpheusUtils.compareVersions(apiVersion, 'v2.0') >= 0) {
-				rtn = createServerUsingV2Api(client, opts)
-			} else {
-				rtn = createServerUsingStandardApi(client, opts)
-			}
+			rtn = createServerUsingV2Api(client, opts)
 		}
 		return rtn
 	}
@@ -856,7 +850,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	private static createServerUsingV2Api(HttpApiClient client, opts) {
+	private static createServerUsingV2Api(HttpApiClient client, Map opts) {
 		def rtn = [success: false]
 		def apiUrl = getNutanixApiUrl(opts.zone)
 		def username = getNutanixUsername(opts.zone)
@@ -879,10 +873,7 @@ class NutanixPrismElementApiService {
 			osDisk.disk_address['device_bus'] = 'SCSI'
 		}
 		def vmDisks = [osDisk]
-		if (opts.diskSize) {
-			def dataDiskSize = (long) opts.diskSize
-			vmDisks << [vm_disk_create: [size: dataDiskSize, storage_container_uuid: containerId]]
-		} else if (opts.dataDisks?.size() > 0) {
+		if (opts.dataDisks?.size() > 0) {
 			opts.dataDisks?.each { disk ->
 				def diskContainerId
 				if (disk.datastore?.externalId) {
@@ -935,14 +926,8 @@ class NutanixPrismElementApiService {
 					vmNics << vmNic
 				}
 			}
-		} else if (opts.networkId) { //old style
-			def vmNic = [network_uuid: opts.networkId]
-			if (opts.ipAddress) {
-				vmNic.requested_ip_address = opts.ipAddress
-				vmNic.request_ip = true
-			}
-			vmNics << vmNic
 		}
+
 		//create request body
 		def numVcpus = ((opts.maxCores ?: 1) / (opts.coresPerSocket ?: 1)).toLong()
 		def body = [memory_mb         : ((int) maxMemory),
@@ -1655,7 +1640,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static insertContainerImage(HttpApiClient client, opts) {
+	static Map insertContainerImage(HttpApiClient client, opts) {
 		def rtn = [success: false]
 		log.info("insertContainerImage: ${opts}")
 		def image = opts.image
