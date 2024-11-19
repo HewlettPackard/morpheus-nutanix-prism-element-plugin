@@ -22,14 +22,12 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.backup.BackupExecutionProvider
 import com.morpheusdata.core.backup.response.BackupExecutionResponse
-import com.morpheusdata.core.backup.util.BackupStatusUtility
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.Backup
 import com.morpheusdata.model.BackupResult
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.PlatformType
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
@@ -80,8 +78,38 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 	 * {@inheritDoc}
 	 */
 	@Override
-	ServiceResponse deleteBackupResult(BackupResult backupResultModel, Map opts) {
-		ServiceResponse.success() // TODO
+	ServiceResponse deleteBackupResult(BackupResult backupResult, Map opts) {
+		ServiceResponse rtn = ServiceResponse.prepare()
+		HttpApiClient client = new HttpApiClient()
+
+		try {
+			def snapshotId = backupResult.getConfigProperty("snapshotId")
+			if (!snapshotId) {
+				rtn.success = false
+				rtn.msg = "Associate snapshotId could not be found."
+				return rtn
+			}
+
+			def cloudId = backupResult.zoneId ?: backupResult.backup?.zoneId
+			if (!cloudId) {
+				rtn.success = false
+				rtn.msg = "Associated cloud could not be found."
+				return rtn
+			}
+
+			def cloud = context.services.cloud.get(cloudId)
+			client.networkProxy = cloud.apiProxy
+
+			def result = NutanixPrismElementApiService.deleteSnapshot(client, [zone: cloud], snapshotId)
+			rtn.success = result.success
+		} catch(e) {
+			log.error("error deleting backup: ${e.message}", e)
+			rtn.success = false
+		} finally {
+			client.shutdownClient()
+		}
+
+		return rtn
 	}
 
 	/**
