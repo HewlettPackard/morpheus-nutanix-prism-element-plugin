@@ -1,3 +1,19 @@
+resource "option-type" "provisionType-nutanix-imageId" {
+	category = "provisionType.nutanix"
+	code = "provisionType.nutanix.imageId"
+	displayOrder = 1
+	fieldCode = "gomorpheus.optiontype.Image",
+	fieldContext = "config"
+	fieldGroup = "Options"
+	fieldLabel = "Image"
+	fieldName = "imageId"
+	name = "image"
+	optionSourceType = "com.morpheusdata.nutanix.prismelement.plugin"
+	optionSource = "npeProvisionImages"
+	required = true
+	type = "select"
+}
+
 resource "instance-type" "nutanix" {
 	name                 = "Nutanix Prism Element"
 	code                 = "nutanix"
