@@ -28,6 +28,12 @@ import com.morpheusdata.model.NetworkPoolType
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
 
+/**
+ * Network pool provider for Nutanix Prism Element
+ *
+ * This assumes that a network pool with DHCP has been setup in the Nutanix cluster.
+ * For now, the Morpheus side doesn't create/edit nutanix network pools
+ */
 class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
 	public static final String NETWORK_POOL_PROVIDER_NAME = 'Nutanix Prism Element'
@@ -46,7 +52,7 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse verifyNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-		ServiceResponse.success()
+		ServiceResponse.success(poolServer)
 	}
 
 	/**
@@ -70,7 +76,7 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	void refresh(NetworkPoolServer poolServer) {
-
+		// no-op
 	}
 
 	/**
@@ -78,7 +84,7 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse initializeNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-		ServiceResponse.success()
+		ServiceResponse.success(poolServer)
 	}
 
 	/**
@@ -86,7 +92,8 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse createHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp, NetworkDomain domain, Boolean createARecord, Boolean createPtrRecord) {
-		ServiceResponse.success()
+		// host records aren't editable for this plugin
+		ServiceResponse.error("unsupported")
 	}
 
 	/**
@@ -94,7 +101,8 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse updateHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp) {
-		ServiceResponse.success()
+		// host records aren't editable for this plugin
+		ServiceResponse.error("unsupported")
 	}
 
 	/**
@@ -102,7 +110,8 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse deleteHostRecord(NetworkPool networkPool, NetworkPoolIp poolIp, Boolean deleteAssociatedRecords) {
-		ServiceResponse.success()
+		// host records aren't editable for this plugin
+		ServiceResponse.error("unsupported")
 	}
 
 	/**
