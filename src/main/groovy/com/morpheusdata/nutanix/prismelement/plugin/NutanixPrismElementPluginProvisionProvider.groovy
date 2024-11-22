@@ -329,7 +329,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			server.setConfigProperty('publicKeyId', workload.getConfigProperty('publicKeyId'))
 			server = saveAndGet(context, server)
 
-			Map createOpts = buildWorkloadCreateVmOpts(cloud, server, workload, workloadRequest)
+			Map createOpts = buildWorkloadCreateVmOpts(cloud, server, workload, workloadRequest, opts)
 
 			// ensure image is uploaded
 			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
@@ -502,7 +502,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 						client,
 						[
 							zone       : server.cloud,
-							containerId: createOpts.datastoreId,
+							containerId: createOpts.containerId,
 							image      : [
 								name     : cloudFileDiskName,
 								imageUrl : cloudFileUrl,
@@ -544,7 +544,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		return rtn
 	}
 
-	private Map buildWorkloadCreateVmOpts(Cloud cloud, ComputeServer server, Workload workload, WorkloadRequest workloadRequest) {
+	private Map buildWorkloadCreateVmOpts(Cloud cloud, ComputeServer server, Workload workload, WorkloadRequest workloadRequest, Map opts) {
 		def rootVolume = workload.server.volumes?.find { it.rootVolume == true }
 		def maxStorage = rootVolume.maxStorage ?: workload.maxStorage ?: workload.instance.plan.maxStorage
 		def datastore = getDatastoreOption(cloud, server.account, rootVolume?.datastore, rootVolume?.datastoreOption, maxStorage)
@@ -565,6 +565,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			maxStorage    : maxStorage,
 			networkConfig : workloadRequest.networkConfiguration,
 			rootVolume    : rootVolume,
+			snapshotId : opts.snapshotId
 		]
 	}
 
