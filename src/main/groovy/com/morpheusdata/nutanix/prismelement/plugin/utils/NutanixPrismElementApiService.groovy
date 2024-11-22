@@ -20,8 +20,6 @@ package com.morpheusdata.nutanix.prismelement.plugin.utils
 
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
-import com.morpheusdata.core.util.MorpheusUtils
-import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
 
@@ -1243,21 +1241,17 @@ class NutanixPrismElementApiService {
 			rtn.error = 'Please specify a nic address'
 		} else {
 			def apiUrl = getNutanixApiUrl(opts.zone)
-			def apiNumber = getNutanixApiNumber(opts.zone)
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = [success: false]
-			if (apiNumber >= 2) {
-				//requires MAC Address
-				if (opts.macAddress) {
-					nicAddress = opts.macAddress
-				}
-				results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/nics/' + nicAddress, null, null, requestOpts, 'DELETE')
-			} else {
-				results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/nics/' + nicAddress, null, null, requestOpts, 'DELETE')
+
+			//requires MAC Address
+			if (opts.macAddress) {
+				nicAddress = opts.macAddress
 			}
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/nics/' + nicAddress, null, null, requestOpts, 'DELETE')
+
 			log.info("deleteNic: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid ?: results.data.task_uuid
@@ -1788,13 +1782,5 @@ class NutanixPrismElementApiService {
 			throw new Exception('no nutanix password specified')
 		}
 		return rtn
-	}
-
-	static getNutanixApiVersion(Cloud cloud) {
-		return cloud.serviceVersion ?: 'v1'
-	}
-
-	static getNutanixApiNumber(Cloud cloud) {
-		return getNutanixApiVersion(cloud)?.replace('v', '')?.toDouble() ?: 1.0
 	}
 }

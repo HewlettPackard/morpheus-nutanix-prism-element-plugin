@@ -147,19 +147,6 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		)
 
 		options << new OptionType(
-			name: 'Api Version',
-			code: 'nutanix-prism-element-api-version',
-			displayOrder: 4,
-			fieldContext: 'domain',
-			fieldName: 'serviceVersion',
-			fieldCode: 'gomorpheus.label.apiVersion',
-			required: true,
-			inputType: OptionType.InputType.SELECT,
-			optionSourceType: NutanixPrismElementVersionDatasetProvider.PROVIDER_NAMESPACE,
-			optionSource: NutanixPrismElementVersionDatasetProvider.PROVIDER_KEY,
-		)
-
-		options << new OptionType(
 			name: 'Import Existing',
 			code: 'nutanix-prism-element-import-existing',
 			displayOrder: 5,
