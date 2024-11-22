@@ -42,7 +42,6 @@ class NutanixPrismElementPlugin extends Plugin {
 		this.setName("Nutanix Prism Element Plugin")
 
 		cloudProvider = new NutanixPrismElementPluginCloudProvider(this, this.morpheus)
-		def versionDatasetProvider = new NutanixPrismElementVersionDatasetProvider(this, this.morpheus)
 		def imageStoreDatasetProvider = new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus)
 		def provisionImageDatasetProvider = new NutanixPrismElementProvisionImageDatasetProvider(this, this.morpheus)
 		def virtualImageDatasetProvider = new NutanixPrismElementVirtualImageDatasetProvider(this, this.morpheus)
@@ -57,7 +56,6 @@ class NutanixPrismElementPlugin extends Plugin {
 			provisionImageDatasetProvider,
 			networkPoolProvider,
 			this.provisionProvider,
-			versionDatasetProvider,
 			virtualImageDatasetProvider,
 		)
 	}
@@ -81,12 +79,11 @@ class NutanixPrismElementPlugin extends Plugin {
 			}
 		}
 
-		def version = cloud.serviceVersion ?: 'v1'
 		def config = [
 			basePath  : '/api/nutanix/v3/',
-			apiVersion: version,
+			apiVersion: 'v2.0',
 			apiUrl    : (cloud.serviceUrl ?: cloud.configMap.apiUrl),
-			apiNumber : version.replace('v', '').toDouble(),
+			apiNumber : 2.0,
 		]
 		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('username')) {
 			config.username = cloud.accountCredentialData['username']
