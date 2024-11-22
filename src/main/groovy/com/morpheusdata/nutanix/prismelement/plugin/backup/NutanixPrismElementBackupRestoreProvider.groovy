@@ -42,7 +42,7 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 	 */
 	@Override
 	ServiceResponse configureRestoreBackup(BackupResult backupResultModel, Map config, Map opts) {
-		return ServiceResponse.success()
+		return ServiceResponse.success(config)
 	}
 
 	/**
@@ -50,7 +50,7 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 	 */
 	@Override
 	ServiceResponse getBackupRestoreInstanceConfig(BackupResult backupResultModel, Instance instanceModel, Map restoreConfig, Map opts) {
-		return ServiceResponse.success()
+		return ServiceResponse.success(restoreConfig)
 	}
 
 	/**
@@ -74,7 +74,7 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 	 */
 	@Override
 	ServiceResponse<BackupRestoreResponse> restoreBackup(BackupRestore backupRestoreModel, BackupResult backupResultModel, Backup backupModel, Map opts) {
-		return null // TODO
+		return ServiceResponse.success(new BackupRestoreResponse(backupRestoreModel))
 	}
 
 	/**
