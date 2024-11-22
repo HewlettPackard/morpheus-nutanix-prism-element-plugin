@@ -44,6 +44,7 @@ class NutanixPrismElementPlugin extends Plugin {
 		cloudProvider = new NutanixPrismElementPluginCloudProvider(this, this.morpheus)
 		def versionDatasetProvider = new NutanixPrismElementVersionDatasetProvider(this, this.morpheus)
 		def imageStoreDatasetProvider = new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus)
+		def virtualImageDatasetProvider = new NutanixPrismElementVirtualImageDatasetProvider(this, this.morpheus)
 		provisionProvider = new NutanixPrismElementPluginProvisionProvider(this, this.morpheus)
 		def networkPoolProvider = new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus)
 		def backupProvider = new NutanixPrismElementBackupProvider(this, morpheus)
@@ -55,6 +56,7 @@ class NutanixPrismElementPlugin extends Plugin {
 			networkPoolProvider,
 			this.provisionProvider,
 			versionDatasetProvider,
+			virtualImageDatasetProvider,
 		)
 	}
 
