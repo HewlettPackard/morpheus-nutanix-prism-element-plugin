@@ -362,11 +362,10 @@ class VirtualMachinesSync {
 						.withFilter('externalId', parentId)
 				)
 			}
-
+			if (currentServer.computeServerType?.guestVm) {
+				NutanixPrismElementSyncUtility.updateServerContainersAndInstances(context, plan, currentServer)
+			}
 			if (save) {
-				if (currentServer.computeServerType?.guestVm) {
-					NutanixPrismElementSyncUtility.updateServerContainersAndInstances(context, null, currentServer)
-				}
 				context.services.computeServer.save(currentServer)
 			}
 

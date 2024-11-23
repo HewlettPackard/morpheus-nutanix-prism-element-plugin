@@ -113,7 +113,6 @@ class NutanixPrismElementSyncUtility {
 
 	static def buildComputeServerInterface(
 		MorpheusContext context,
-		Instance instance,
 		ComputeServer server,
 		networkInterface
 	) {
@@ -145,7 +144,7 @@ class NutanixPrismElementSyncUtility {
 		if (networkInterface.subnet) {
 			computeServerInterface.subnet = context.services.networkSubnet.get(networkInterface.subnet.toLong())
 		}
-		if(computeServerInterface.network && !instance?.networkDomain) {
+		if(computeServerInterface.network) {
 			computeServerInterface.networkDomain = computeServerInterface.network.networkDomain
 		}
 		if((computeServerInterface.subnet?.pool?.id ?: computeServerInterface.network?.pool?.id) && (computeServerInterface.ipMode != 'dhcp' || !computeServerInterface.ipMode)) {
@@ -192,18 +191,30 @@ class NutanixPrismElementSyncUtility {
 			def instanceIds = []
 			def workloads = getWorkloadsForServer(currentServer, context)
 			for(Workload workload in workloads) {
+				def update = false
 				if (plan) {
 					workload.plan = plan
+					update = true
 				}
-				workload.maxCores = currentServer.maxCores
-				workload.maxMemory = currentServer.maxMemory
-				workload.coresPerSocket = currentServer.coresPerSocket
-				workload.maxStorage = currentServer.maxStorage
-				def instanceId = workload.instance?.id
-				context.services.workload.save(workload)
+				if (
+					workload.maxCores != currentServer.maxCores ||
+					workload.maxMemory != currentServer.maxMemory ||
+					workload.coresPerSocket != currentServer.coresPerSocket ||
+					workload.maxStorage != currentServer.maxStorage
+				) {
+					workload.maxCores = currentServer.maxCores
+					workload.maxMemory = currentServer.maxMemory
+					workload.coresPerSocket = currentServer.coresPerSocket
+					workload.maxStorage = currentServer.maxStorage
+					update = true
+				}
+				if (update) {
+					def instanceId = workload.instance?.id
+					context.services.workload.save(workload)
 
-				if(instanceId) {
-					instanceIds << instanceId
+					if(instanceId) {
+						instanceIds << instanceId
+					}
 				}
 			}
 			if(instanceIds) {
@@ -211,7 +222,10 @@ class NutanixPrismElementSyncUtility {
 				def instances = context.services.instance.listById(instanceIds)
 				instances.each { Instance instance ->
 					if(plan || instance.plan.code == 'terraform.default') {
-						if (instance.containers.every { cnt -> (cnt.plan?.id == currentServer.plan.id && cnt.maxMemory == currentServer.maxMemory && cnt.maxCores == currentServer.maxCores && cnt.coresPerSocket == currentServer.coresPerSocket) || cnt.server.id == currentServer.id }) {
+						if (instance.containers.every { cnt -> (cnt.plan?.id == currentServer.plan.id &&
+							cnt.maxMemory == currentServer.maxMemory &&
+							cnt.maxCores == currentServer.maxCores &&
+							cnt.coresPerSocket == currentServer.coresPerSocket) || cnt.server.id == currentServer.id }) {
 							log.debug("Changing Instance Plan To : ${plan?.name} - memory: ${currentServer.maxMemory} for ${instance.name} - ${instance.id}")
 							if(plan) {
 								instance.plan = plan

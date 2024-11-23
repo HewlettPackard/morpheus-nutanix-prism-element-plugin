@@ -25,6 +25,7 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
+import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
@@ -50,7 +51,7 @@ import java.net.http.HttpClient
 import static com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility.saveAndGet
 
 @Slf4j
-class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, ProvisionProvider.SnapshotFacet {
+class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, HostProvisionProvider.ResizeFacet, WorkloadProvisionProvider.ResizeFacet, ProvisionProvider.SnapshotFacet {
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
@@ -1029,32 +1030,31 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		virtualImageTypes
 	}
 
-	static ServiceResponse resizeCompute(MorpheusContext context, HttpApiClient client, Workload workload, ResizeRequest resizeRequest) {
-		ServiceResponse rtn = ServiceResponse.success()
+	static ServiceResponse resizeCompute(MorpheusContext context, HttpApiClient client, ComputeServer server, ResizeRequest resizeRequest) {
 		def resizeOpts = [
 			coresPerSocket: resizeRequest.coresPerSocket,
 			maxCores: resizeRequest.maxCores,
 			maxMemory: resizeRequest.maxMemory,
-			serverId: workload.server.externalId,
-			zone: workload.server.cloud,
+			serverId: server.externalId,
+			zone: server.cloud,
 		]
 		def resizeResults = NutanixPrismElementApiService.updateServer(client, resizeOpts)
 		if (resizeResults.success) {
-			def computeServer = context.services.computeServer.get(workload.server.id)
+			def computeServer = context.services.computeServer.get(server.id)
 			computeServer.coresPerSocket = resizeRequest.coresPerSocket
 			computeServer.maxCores = resizeRequest.maxCores
 			computeServer.maxMemory = resizeRequest.maxMemory
 			context.services.computeServer.save(computeServer)
-			return rtn
+			return ServiceResponse.success()
 		}
 
-		return rtn
+		return ServiceResponse.error('resize failed')
 	}
 
-	ServiceResponse resizeDisks(HttpApiClient client, Workload workload, ResizeRequest resizeRequest) {
+	ServiceResponse resizeDisks(HttpApiClient client, ComputeServer server, ResizeRequest resizeRequest) {
 		ServiceResponse rtn = ServiceResponse.success()
-		def cloud = workload.server.cloud
-		def vmId = workload.server.externalId
+		def cloud = server.cloud
+		def vmId = server.externalId
 		def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, vmId)?.disks
 		resizeRequest.volumesUpdate.each { it ->
 			def existingVolume = it.existingModel
@@ -1068,13 +1068,14 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				return
 			}
 
-			def sizeGb = updateProps.volume.size?.toInteger()
-			def diskId = existingVolume.internalId
-			def resizeResults = NutanixPrismElementApiService.resizeDisk(client, cloud, vmId, diskAddress, diskId, sizeGb)
+			def size = updateProps.size?.toInteger() * ComputeUtility.ONE_GIGABYTE
+			def diskId = existingVolume.externalId
+			def diskToResize = vmDisks.find{ it.disk_address.vmdisk_uuid == diskId }
+			def resizeResults = NutanixPrismElementApiService.resizeDisk(client, cloud, vmId, diskToResize, size)
 			if(resizeResults.success == true) {
 				//get new disk ID
 				vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, vmId)?.disks
-				def resizedDisk = vmDisks.find{ it.disk_address.disk_label == diskId }.disk_address
+				def resizedDisk = vmDisks.find{ it.disk_address.vmdisk_uuid == diskId }.disk_address
 				existingVolume.externalId = resizedDisk.vmdisk_uuid
 				existingVolume.maxStorage = updateProps.maxStorage as Long
 				context.services.storageVolume.save(existingVolume)
@@ -1091,7 +1092,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			if (it.datastoreId) {
 				addOpts.containerId = it.datastoreId
 			} else {
-				def dataStore = getDatastoreOption(cloud, cloud.account, null, null, it.size.toLong())
+				def dataStore = getDatastoreOption(cloud, server.account, null, null, it.size.toLong())
 				addOpts.containerId = dataStore?.externalId
 			}
 			def sizeGb = it.size?.toInteger()
@@ -1099,8 +1100,8 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			def diskResults = NutanixPrismElementApiService.addDisk(client, addOpts, vmId, sizeGb, busType)
 			log.debug("create disk success: ${diskResults.success}")
 			if(!diskResults.success) {
-				log.error "Error in creating the: ${diskResults}"
-				rtn.error = "Error in creating the"
+				rtn.error = "Error in creating the: ${diskResults}"
+				log.error rtn.error
 				// save the error but continue to try to add the other disks
 				return
 			}
@@ -1122,7 +1123,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				log.error("success adding disk but disk not found in nutanix list")
 				return
 			}
-			def computeServer = context.services.computeServer.get(workload.server.id)
+			def computeServer = context.services.computeServer.get(server.id)
 			def newVolume = NutanixPrismElementSyncUtility.buildStorageVolume(context, computeServer.account, computeServer, it as Map)
 			context.services.storageVolume.create(newVolume)
 			computeServer.volumes.add(newVolume)
@@ -1136,7 +1137,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			def deleteDiskResults = NutanixPrismElementApiService.deleteDisk(client, cloud, vmId, delDisk)
 			log.info("Delete Disk Results: ${deleteDiskResults}")
 			def storageVolume = context.services.storageVolume.get(volume.id)
-			def computeServer = context.services.computeServer.get(workload.server.id)
+			def computeServer = context.services.computeServer.get(server.id)
 			computeServer.volumes.remove(storageVolume)
 			context.services.computeServer.save(computeServer)
 			// TODO: switch back to bulkRemove once fixed
@@ -1148,15 +1149,14 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		return rtn
 	}
 
-	ServiceResponse resizeNetworks(HttpApiClient client, Instance instance, Workload workload, ResizeRequest resizeRequest) {
+	ServiceResponse resizeNetworks(HttpApiClient client, ComputeServer server, ResizeRequest resizeRequest) {
 		// existing code does nothing for network updates so we don't either
 		if(!resizeRequest.interfacesAdd && !resizeRequest.interfacesDelete) {
 			return ServiceResponse.success()
 		}
-		def rtn = ServiceResponse.prepare()
-		def vmId = workload.server.externalId
-		def existingNics = NutanixPrismElementApiService.getVirtualMachineNics(client, workload.server.cloud, vmId)?.nics
-		def computeServer = context.services.computeServer.get(workload.server.id)
+		def vmId = server.externalId
+		def existingNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, vmId)?.nics
+		def computeServer = context.services.computeServer.get(server.id)
 		resizeRequest.interfacesAdd?.each { newInterfaceOpts ->
 			log.info("adding network: ${newInterfaceOpts}")
 			def targetNetwork = context.services.network.get(newInterfaceOpts.network.id.toLong())
@@ -1166,15 +1166,15 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			}
 
 			def networkConfig = [
-				zone:workload.server.cloud,
+				zone:server.cloud,
 				networkUuid:targetNetwork.uniqueId,
 				ipAddress:newInterfaceOpts.ipAddress
 			]
-			def networkResults = NutanixPrismElementApiService.addNic(client, networkConfig, workload.server.externalId)
+			def networkResults = NutanixPrismElementApiService.addNic(client, networkConfig, server.externalId)
 			log.info("network results: ${networkResults}")
 			if(networkResults.success == true) {
-				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(context, instance, computeServer, newInterfaceOpts.network)
-				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, workload.server.cloud, workload.server.externalId)?.nics
+				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(context, computeServer, newInterfaceOpts.network)
+				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, server.externalId)?.nics
 				vmNics.each { vmNic ->
 					def existingNic = existingNics.find{it.macAddress == vmNic.macAddress}
 					if(!existingNic) {
@@ -1182,14 +1182,14 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 						newInterface.publicIpAddress = vmNic.requestedIpAddress
 					}
 				}
-				newInterface.uniqueId = "morpheus-nic-${instance.id}-${workload.id}-${computeServer.interfaces.size()}"
+				newInterface.uniqueId = "morpheus-nic-${computeServer.id}-${computeServer.interfaces.size()}"
 				context.services.computeServer.computeServerInterface.create(newInterface)
 				computeServer.interfaces.add(newInterface)
 			}
 		}
 		resizeRequest.interfacesDelete?.eachWithIndex { networkDelete, index ->
-			def deleteConfig = [zone:workload.server.cloud, macAddress: networkDelete.macAddress]
-			def deleteResults = NutanixPrismElementApiService.deleteNic(client, deleteConfig, workload.server.externalId, networkDelete.externalId)
+			def deleteConfig = [zone:server.cloud, macAddress: networkDelete.macAddress]
+			def deleteResults = NutanixPrismElementApiService.deleteNic(client, deleteConfig, server.externalId, networkDelete.externalId)
 			log.debug("deleteResults: ${deleteResults}")
 			if(deleteResults.success == true) {
 				def networkInterface = context.services.computeServer.computeServerInterface.get(networkDelete.id)
@@ -1200,26 +1200,41 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		}
 
 		context.services.computeServer.save(computeServer)
-		return rtn
+		// this function only returns success since the embedded version didn't fail the resize if something
+		// went wrong the the network stuff
+		return ServiceResponse.success()
+	}
+
+	@Override
+	ServiceResponse resizeServer(ComputeServer server, ResizeRequest resizeRequest, Map opts) {
+		log.debug "resizeServer: ${server}, ${resizeRequest}, ${opts}"
+
+		return resizeInternal(server, resizeRequest)
 	}
 
 	@Override
 	ServiceResponse resizeWorkload(Instance instance, Workload workload, ResizeRequest resizeRequest, Map opts) {
 		log.debug "resizeWorkload: ${instance}, ${resizeRequest}, ${opts}"
+
+		return resizeInternal(workload.server, resizeRequest)
+	}
+
+	private ServiceResponse resizeInternal(ComputeServer server, ResizeRequest resizeRequest) {
 		ServiceResponse rtn = ServiceResponse.prepare()
 		HttpApiClient client = new HttpApiClient()
 		try {
-			rtn = resizeCompute(context, client, workload, resizeRequest)
+			server = context.services.computeServer.get(server.id)
+			rtn = resizeCompute(context, client, server, resizeRequest)
 			if (!rtn.success) {
 				return rtn
 			}
 
-			rtn = resizeDisks(client, workload, resizeRequest)
+			rtn = resizeDisks(client, server, resizeRequest)
 			if (!rtn.success) {
 				return rtn
 			}
 
-			rtn = resizeNetworks(client, instance, workload, resizeRequest)
+			rtn = resizeNetworks(client, server, resizeRequest)
 			if (!rtn.success) {
 				return rtn
 			}

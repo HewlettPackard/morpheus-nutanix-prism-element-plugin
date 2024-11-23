@@ -1030,31 +1030,26 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static resizeDisk(HttpApiClient client, cloud, vmId, diskAddress, diskId, sizeGB) {
-		log.debug("resizeDisk ${cloud}, vm:${vmId}, disk:${diskId}")
+	static resizeDisk(HttpApiClient client, cloud, vmId, nutanixDiskToResize, Long sizeBytes) {
+		log.debug("resizeDisk ${cloud}, vm:${vmId}, disk:${nutanixDiskToResize}")
 		def rtn = [success: false]
 		if (!vmId) {
 			rtn.error = 'Please specify a VM ID'
-		} else if (!diskAddress) {
-			rtn.error = 'Please specify a disk address'
-		} else if (!diskId) {
-			rtn.error = 'Please specify a disk ID'
-		} else if (!sizeGB) {
-			rtn.error = 'Please specify a disk size'
+		} else if (!nutanixDiskToResize) {
+			rtn.error = 'Please provide a disk definition to resize to'
 		} else {
 			def apiUrl = getNutanixApiUrl(cloud)
 			def username = getNutanixUsername(cloud)
 			def password = getNutanixPassword(cloud)
-			def diskSize = (int) sizeGB * ComputeUtility.ONE_GIGABYTE
-			def updateSpec = [vmDiskClone: [minimumSize: diskSize, vmDiskUuid: diskId]]
-			def body = [updateSpec: updateSpec]
+			nutanixDiskToResize.vm_disk_create = [size: sizeBytes, storage_container_uuid: nutanixDiskToResize.storage_container_uuid]
+			def body = [vm_disks: [nutanixDiskToResize]]
 			log.info("resize disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks/' + diskAddress, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId + '/disks/update', null, null, requestOpts, 'PUT')
 			log.info("resizeDisk results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, cloud, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
