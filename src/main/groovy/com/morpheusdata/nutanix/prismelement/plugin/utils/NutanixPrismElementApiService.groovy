@@ -20,6 +20,7 @@ package com.morpheusdata.nutanix.prismelement.plugin.utils
 
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
+import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
 
@@ -111,31 +112,25 @@ class NutanixPrismElementApiService {
 
 	static listContainers(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, containers: []]
-		//set the path for the different api versions
-		def apiPath
 		def apiMethod = 'GET'
-		if (authConfig.apiNumber > 2)
-			apiPath = ('/api/nutanix/v2.0/storage_containers')
-		else if (authConfig.apiNumber > 1)
-			apiPath = ('/api/nutanix/' + authConfig.apiVersion + '/storage_containers')
-		else
-			apiPath = ('/PrismGateway/services/rest/' + authConfig.apiVersion + '/containers/')
-		//make api call
+		def apiPath = ('/api/nutanix/v2.0/storage_containers')
+
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, apiMethod)
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
+		rtn.success = results?.success && results?.error == null
+		if (rtn.success) {
 			rtn.results = results.data
-			//results depend on version - grr nutanix
 			results.data?.entities?.each { entity ->
-				if (authConfig.apiNumber > 1) {
-					rtn.containers << [id        : entity.id, uuid: entity.storage_container_uuid, clusterUuid: entity.cluster_uuid, name: entity.name,
-									   maxStorage: entity.max_capacity, replicationFactor: entity.replication_factor, freeStorage: entity?.usage_stats?.'storage.free_bytes']
-				} else {
-					rtn.containers << [id        : entity.id, uuid: entity.containerUuid, clusterUuid: entity.clusterUuid, name: entity.name,
-									   maxStorage: entity.maxCapacity, replicationFactor: entity.replicationFactor, freeStorage: entity?.usageStats?.'storage.free_bytes']
-				}
+				rtn.containers << [
+					id: entity.id,
+					uuid: entity.storage_container_uuid,
+					clusterUuid: entity.cluster_uuid,
+					name: entity.name,
+				    maxStorage: entity.max_capacity,
+				    replicationFactor: entity.replication_factor,
+				    freeStorage: entity?.usage_stats?.'storage.free_bytes'
+				]
 			}
 			log.debug("listContainers: ${rtn}")
 		}
