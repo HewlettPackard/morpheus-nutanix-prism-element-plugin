@@ -566,18 +566,13 @@ class NutanixPrismElementApiService {
 	static listHosts(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, hosts: [], total: 0]
 		try {
-			def apiPath = authConfig.basePath + 'hosts/list'
+			def apiPath = v2Api + 'hosts'
 			def headers = buildHeaders(null, authConfig.username, authConfig.password)
-			def apiBody = [kind: 'host']
-			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: apiBody)
+			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 			//page it
-			def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'GET')
 			if (results.success == true) {
-				results.data?.entities?.each { row ->
-					def obj = row
-					obj.externalId = row.metadata.uuid
-					rtn.hosts << obj
-				}
+				rtn.results = results.data?.entities
 				rtn.success = true
 			}
 		} catch (e) {
@@ -1458,19 +1453,6 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listSnapshots(HttpApiClient client, Map authConfig) {
-		def rtn = [success: false]
-
-		def headers = buildHeaders(null, authConfig.username, authConfig.password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(authConfig.apiUrl, '/api/nutanix/' + authConfig.apiVersion + '/snapshots/', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
-			rtn.results = results.data
-			log.trace("listSnapshots: ${rtn.results}")
-		}
-		return rtn
-	}
 
 	static getSnapshot(HttpApiClient client, opts, snapshotId) {
 		def rtn = [success: false]
