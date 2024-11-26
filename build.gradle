@@ -54,6 +54,7 @@ dependencies {
 	implementation 'commons-net:commons-net:3.6'
 
 	// Include morpheus-core and it's dependencies
+	testImplementation "com.morpheusdata:morpheus-plugin-api:$morpheusApiVersion"
 	testImplementation 'io.reactivex.rxjava3:rxjava:3.1.7'
 	testImplementation 'org.apache.httpcomponents:httpclient:4.5.3'
 	testImplementation 'org.apache.httpcomponents:httpcore:4.4.5'
@@ -64,8 +65,8 @@ dependencies {
 	testImplementation 'org.objenesis:objenesis:2.6'
 	testImplementation platform("org.spockframework:spock-bom:$spockVersion")
 	testImplementation "org.spockframework:spock-core"
-	testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
 	testImplementation 'cglib:cglib-nodep:3.2.12'
+	testImplementation 'org.assertj:assertj-core:3.26.3'
 
 	//http client
 	implementation 'org.apache.httpcomponents:httpclient:4.5.13'
@@ -126,6 +127,7 @@ task(console, dependsOn: 'classes', type: JavaExec) {
 }
 
 test {
+	useJUnitPlatform()  // Required for Spock 2.x
 	testLogging {
 		exceptionFormat = 'full'
 		showStandardStreams = true
