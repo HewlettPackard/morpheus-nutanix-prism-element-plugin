@@ -1,0 +1,85 @@
+{
+	"api_version": "3.1",
+	"metadata": {
+		"kind": "host",
+		"total_matches": 1
+	},
+	"entities": [
+		{
+			"status": {
+				"name": "NTNX-7925c5f8-A",
+				"resources": {
+					"cpu_model": "Intel(R) Xeon(R) Gold 6132 CPU @ 2.60GHz",
+					"host_nics_id_list": [],
+					"num_cpu_sockets": 12,
+					"gpu_list": [],
+					"serial_number": "82d60458-c20b-431d-93ba-eed97aa5d641",
+					"cpu_capacity_hz": 2593000000,
+					"memory_capacity_mib": 62543,
+					"host_disks_reference_list": [
+						{
+							"kind": "disk",
+							"uuid": "09b2ed55-7df7-439f-8f92-a8414f3ad86c"
+						},
+						{
+							"kind": "disk",
+							"uuid": "5fc6c617-7f7b-4f22-bc3e-694d9b4f57ec"
+						}
+					],
+					"hypervisor": {
+						"num_vms": 3,
+						"ip": "10.114.164.252",
+						"hypervisor_full_name": "Nutanix 20230302.101026"
+					},
+					"host_type": "HYPER_CONVERGED",
+					"ipmi":  {
+						"ip": "192.168.0.1"
+					},
+					"num_cpu_cores": 12,
+					"rackable_unit_reference": {
+						"kind": "rackable_unit",
+						"uuid": "ade2d818-7a28-4fe5-ab88-7a1a4a7933aa"
+					},
+					"controller_vm": {
+						"ip": "10.114.164.253",
+						"oplog_usage": {
+							"oplog_disk_pct": 10.987560091600841,
+							"oplog_disk_size": 100896326876
+						}
+					},
+					"block": {
+						"block_serial_number": "7925c5f8",
+						"block_model": "CommunityEdition"
+					}
+				},
+				"cluster_reference": {
+					"kind": "cluster",
+					"uuid": "000623fa-11d0-1ee5-7f35-5254004b8782"
+				},
+				"state": "COMPLETE"
+			},
+			"metadata": {
+				"uuid": "82d60458-c20b-431d-93ba-eed97aa5d641",
+				"spec_hash": "00000000000000000000000000000000000000000000000000",
+				"spec_version": 0,
+				"categories": {},
+				"categories_mapping": {},
+				"creation_time": "2024-11-12T23:51:07Z",
+				"last_update_time": "2024-11-12T23:51:07Z",
+				"kind": "host"
+			},
+			"spec": {
+				"name": "NTNX-7925c5f8-A",
+				"resources": {
+					"controller_vm": {
+						"ip": "10.114.164.253",
+						"oplog_usage": {
+							"oplog_disk_pct": 10.987560091600841,
+							"oplog_disk_size": 100896326876
+						}
+					}
+				}
+			}
+		}
+	]
+}
