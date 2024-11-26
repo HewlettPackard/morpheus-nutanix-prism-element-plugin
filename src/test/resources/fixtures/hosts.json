@@ -1,85 +1,271 @@
 {
-	"api_version": "3.1",
 	"metadata": {
-		"kind": "host",
-		"total_matches": 1
+		"grand_total_entities": 1,
+		"total_entities": 1,
+		"filter_criteria": "",
+		"sort_criteria": "",
+		"page": 1,
+		"count": 1,
+		"start_index": 1,
+		"end_index": 1
 	},
 	"entities": [
 		{
-			"status": {
-				"name": "NTNX-7925c5f8-A",
-				"resources": {
-					"cpu_model": "Intel(R) Xeon(R) Gold 6132 CPU @ 2.60GHz",
-					"host_nics_id_list": [],
-					"num_cpu_sockets": 12,
-					"gpu_list": [],
-					"serial_number": "82d60458-c20b-431d-93ba-eed97aa5d641",
-					"cpu_capacity_hz": 2593000000,
-					"memory_capacity_mib": 62543,
-					"host_disks_reference_list": [
-						{
-							"kind": "disk",
-							"uuid": "09b2ed55-7df7-439f-8f92-a8414f3ad86c"
-						},
-						{
-							"kind": "disk",
-							"uuid": "5fc6c617-7f7b-4f22-bc3e-694d9b4f57ec"
-						}
-					],
-					"hypervisor": {
-						"num_vms": 3,
-						"ip": "10.114.164.252",
-						"hypervisor_full_name": "Nutanix 20230302.101026"
-					},
-					"host_type": "HYPER_CONVERGED",
-					"ipmi":  {
-						"ip": "192.168.0.1"
-					},
-					"num_cpu_cores": 12,
-					"rackable_unit_reference": {
-						"kind": "rackable_unit",
-						"uuid": "ade2d818-7a28-4fe5-ab88-7a1a4a7933aa"
-					},
-					"controller_vm": {
-						"ip": "10.114.164.253",
-						"oplog_usage": {
-							"oplog_disk_pct": 10.987560091600841,
-							"oplog_disk_size": 100896326876
-						}
-					},
-					"block": {
-						"block_serial_number": "7925c5f8",
-						"block_model": "CommunityEdition"
-					}
+			"service_vmid": "000623fa-11d0-1ee5-7f35-5254004b8782::2",
+			"uuid": "82d60458-c20b-431d-93ba-eed97aa5d641",
+			"disk_hardware_configs": {
+				"1": {
+					"serial_number": "QM00007",
+					"disk_id": "000623fa-11d0-1ee5-7f35-5254004b8782::13",
+					"disk_uuid": "09b2ed55-7df7-439f-8f92-a8414f3ad86c",
+					"location": 1,
+					"bad": false,
+					"mounted": true,
+					"mount_path": "/home/nutanix/data/stargate-storage/disks/QM00007",
+					"model": "QEMU HARDDISK",
+					"vendor": "Not Available",
+					"boot_disk": true,
+					"only_boot_disk": false,
+					"under_diagnosis": false,
+					"background_operation": null,
+					"current_firmware_version": "2.5+",
+					"target_firmware_version": "2.5+",
+					"can_add_as_new_disk": false,
+					"can_add_as_old_disk": false
 				},
-				"cluster_reference": {
-					"kind": "cluster",
-					"uuid": "000623fa-11d0-1ee5-7f35-5254004b8782"
+				"2": {
+					"serial_number": "QM00003",
+					"disk_id": "000623fa-11d0-1ee5-7f35-5254004b8782::12",
+					"disk_uuid": "5fc6c617-7f7b-4f22-bc3e-694d9b4f57ec",
+					"location": 2,
+					"bad": false,
+					"mounted": true,
+					"mount_path": "/home/nutanix/data/stargate-storage/disks/QM00003",
+					"model": "QEMU HARDDISK",
+					"vendor": "Not Available",
+					"boot_disk": true,
+					"only_boot_disk": false,
+					"under_diagnosis": false,
+					"background_operation": null,
+					"current_firmware_version": "2.5+",
+					"target_firmware_version": "2.5+",
+					"can_add_as_new_disk": false,
+					"can_add_as_old_disk": false
 				},
-				"state": "COMPLETE"
+				"3": null,
+				"4": null,
+				"5": null,
+				"6": null,
+				"7": null,
+				"8": null,
+				"9": null,
+				"10": null,
+				"11": null,
+				"12": null,
+				"13": null,
+				"14": null,
+				"15": null,
+				"16": null,
+				"17": null,
+				"18": null,
+				"19": null,
+				"20": null,
+				"21": null,
+				"22": null,
+				"23": null,
+				"24": null,
+				"25": null,
+				"26": null
 			},
-			"metadata": {
-				"uuid": "82d60458-c20b-431d-93ba-eed97aa5d641",
-				"spec_hash": "00000000000000000000000000000000000000000000000000",
-				"spec_version": 0,
-				"categories": {},
-				"categories_mapping": {},
-				"creation_time": "2024-11-12T23:51:07Z",
-				"last_update_time": "2024-11-12T23:51:07Z",
-				"kind": "host"
-			},
-			"spec": {
-				"name": "NTNX-7925c5f8-A",
-				"resources": {
-					"controller_vm": {
-						"ip": "10.114.164.253",
-						"oplog_usage": {
-							"oplog_disk_pct": 10.987560091600841,
-							"oplog_disk_size": 100896326876
-						}
-					}
+			"name": "NTNX-7925c5f8-A",
+			"service_vmexternal_ip": "10.114.164.253",
+			"service_vmexternal_address": [
+				{
+					"ipv4": "10.114.164.253"
 				}
-			}
+			],
+			"service_vmnat_ip": null,
+			"service_vmnat_port": null,
+			"oplog_disk_pct": 11.0,
+			"oplog_disk_size": 100896326876,
+			"hypervisor_key": "10.114.164.252",
+			"hypervisor_address": "10.114.164.252",
+			"hypervisor_address_value": [
+				{
+					"ipv4": "10.114.164.252"
+				}
+			],
+			"hypervisor_username": "root",
+			"hypervisor_password": null,
+			"backplane_ip": null,
+			"backplane_address": null,
+			"controller_vm_backplane_ip": "10.114.164.253",
+			"controller_vm_backplane_address": [
+				{
+					"ipv4": "10.114.164.253"
+				}
+			],
+			"rdma_backplane_ips": null,
+			"rdma_backplane_address_list": null,
+			"management_server_name": "10.114.164.252",
+			"ipmi_address": "192.168.0.1",
+			"ipmi_address_value": null,
+			"ipmi_username": null,
+			"ipmi_password": null,
+			"monitored": true,
+			"position": {
+				"ordinal": 1,
+				"name": "",
+				"physical_position": null
+			},
+			"serial": "82d60458-c20b-431d-93ba-eed97aa5d641",
+			"block_serial": "7925c5f8",
+			"block_model": "UseLayout",
+			"block_model_name": "CommunityEdition",
+			"block_location": null,
+			"host_maintenance_mode_reason": null,
+			"hypervisor_state": "kAcropolisNormal",
+			"acropolis_connection_state": "kConnected",
+			"metadata_store_status": "kNormalMode",
+			"metadata_store_status_message": "Metadata store enabled on the node",
+			"state": "NORMAL",
+			"dynamic_ring_changing_node": null,
+			"removal_status": [
+				"NA"
+			],
+			"vzone_name": "",
+			"cpu_model": "Intel(R) Xeon(R) Gold 6132 CPU @ 2.60GHz",
+			"num_cpu_cores": 12,
+			"num_cpu_threads": 12,
+			"num_cpu_sockets": 12,
+			"cpu_frequency_in_hz": 2593000000,
+			"cpu_capacity_in_hz": 31116000000,
+			"memory_capacity_in_bytes": 65581088768,
+			"hypervisor_full_name": "Nutanix 20230302.101026",
+			"hypervisor_type": "kKvm",
+			"num_vms": 3,
+			"boot_time_in_usecs": 1731432142163547,
+			"is_degraded": false,
+			"is_secure_booted": false,
+			"is_hardware_virtualized": false,
+			"failover_cluster_fqdn": null,
+			"failover_cluster_node_state": null,
+			"reboot_pending": false,
+			"default_vm_location": null,
+			"default_vm_storage_container_id": null,
+			"default_vm_storage_container_uuid": null,
+			"default_vhd_location": null,
+			"default_vhd_storage_container_id": null,
+			"default_vhd_storage_container_uuid": null,
+			"bios_version": null,
+			"bios_model": null,
+			"bmc_version": null,
+			"bmc_model": null,
+			"hba_firmwares_list": null,
+			"cluster_uuid": "000623fa-11d0-1ee5-7f35-5254004b8782",
+			"stats": {
+				"hypervisor_avg_io_latency_usecs": "0",
+				"num_read_iops": "4",
+				"hypervisor_write_io_bandwidth_kBps": "0",
+				"timespan_usecs": "30000000",
+				"controller_num_read_iops": "0",
+				"read_io_ppm": "490636",
+				"controller_num_iops": "4",
+				"total_read_io_time_usecs": "-1",
+				"controller_total_read_io_time_usecs": "0",
+				"hypervisor_num_io": "0",
+				"controller_total_transformed_usage_bytes": "-1",
+				"hypervisor_cpu_usage_ppm": "156677",
+				"controller_num_write_io": "83",
+				"avg_read_io_latency_usecs": "-1",
+				"content_cache_logical_ssd_usage_bytes": "0",
+				"controller_total_io_time_usecs": "450413",
+				"controller_total_read_io_size_kbytes": "0",
+				"controller_num_seq_io": "-1",
+				"controller_read_io_ppm": "0",
+				"content_cache_num_lookups": "297",
+				"controller_total_io_size_kbytes": "568",
+				"content_cache_hit_ppm": "986531",
+				"controller_num_io": "83",
+				"hypervisor_avg_read_io_latency_usecs": "0",
+				"content_cache_num_dedup_ref_count_pph": "73",
+				"num_write_iops": "4",
+				"controller_num_random_io": "0",
+				"num_iops": "8",
+				"hypervisor_num_read_io": "0",
+				"hypervisor_total_read_io_time_usecs": "0",
+				"controller_avg_io_latency_usecs": "5426",
+				"num_io": "267",
+				"controller_num_read_io": "0",
+				"hypervisor_num_write_io": "0",
+				"controller_seq_io_ppm": "-1",
+				"controller_read_io_bandwidth_kBps": "0",
+				"controller_io_bandwidth_kBps": "28",
+				"hypervisor_num_received_bytes": "932244209738166",
+				"hypervisor_timespan_usecs": "30036138",
+				"hypervisor_num_write_iops": "0",
+				"total_read_io_size_kbytes": "1070",
+				"hypervisor_total_io_size_kbytes": "0",
+				"avg_io_latency_usecs": "995",
+				"hypervisor_num_read_iops": "0",
+				"content_cache_saved_ssd_usage_bytes": "0",
+				"controller_write_io_bandwidth_kBps": "28",
+				"controller_write_io_ppm": "1000000",
+				"hypervisor_avg_write_io_latency_usecs": "0",
+				"hypervisor_num_transmitted_bytes": "307153552583077",
+				"hypervisor_total_read_io_size_kbytes": "0",
+				"read_io_bandwidth_kBps": "35",
+				"hypervisor_memory_usage_ppm": "565414",
+				"hypervisor_num_iops": "0",
+				"hypervisor_io_bandwidth_kBps": "0",
+				"controller_num_write_iops": "4",
+				"total_io_time_usecs": "265907",
+				"content_cache_physical_ssd_usage_bytes": "0",
+				"controller_random_io_ppm": "-1",
+				"controller_avg_read_io_size_kbytes": "0",
+				"total_transformed_usage_bytes": "-1",
+				"avg_write_io_latency_usecs": "-1",
+				"num_read_io": "131",
+				"write_io_bandwidth_kBps": "33",
+				"hypervisor_read_io_bandwidth_kBps": "0",
+				"random_io_ppm": "-1",
+				"total_untransformed_usage_bytes": "-1",
+				"hypervisor_total_io_time_usecs": "0",
+				"num_random_io": "-1",
+				"controller_avg_write_io_size_kbytes": "6",
+				"controller_avg_read_io_latency_usecs": "0",
+				"num_write_io": "136",
+				"total_io_size_kbytes": "2078",
+				"io_bandwidth_kBps": "69",
+				"content_cache_physical_memory_usage_bytes": "546419528",
+				"controller_timespan_usecs": "20000000",
+				"num_seq_io": "-1",
+				"content_cache_saved_memory_usage_bytes": "-147390848",
+				"seq_io_ppm": "-1",
+				"write_io_ppm": "509363",
+				"controller_avg_write_io_latency_usecs": "5426",
+				"content_cache_logical_memory_usage_bytes": "399028680"
+			},
+			"usage_stats": {
+				"storage_tier.das-sata.usage_bytes": "0",
+				"storage.capacity_bytes": "692010703654",
+				"storage.logical_usage_bytes": "9008676864",
+				"storage_tier.das-sata.capacity_bytes": "0",
+				"storage.free_bytes": "688523762516",
+				"storage_tier.ssd.usage_bytes": "3486941138",
+				"storage_tier.ssd.capacity_bytes": "692010703654",
+				"storage_tier.das-sata.free_bytes": "0",
+				"storage.usage_bytes": "3486941138",
+				"storage_tier.ssd.free_bytes": "688523762516"
+			},
+			"has_csr": false,
+			"host_nic_ids": [],
+			"host_gpus": null,
+			"host_available_nvmes": null,
+			"gpu_driver_version": null,
+			"host_type": "HYPER_CONVERGED",
+			"key_management_device_to_certificate_status": {},
+			"host_in_maintenance_mode": null
 		}
 	]
 }

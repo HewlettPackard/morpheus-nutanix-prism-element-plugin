@@ -105,7 +105,10 @@ class HostsSyncSpec extends Specification {
 		service.execute()
 
 		then:
-		1 * client.callJsonApi(*_) >> new ServiceResponse(data: payload, success: true)
+		1 * client.callJsonApi(*_) >> { args ->
+			assertThat(args[1] as String).isEqualTo("/api/nutanix/v2.0/hosts")
+			new ServiceResponse(data: payload, success: true)
+		}
 
 		1 * morpheusContext.async.computeServer.listIdentityProjections(_) >> { Observable.empty() }
 		1 * morpheusContext.async.cloud.findComputeServerTypeByCode(_) >> Maybe.just(expectedServerType)
@@ -177,7 +180,10 @@ class HostsSyncSpec extends Specification {
 		service.execute()
 
 		then:
-		1 * client.callJsonApi(*_) >> new ServiceResponse(data: payload, success: true)
+		1 * client.callJsonApi(*_) >> { args ->
+			assertThat(args[1] as String).isEqualTo("/api/nutanix/v2.0/hosts")
+			new ServiceResponse(data: payload, success: true)
+		}
 		1 * morpheusContext.async.cloud.findComputeServerTypeByCode(_) >> Maybe.just(expectedServerType)
 		1 * morpheusContext.services.osType.find(_) >> expectedOsType
 
@@ -248,7 +254,11 @@ class HostsSyncSpec extends Specification {
 		service.execute()
 
 		then:
-		1 * client.callJsonApi(*_) >> new ServiceResponse(data: payload, success: true)
+		1 * client.callJsonApi(*_) >> { args ->
+			assertThat(args[1] as String).isEqualTo("/api/nutanix/v2.0/hosts")
+			new ServiceResponse(data: payload, success: true)
+		}
+
 		1 * morpheusContext.async.cloud.findComputeServerTypeByCode(_) >> Maybe.just(expectedServerType)
 		1 * morpheusContext.services.osType.find(_) >> expectedOsType
 

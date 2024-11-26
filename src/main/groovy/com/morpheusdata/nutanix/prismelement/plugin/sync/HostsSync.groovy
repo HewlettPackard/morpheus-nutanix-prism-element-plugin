@@ -51,7 +51,7 @@ class HostsSync {
 		def listResults = NutanixPrismElementApiService.listHosts(client, authConfig)
 		log.debug("$listResults")
 		if (listResults.success == true) {
-			def objList = listResults.hosts
+			def objList = listResults.results
 			def serverType = context.async.cloud.findComputeServerTypeByCode('nutanixMetalHypervisor').blockingGet()
 			def serverOs = context.services.osType.find(new DataQuery().withFilter('code', 'linux'))
 			def existingItems = context.async.computeServer.listIdentityProjections(new DataQuery()
@@ -63,7 +63,7 @@ class HostsSync {
 
 			SyncTask<ComputeServerIdentityProjection, Map, ComputeServer> sync = new SyncTask<>(existingItems, objList)
 			sync.addMatchFunction { ComputeServerIdentityProjection existingHost, Map cloudHost ->
-				existingHost.externalId == cloudHost?.externalId
+				existingHost.externalId == cloudHost?.uuid
 			}.withLoadObjectDetailsFromFinder {
 				context.async.computeServer.listById(it.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { addItems ->
@@ -82,12 +82,12 @@ class HostsSync {
 	private void addServers(Collection<Map> addItems, ComputeServerType serverType, OsType serverOs) {
 		def newServers = []
 		for (final def item in addItems) {
-			def ipAddress = item.status.resources.hypervisor?.ip
+			def ipAddress = item.hypervisor_address
 			def newServer = new ComputeServer(
 				account: cloud.owner,
 				category: "nutanix.host.${cloud.id}",
-				name: item.spec.name ?: item.status.name,
-				externalId: item.externalId,
+				name: item.name,
+				externalId: item.uuid,
 				cloud: cloud,
 				sshUsername: 'root',
 				apiKey: UUID.randomUUID(),
@@ -99,13 +99,13 @@ class HostsSync {
 				statusDate: new Date(),
 				serverOs: serverOs,
 				osType: 'linux',
-				hostname: item.spec.name ?: item.status.name,
+				hostname: item.name,
 				sshHost: ipAddress,
 				externalIp: ipAddress,
 				internalIp: ipAddress,
 			)
 
-			def ipmiAddress = item.status.resources.ipmi?.ip
+			def ipmiAddress = item.ipmi_address
 			if (ipmiAddress) {
 				def access = new ComputeServerAccess(
 					accessType: 'ipmi',
@@ -116,8 +116,8 @@ class HostsSync {
 			}
 
 			newServer.powerState = (isHostPoweredOn(item)) ? ComputeServer.PowerState.on : ComputeServer.PowerState.off
-			newServer.maxMemory = (item.status.resources.memory_capacity_mib ?: 0) * ComputeUtility.ONE_MEGABYTE
-			newServer.maxCores = (item.status.resources.num_cpu_cores ?: 0) * (item.status.resources.num_cpu_sockets ?: 0)
+			newServer.maxMemory = item.memory_capacity_in_bytes
+			newServer.maxCores = (item.num_cpu_cores ?: 0) * (item.num_cpu_sockets ?: 0)
 			newServer.maxStorage = 0
 			newServer.capacityInfo = new ComputeCapacityInfo(
 				maxMemory: newServer.maxMemory,
@@ -155,14 +155,14 @@ class HostsSync {
 				}
 			}
 
-			def maxMemory = (host.status.resources.memory_capacity_mib ?: 0) * ComputeUtility.ONE_MEGABYTE
+			def maxMemory = host.memory_capacity_in_bytes
 			if (maxMemory > server.maxMemory) {
 				server.maxMemory = maxMemory
 				server.capacityInfo?.maxMemory = maxMemory
 				shouldUpdate = true
 			}
 
-			def maxCores = (host.status.resources.num_cpu_cores ?: 0) * (host.status.resources.num_cpu_sockets ?: 0)
+			def maxCores = (host.num_cpu_cores ?: 0) * (host.num_cpu_sockets ?: 0)
 			if (maxCores > server.maxCores) {
 				server.maxCores = maxCores
 				server.capacityInfo?.maxCores = maxCores
@@ -214,6 +214,6 @@ class HostsSync {
 	 * @return true if powered on; false otherwise
 	 */
 	static boolean isHostPoweredOn(Map host) {
-		host.status.state == 'COMPLETE' || host.status.state == 'NORMAL'
+		host.state == 'COMPLETE' || host.state == 'NORMAL'
 	}
 }
