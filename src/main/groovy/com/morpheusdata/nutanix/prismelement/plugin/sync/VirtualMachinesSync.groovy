@@ -25,6 +25,8 @@ import com.morpheusdata.model.*
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
 import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
+import com.morpheusdata.core.MorpheusSynchronousDataService
+import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementSyncUtility
 import groovy.util.logging.Slf4j
 import io.reactivex.rxjava3.core.Observable
 
@@ -278,6 +280,8 @@ class VirtualMachinesSync {
 							.withFilter('refId', cloud.id)
 							.withFilter('externalId', 'in', networkIds)
 					)
+				} else {
+					[]
 				}
 			}
 
@@ -358,7 +362,9 @@ class VirtualMachinesSync {
 						.withFilter('externalId', parentId)
 				)
 			}
-
+			if (currentServer.computeServerType?.guestVm) {
+				NutanixPrismElementSyncUtility.updateServerContainersAndInstances(context, plan, currentServer)
+			}
 			if (save) {
 				context.services.computeServer.save(currentServer)
 			}
@@ -386,7 +392,7 @@ class VirtualMachinesSync {
 					morpheusVolume?.externalId == diskInfo.disk_address.vmdisk_uuid
 				}
 				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
-					def deviceName = generateVolumeDeviceName(diskInfo, diskList)
+					def deviceName = NutanixPrismElementSyncUtility.generateVolumeDeviceName(diskInfo)
 					morpheusVolume.deviceDisplayName == deviceName && morpheusVolume.type.externalId == "nutanix_${diskInfo.disk_address.device_bus.toUpperCase()}"
 				}
 				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
@@ -408,7 +414,7 @@ class VirtualMachinesSync {
 
 							if (storageVolumeType) {
 								def maxStorage = addItem.size
-								def deviceName = generateVolumeDeviceName(addItem, diskList)
+								def deviceName = NutanixPrismElementSyncUtility.generateVolumeDeviceName(addItem)
 								def datastore
 
 								def volume = new StorageVolume(maxStorage: maxStorage, type: storageVolumeType, externalId: volumeId,
@@ -460,7 +466,7 @@ class VirtualMachinesSync {
 							existingVolume.unitNumber = diskInfo.disk_address.device_index
 							save = true
 						}
-						def deviceDisplayName = generateVolumeDeviceName(diskInfo, diskList)
+						def deviceDisplayName = NutanixPrismElementSyncUtility.generateVolumeDeviceName(diskInfo)
 
 						if (deviceDisplayName != existingVolume.deviceDisplayName) {
 							existingVolume.deviceDisplayName = deviceDisplayName
@@ -484,7 +490,8 @@ class VirtualMachinesSync {
 
 					if (disks) {
 						rtn.saveRequired = true
-						context.services.storageVolume.bulkSave(disks)
+						// TODO: replace with newer api when fixed, use deprecated api for now
+						context.services.storageVolume.save(disks)
 					}
 				}
 				.onDelete { deleteItems ->
@@ -495,6 +502,7 @@ class VirtualMachinesSync {
 					}
 
 					if (disks) {
+						// TODO: replace with newer api when fixed, use deprecated api for now
 						context.async.storageVolume.remove(disks, server, false).blockingGet()
 						rtn.saveRequired = true
 					}
@@ -503,37 +511,6 @@ class VirtualMachinesSync {
 			log.error("error cacheVirtualMachineVolumes ${e}", e)
 		}
 		return rtn
-	}
-
-	private static String generateVolumeDeviceName(diskInfo, List<Map> diskList) {
-		def deviceName = ''
-		if (!diskInfo.device_properties) {
-			if (diskInfo.disk_address.device_bus.toUpperCase() == 'SCSI'
-				|| diskInfo.disk_address.device_bus.toUpperCase() == 'SATA') {
-				deviceName += 'sd'
-			} else {
-				deviceName += 'hd'
-			}
-		} else {
-			if (diskInfo.device_properties.disk_address.adapter_type == 'SCSI'
-				|| diskInfo.device_properties.disk_address.adapter_type == 'SATA') {
-				deviceName += 'sd'
-			} else {
-				deviceName += 'hd'
-			}
-		}
-
-
-		def letterIndex = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l']
-		def indexPos = diskInfo.disk_address?.device_index ?: diskInfo.device_properties?.disk_address?.device_index ?: 0
-		if (diskInfo.disk_address?.device_bus?.toUpperCase() == 'SATA'
-			|| diskInfo.device_properties?.disk_address?.adapter_type == 'SATA') {
-			indexPos += diskList.count { it.device_properties?.disk_address?.adapter_type == 'SCSI' || it.disk_address?.device_bus?.toUpperCase() == 'SCSI' }
-		}
-		deviceName += letterIndex[indexPos]
-
-		return deviceName
-
 	}
 
 	private static boolean shouldImportExistingVMs(importExisting) {
@@ -565,11 +542,10 @@ class VirtualMachinesSync {
 						def nicId = nicInfo.mac_address
 						def network = networks.find { it.externalId == nicInfo.network_uuid }
 						def nicPosition = nicList.indexOf(nicInfo) ?: 0
-
-						def nicType = netTypes.find { it.code.startsWith('nutanix') && it.externalId == (nicInfo.adapter_type ?: 'virtio') }
+						def nicType = netTypes.find { it.code.startsWith('nutanix') && it.code.contains(nicInfo.adapter_type as String ?: 'virtio')}
 						def netInterface = new ComputeServerInterface(
 							externalId: nicId,
-							name: "eth${nicPosition}",
+							name: NutanixPrismElementSyncUtility.generateNicName(server, nicPosition),
 							network: network,
 							type: nicType,
 							macAddress: nicInfo.mac_address)
@@ -579,6 +555,7 @@ class VirtualMachinesSync {
 					}
 
 					if (netInterfaces) {
+						// TODO: replace with newer api when fixed, use deprecated api for now
 						context.async.computeServer.computeServerInterface.create(netInterfaces, server).blockingGet()
 					}
 				}
@@ -602,7 +579,7 @@ class VirtualMachinesSync {
 							save = true
 						}
 
-						def ipAddress = nicInfo.ip_endpoint_list ? nicInfo.ip_endpoint_list.first().ip : null
+						def ipAddress = nicInfo.ip_addresses ? nicInfo.ip_addresses.first(): null
 						if (!existingInterface.addresses.find {
 							it.type == NetAddress.AddressType.IPV4 && it.address == ipAddress
 						}) {
@@ -620,7 +597,8 @@ class VirtualMachinesSync {
 						}
 					}
 					if (netInterfaces) {
-						context.services.computeServer.computeServerInterface.bulkSave(netInterfaces)
+						// TODO: replace with newer api when fixed, use deprecated api for now
+						context.services.computeServer.computeServerInterface.save(netInterfaces)
 					}
 				}
 				.onDelete { deleteItems ->
