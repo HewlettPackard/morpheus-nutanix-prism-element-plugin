@@ -38,11 +38,17 @@ class NutanixPrismElementPlugin extends Plugin {
 	protected ProvisionProvider provisionProvider
 	private CloudProvider cloudProvider
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	String getCode() {
 		return 'nutanix-prism-element-plugin'
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	void initialize() {
 		this.setName("Nutanix Prism Element Plugin")
@@ -67,7 +73,7 @@ class NutanixPrismElementPlugin extends Plugin {
 	}
 
 	/**
-	 * Called when a plugin is being removed from the plugin manager (aka Uninstalled)
+	 * {@inheritDoc}
 	 */
 	@Override
 	void onDestroy() {

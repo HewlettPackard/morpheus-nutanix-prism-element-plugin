@@ -110,7 +110,7 @@ class NutanixPrismElementVirtualImageDatasetProvider  extends AbstractDatasetPro
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	String itemName(VirtualImage item) {
@@ -118,7 +118,7 @@ class NutanixPrismElementVirtualImageDatasetProvider  extends AbstractDatasetPro
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	String itemValue(VirtualImage item) {
@@ -126,7 +126,7 @@ class NutanixPrismElementVirtualImageDatasetProvider  extends AbstractDatasetPro
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	boolean isPlugin() {

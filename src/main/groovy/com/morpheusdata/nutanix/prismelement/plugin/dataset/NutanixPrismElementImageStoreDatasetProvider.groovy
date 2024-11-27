@@ -39,7 +39,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	DatasetInfo getInfo() {
@@ -52,7 +52,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	Class<Datastore> getItemType() {
@@ -60,7 +60,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	Observable<Datastore> list(DatasetQuery query) {
@@ -74,7 +74,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	Observable<Map> listOptions(DatasetQuery query) {
@@ -82,7 +82,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	Datastore fetchItem(Object value) {
@@ -95,7 +95,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	Datastore item(String value) {
@@ -108,7 +108,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	String itemName(Datastore item) {
@@ -116,7 +116,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	String itemValue(Datastore item) {
@@ -124,7 +124,7 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	}
 
 	/**
-	 * {inheritDoc}
+	 * {@inheritDoc}
 	 */
 	@Override
 	boolean isPlugin() {
