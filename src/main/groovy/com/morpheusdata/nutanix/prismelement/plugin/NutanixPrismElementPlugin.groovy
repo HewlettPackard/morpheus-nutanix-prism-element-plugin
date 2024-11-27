@@ -41,12 +41,12 @@ class NutanixPrismElementPlugin extends Plugin {
 	void initialize() {
 		this.setName("Nutanix Prism Element Plugin")
 
-		cloudProvider = new NutanixPrismElementPluginCloudProvider(this, this.morpheus)
+		cloudProvider = new NutanixPrismElementCloudProvider(this, this.morpheus)
 		def imageStoreDatasetProvider = new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus)
 		def provisionImageDatasetProvider = new NutanixPrismElementProvisionImageDatasetProvider(this, this.morpheus)
 		def virtualImageDatasetProvider = new NutanixPrismElementVirtualImageDatasetProvider(this, this.morpheus)
-		provisionProvider = new NutanixPrismElementPluginProvisionProvider(this, this.morpheus)
-		def networkPoolProvider = new NutanixPrismElementPluginNetworkPoolProvider(this, this.morpheus)
+		provisionProvider = new NutanixPrismElementProvisionProvider(this, this.morpheus)
+		def networkPoolProvider = new NutanixPrismElementNetworkPoolProvider(this, this.morpheus)
 		def backupProvider = new NutanixPrismElementBackupProvider(this, morpheus)
 
 		this.registerProviders(

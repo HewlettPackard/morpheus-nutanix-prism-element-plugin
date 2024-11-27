@@ -34,14 +34,14 @@ import com.morpheusdata.response.ServiceResponse
  * This assumes that a network pool with DHCP has been setup in the Nutanix cluster.
  * For now, the Morpheus side doesn't create/edit nutanix network pools
  */
-class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
+class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
 	public static final String NETWORK_POOL_PROVIDER_NAME = 'Nutanix Prism Element'
 
 	protected MorpheusContext morpheusContext
 	protected Plugin plugin
 
-	NutanixPrismElementPluginNetworkPoolProvider(Plugin plugin, MorpheusContext morpheusContext) {
+	NutanixPrismElementNetworkPoolProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		super()
 		this.@plugin = plugin
 		this.@morpheusContext = morpheusContext

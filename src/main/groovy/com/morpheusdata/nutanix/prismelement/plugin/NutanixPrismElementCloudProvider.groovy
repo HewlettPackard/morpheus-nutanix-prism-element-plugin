@@ -43,14 +43,14 @@ import java.security.MessageDigest
  * 		 seed. Once there are hooks in the providers, we should fill them in.
  */
 @Slf4j
-class NutanixPrismElementPluginCloudProvider implements CloudProvider {
+class NutanixPrismElementCloudProvider implements CloudProvider {
 	public static final String CLOUD_PROVIDER_CODE = 'nutanix'
 	public static final String CLOUD_PROVIDER_NAME = 'Nutanix Prism Element'
 
 	protected MorpheusContext morpheusContext
 	protected NutanixPrismElementPlugin plugin
 
-	NutanixPrismElementPluginCloudProvider(NutanixPrismElementPlugin plugin, MorpheusContext morpheusContext) {
+	NutanixPrismElementCloudProvider(NutanixPrismElementPlugin plugin, MorpheusContext morpheusContext) {
 		super()
 		this.@plugin = plugin
 		this.@morpheusContext = morpheusContext
@@ -797,7 +797,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	String getDefaultProvisionTypeCode() {
-		return NutanixPrismElementPluginProvisionProvider.PROVISION_PROVIDER_CODE
+		return NutanixPrismElementProvisionProvider.PROVISION_PROVIDER_CODE
 	}
 
 	/**

@@ -13,7 +13,7 @@ import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.projection.StorageControllerIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPluginProvisionProvider
+import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementProvisionProvider
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -129,7 +129,7 @@ class NutanixPrismElementSyncUtility {
 				networkInterface.replaceHostRecord  == 'yes'
 		)
 		computeServerInterface.primaryInterface = networkInterface.isPrimary != null ? networkInterface.isPrimary : index == 0
-		def ifaceTypes = NutanixPrismElementPluginProvisionProvider.listComputeServerInterfaceTypes()
+		def ifaceTypes = NutanixPrismElementProvisionProvider.listComputeServerInterfaceTypes()
 		// If we got a type id use that to find the type, otherwise just find the type marked as default
 		def matchFn = networkInterface.networkInterfaceTypeId ?
 			{ it.code == networkInterface.networkInterfaceTypeId.toLong() } : { it.defaultType == true }

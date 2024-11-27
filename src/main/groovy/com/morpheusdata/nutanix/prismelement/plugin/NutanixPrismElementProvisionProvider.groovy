@@ -49,14 +49,14 @@ import groovy.util.logging.Slf4j
 import static com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility.saveAndGet
 
 @Slf4j
-class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, HostProvisionProvider.ResizeFacet, WorkloadProvisionProvider.ResizeFacet, ProvisionProvider.SnapshotFacet {
+class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, HostProvisionProvider.ResizeFacet, WorkloadProvisionProvider.ResizeFacet, ProvisionProvider.SnapshotFacet {
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
 	protected MorpheusContext morpheusContext
 	protected Plugin plugin
 
-	NutanixPrismElementPluginProvisionProvider(Plugin plugin, MorpheusContext morpheusContext) {
+	NutanixPrismElementProvisionProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		super()
 		this.@morpheusContext = morpheusContext
 		this.@plugin = plugin
@@ -102,7 +102,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 
 	@Override
 	String getProvisionTypeCode() {
-		return NutanixPrismElementPluginCloudProvider.CLOUD_PROVIDER_CODE
+		return NutanixPrismElementCloudProvider.CLOUD_PROVIDER_CODE
 		// cloud code and provision code match for existing plugin
 	}
 
