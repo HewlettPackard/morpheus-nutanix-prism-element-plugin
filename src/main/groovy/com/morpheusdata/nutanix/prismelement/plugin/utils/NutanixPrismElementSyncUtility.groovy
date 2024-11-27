@@ -13,7 +13,7 @@ import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.projection.StorageControllerIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementProvisionProvider
+import com.morpheusdata.nutanix.prismelement.plugin.provision.NutanixPrismElementProvisionProvider
 import groovy.util.logging.Slf4j
 
 @Slf4j

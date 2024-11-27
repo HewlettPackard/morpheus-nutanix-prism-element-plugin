@@ -16,7 +16,7 @@
  *
  */
 
-package com.morpheusdata.nutanix.prismelement.plugin
+package com.morpheusdata.nutanix.prismelement.plugin.cloud
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
@@ -26,7 +26,15 @@ import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
-import com.morpheusdata.nutanix.prismelement.plugin.sync.*
+import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementImageStoreDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
+import com.morpheusdata.nutanix.prismelement.plugin.provision.NutanixPrismElementProvisionProvider
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.ContainersSync
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.HostsSync
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.ImagesSync
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.NetworkSync
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.SnapshotsSync
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.VirtualMachinesSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility

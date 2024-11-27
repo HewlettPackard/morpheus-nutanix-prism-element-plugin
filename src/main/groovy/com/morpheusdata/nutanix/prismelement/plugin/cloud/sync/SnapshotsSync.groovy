@@ -16,7 +16,7 @@
  *
  */
 
-package com.morpheusdata.nutanix.prismelement.plugin.sync
+package com.morpheusdata.nutanix.prismelement.plugin.cloud.sync
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.data.DataQuery

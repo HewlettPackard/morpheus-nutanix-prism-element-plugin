@@ -16,7 +16,7 @@
  *
  */
 
-package com.morpheusdata.nutanix.prismelement.plugin
+package com.morpheusdata.nutanix.prismelement.plugin.provision
 
 import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.core.AbstractProvisionProvider
@@ -36,6 +36,8 @@ import com.morpheusdata.model.provisioning.HostRequest
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
+import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.NutanixPrismElementCloudProvider
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility

@@ -1,4 +1,4 @@
-package com.morpheusdata.nutanix.prismelement.plugin
+package com.morpheusdata.nutanix.prismelement.plugin.dataset
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin

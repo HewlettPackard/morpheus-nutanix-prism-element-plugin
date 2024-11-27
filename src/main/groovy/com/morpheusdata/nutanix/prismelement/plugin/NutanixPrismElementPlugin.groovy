@@ -25,6 +25,12 @@ import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBackupProvider
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.NutanixPrismElementCloudProvider
+import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementImageStoreDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementProvisionImageDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementVirtualImageDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.network.NutanixPrismElementNetworkPoolProvider
+import com.morpheusdata.nutanix.prismelement.plugin.provision.NutanixPrismElementProvisionProvider
 
 @SuppressWarnings("unused")
 // picked up by plugin framework

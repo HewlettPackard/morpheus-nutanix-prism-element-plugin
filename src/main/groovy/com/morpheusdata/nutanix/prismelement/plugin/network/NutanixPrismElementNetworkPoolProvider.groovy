@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.morpheusdata.nutanix.prismelement.plugin
+package com.morpheusdata.nutanix.prismelement.plugin.network
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
