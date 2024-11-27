@@ -198,14 +198,14 @@ class VirtualMachinesSync {
 			}
 		}
 
-		if (server?.status != 'provisioning' && cloudItem.legacyVm) {
+		if (server != null && server.status != 'provisioning' && cloudItem.legacyVm) {
 			def savedRequired = updateVirtualMachineStats(server, cloudItem.legacyVm)
 			if (savedRequired) {
 				server = saveAndGet(server)
 			}
 		}
 
-		if (server?.status != 'resizing') {
+		if (server != null && server.status != 'resizing') {
 			cacheVirtualMachineInterfaces(cloudItem.vm_nics as List<Map>, server, systemNetworks, netTypes)
 		}
 	}
