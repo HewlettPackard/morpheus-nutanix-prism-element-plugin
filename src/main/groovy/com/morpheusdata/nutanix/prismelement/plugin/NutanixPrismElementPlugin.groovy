@@ -72,7 +72,7 @@ class NutanixPrismElementPlugin extends Plugin {
 		if (!cloud.accountCredentialLoaded) {
 			AccountCredential accountCredential
 			try {
-				accountCredential = morpheusContext.services.cloud.loadCredentials(cloud.id)
+				accountCredential = morpheusContext.async.cloud.loadCredentials(cloud.id).blockingGet()
 				cloud.accountCredentialLoaded = true
 				cloud.accountCredentialData = accountCredential?.data
 			} catch (e) {
