@@ -22,6 +22,8 @@ import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.backup.response.BackupExecutionResponse
+import com.morpheusdata.core.backup.response.BackupRestoreResponse
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
@@ -41,6 +43,8 @@ import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
+
+import java.util.concurrent.TimeUnit
 
 import static com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility.saveAndGet
 
@@ -1211,5 +1215,135 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	@Override
 	ServiceResponse finalizeHost(ComputeServer server) {
 		return ServiceResponse.success()
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse createSnapshot(ComputeServer server, Map opts) {
+		log.debug("Creating snapshot of server {}", server.id)
+
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = server.cloud.apiProxy
+
+		try {
+			def snapshotName = opts.snapshotName ?: "${server.name}.${System.currentTimeMillis()}"
+			def snapshotOpts = [
+				zone: server.cloud,
+				vmId: server.externalId,
+				snapshotName: snapshotName
+			]
+
+			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, snapshotOpts)
+			def taskId = snapshotResults?.results?.taskUuid
+			if (!snapshotResults.success || !taskId) {
+				return ServiceResponse.error("Failed to create snapshot", null, snapshotResults)
+			}
+
+			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, [zone: server.cloud], taskId)
+			if (!taskResults.success) {
+				return ServiceResponse.error("Error waiting for create snapshot task to complete")
+			}
+
+			def snapId = taskResults?.results?.entity_list?.find { it.entity_type == 'snapshot'}?.entity_id
+			if(snapId) {
+				Snapshot savedSnapshot = context.services.snapshot.create(new Snapshot(
+					account        : server.account ?: server.cloud.owner,
+					cloud          : server.cloud,
+					name: snapshotName,
+					snapshotCreated: new Date(),
+					currentlyActive: true,
+					externalId: snapId,
+					description: opts.description
+				))
+				if (!savedSnapshot) {
+					return ServiceResponse.error("Error saving snapshot")
+				} else {
+					context.async.snapshot.addSnapshot(savedSnapshot, server).blockingGet()
+				}
+				return ServiceResponse.success()
+			} else {
+				return ServiceResponse.error("Error fetching snapshot after creation", null, taskResults)
+			}
+		} catch (e) {
+			log.error("Create snapshot: ${e}", e)
+			return ServiceResponse.error(e.getMessage())
+		}finally {
+			client.shutdownClient()
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse deleteSnapshots(ComputeServer server, Map opts) {
+		def snapshots = context.services.snapshot.listById(server.snapshots.collect { it.id })
+		for (final def snapshot in snapshots) {
+			def resp = deleteSnapshot(snapshot, opts)
+			if (!resp.success) {
+				return resp
+			}
+		}
+
+		return ServiceResponse.success()
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse deleteSnapshot(Snapshot snapshot, Map opts) {
+		log.debug("Deleting snapshot {}", snapshot)
+
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = snapshot.cloud.apiProxy
+
+		try {
+			def resp = NutanixPrismElementApiService.deleteSnapshot(client, [zone: snapshot.cloud], snapshot.externalId)
+			if (!resp.success) {
+				return ServiceResponse.error("Failed to delete snapshot: ${resp.error}")
+			}
+
+		} finally {
+			client.shutdownClient()
+		}
+
+		return ServiceResponse.success()
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse revertSnapshot(ComputeServer server, Snapshot snapshot, Map opts) {
+		log.debug("Reverting snapshot {}", snapshot)
+		def rtn = ServiceResponse.prepare()
+
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = server.cloud.apiProxy
+
+		try {
+			def resp = NutanixPrismElementApiService.restoreSnapshot(client, [zone: server.cloud, vmId: server.externalId, snapshotId: snapshot.externalId])
+			if (!resp.success) {
+				return ServiceResponse.error(resp.msg as String)
+			}
+
+			resp = NutanixPrismElementApiService.checkTaskReady(client, [zone: server.cloud], resp.results?.taskUuid)
+			if (!resp.success) {
+				return ServiceResponse.error("Error waiting for revert snapshot task to complete")
+			}
+
+			if (resp.error) {
+				return ServiceResponse.error("Failed to revert snapshot: ${resp.error}")
+			}
+
+			rtn.success = true
+		} finally {
+			client.shutdownClient()
+		}
+
+		return rtn
 	}
 }
