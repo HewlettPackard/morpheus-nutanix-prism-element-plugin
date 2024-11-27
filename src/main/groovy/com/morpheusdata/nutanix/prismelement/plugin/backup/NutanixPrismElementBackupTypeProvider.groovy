@@ -35,8 +35,8 @@ class NutanixPrismElementBackupTypeProvider extends AbstractBackupTypeProvider {
 	protected NutanixPrismElementBackupRestoreProvider restoreProvider
 
 
-	NutanixPrismElementBackupTypeProvider(Plugin plugin, MorpheusContext context) {
-		super(plugin, context)
+	NutanixPrismElementBackupTypeProvider(Plugin plugin, MorpheusContext morpheusContext) {
+		super(plugin, morpheusContext)
 	}
 
 	/**

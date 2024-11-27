@@ -18,9 +18,9 @@ class NutanixPrismElementVirtualImageDatasetProvider  extends AbstractDatasetPro
 	public static final PROVIDER_KEY = "npeVirtualImages"
 	public static final PROVIDER_DESCRIPTION = "Nutanix virtual images"
 
-	NutanixPrismElementVirtualImageDatasetProvider(Plugin plugin, MorpheusContext context) {
+	NutanixPrismElementVirtualImageDatasetProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		this.plugin = plugin
-		this.morpheusContext = context
+		this.morpheusContext = morpheusContext
 	}
 
 	/**

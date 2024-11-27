@@ -47,13 +47,13 @@ class NutanixPrismElementPluginCloudProvider implements CloudProvider {
 	public static final String CLOUD_PROVIDER_CODE = 'nutanix'
 	public static final String CLOUD_PROVIDER_NAME = 'Nutanix Prism Element'
 
-	protected MorpheusContext context
+	protected MorpheusContext morpheusContext
 	protected NutanixPrismElementPlugin plugin
 
-	NutanixPrismElementPluginCloudProvider(NutanixPrismElementPlugin plugin, MorpheusContext ctx) {
+	NutanixPrismElementPluginCloudProvider(NutanixPrismElementPlugin plugin, MorpheusContext morpheusContext) {
 		super()
 		this.@plugin = plugin
-		this.@context = ctx
+		this.@morpheusContext = morpheusContext
 	}
 
 	/**
@@ -220,7 +220,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	Collection<NetworkType> getNetworkTypes() {
 		Collection<NetworkType> networks = []
 
-		def childNetwork = context.async.network.type.find(new DataQuery().withFilter('code', 'childNetwork')).blockingGet()
+		def childNetwork = morpheusContext.async.network.type.find(new DataQuery().withFilter('code', 'childNetwork')).blockingGet()
 		if (childNetwork != null) {
 			networks << childNetwork
 		} else {
@@ -416,7 +416,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		]
 
 		existingComputeServiceTypes.each {
-			def t = context.async.cloud.findComputeServerTypeByCode(it).blockingGet()
+			def t = morpheusContext.async.cloud.findComputeServerTypeByCode(it).blockingGet()
 			if (t != null) {
 				serverTypes << t
 			}
@@ -546,29 +546,29 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					if (cloudInfo.regionCode != regionCode) {
 						convertOldRegionCodes(cloudInfo.regionCode, regionCode)
 						cloudInfo.regionCode = regionCode
-						context.async.cloud.save(cloudInfo).blockingGet()
+						morpheusContext.async.cloud.save(cloudInfo).blockingGet()
 					}
-					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
-					new NetworkSync(context, cloudInfo, client).execute()
-					new ContainersSync(context, cloudInfo, client).execute()
-					new ImagesSync(context, cloudInfo, client).execute()
-					new HostsSync(context, cloudInfo, client).execute()
-					new VirtualMachinesSync(context, cloudInfo, client, plugin.provisionProvider.getComputeServerInterfaceTypes(), plugin.cloudProvider.getComputeServerTypes()).execute()
-					new SnapshotsSync(context, cloudInfo, client).execute()
-					context.services.operationNotification.clearZoneAlarm(cloudInfo)
-					context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.ok, null, syncDate)
+					morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
+					new NetworkSync(morpheusContext, cloudInfo, client).execute()
+					new ContainersSync(morpheusContext, cloudInfo, client).execute()
+					new ImagesSync(morpheusContext, cloudInfo, client).execute()
+					new HostsSync(morpheusContext, cloudInfo, client).execute()
+					new VirtualMachinesSync(morpheusContext, cloudInfo, client, plugin.provisionProvider.getComputeServerInterfaceTypes(), plugin.cloudProvider.getComputeServerTypes()).execute()
+					new SnapshotsSync(morpheusContext, cloudInfo, client).execute()
+					morpheusContext.services.operationNotification.clearZoneAlarm(cloudInfo)
+					morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.ok, null, syncDate)
 				} else {
 					if (testResults.invalidLogin) {
-						context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix invalid credentials', syncDate)
-						context.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
+						morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix invalid credentials', syncDate)
+						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
 					} else {
-						context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
-						context.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
+						morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
+						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
 					}
 				}
 			} else {
-				context.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
-				context.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix host not reachable')
+				morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
+				morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix host not reachable')
 			}
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
@@ -590,7 +590,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 
 	void convertOldRegionCodes(String oldRegionCode, String newRegionCode) {
 		if (oldRegionCode && newRegionCode) {
-			List<VirtualImageLocation> imageLocations = context.async.virtualImage.location.list(new DataQuery().withFilter("imageRegion", oldRegionCode))
+			List<VirtualImageLocation> imageLocations = morpheusContext.async.virtualImage.location.list(new DataQuery().withFilter("imageRegion", oldRegionCode))
 				.filter { it.imageRegion == oldRegionCode }
 				.map {
 					it.imageRegion = newRegionCode
@@ -598,12 +598,12 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				}
 				.collect()
 
-			def imageLocationSaveResult = context.services.virtualImage.location.bulkSave(imageLocations)
+			def imageLocationSaveResult = morpheusContext.services.virtualImage.location.bulkSave(imageLocations)
 			if (imageLocationSaveResult.hasFailures()) {
 				log.error("Failed to update new region code for virtual image locations: ${imageLocationSaveResult.failedItems.code}")
 			}
 
-			List<VirtualImage> images = context.async.virtualImage.list(new DataQuery().withFilter("imageRegion", oldRegionCode))
+			List<VirtualImage> images = morpheusContext.async.virtualImage.list(new DataQuery().withFilter("imageRegion", oldRegionCode))
 				.filter { it.imageRegion == oldRegionCode }
 				.map {
 					it.imageRegion = newRegionCode
@@ -611,12 +611,12 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				}
 				.collect()
 
-			def imageSaveResult = context.services.virtualImage.bulkSave(images)
+			def imageSaveResult = morpheusContext.services.virtualImage.bulkSave(images)
 			if (imageSaveResult.hasFailures()) {
 				log.error("Failed to update new region code for virtual images: ${imageSaveResult.failedItems.code}")
 			}
 
-			List<ServicePlan> servicePlans = context.async.servicePlan.list(new DataQuery().withFilter("regionCode", oldRegionCode))
+			List<ServicePlan> servicePlans = morpheusContext.async.servicePlan.list(new DataQuery().withFilter("regionCode", oldRegionCode))
 				.filter { it.regionCode == oldRegionCode }
 				.map {
 					it.regionCode = newRegionCode
@@ -624,7 +624,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				}
 				.collect()
 
-			def servicePlanSaveResult = context.services.servicePlan.bulkSave(servicePlans)
+			def servicePlanSaveResult = morpheusContext.services.servicePlan.bulkSave(servicePlans)
 			if (servicePlanSaveResult.hasFailures()) {
 				log.error("Failed to update new region code for service plans: ${servicePlanSaveResult.failedItems.code}")
 			}
@@ -806,7 +806,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	MorpheusContext getMorpheus() {
-		return this.@context
+		return this.@morpheusContext
 	}
 
 	/**

@@ -36,12 +36,12 @@ import groovy.util.logging.Slf4j
  */
 @Slf4j
 class SnapshotsSync {
-	private final MorpheusContext context
+	private final MorpheusContext morpheusContext
 	private final HttpApiClient client
 	private final Cloud cloud
 
-	SnapshotsSync(MorpheusContext context, Cloud cloud, HttpApiClient client) {
-		this.context = context
+	SnapshotsSync(MorpheusContext morpheusContext, Cloud cloud, HttpApiClient client) {
+		this.morpheusContext = morpheusContext
 		this.cloud = cloud
 		this.client = client
 	}
@@ -49,18 +49,18 @@ class SnapshotsSync {
 	void execute() {
 		log.info("Executing Snapshot sync for cloud ${cloud.name}")
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
 			def listConfig = [:]
 			def listResults = NutanixPrismElementApiService.listSnapshotsV2(client, authConfig, listConfig)
 			if (listResults.success == true) {
 				def objList = listResults.snapshots
-				def existingItems = context.async.snapshot.list(new DataQuery().withFilter('cloud.id', cloud.id))
+				def existingItems = morpheusContext.async.snapshot.list(new DataQuery().withFilter('cloud.id', cloud.id))
 
 				SyncTask<SnapshotIdentityProjection, Map, Snapshot> syncTask = new SyncTask<>(existingItems, objList)
 				syncTask.addMatchFunction { SnapshotIdentityProjection existingItem, Map cloudItem ->
 					existingItem.externalId == cloudItem?.uuid
 				}.withLoadObjectDetailsFromFinder { updateItems ->
-					context.async.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { List<Map> addItems ->
 					log.debug("Adding ${addItems.size()} snapshots")
 					addMissingSnapshots(addItems)
@@ -69,7 +69,7 @@ class SnapshotsSync {
 					updateMatchedSnapshots(updateItems)
 				}.onDelete { List<SnapshotIdentityProjection> removeItems ->
 					log.debug("Removing ${removeItems.size()} snapshots")
-					context.async.snapshot.bulkRemove(removeItems).blockingGet()
+					morpheusContext.async.snapshot.bulkRemove(removeItems).blockingGet()
 				}.start()
 			}
 
@@ -82,7 +82,7 @@ class SnapshotsSync {
 		def vmIds = addList?.findAll { it.vm_uuid }?.collect { it.vm_uuid }
 		List<ComputeServer> servers = []
 		if (vmIds) {
-			servers = context.services.computeServer.list(
+			servers = morpheusContext.services.computeServer.list(
 				new DataQuery()
 					.withFilter('cloud.id', cloud.id)
 					.withFilter('externalId', 'in', vmIds)
@@ -111,14 +111,14 @@ class SnapshotsSync {
 			snapshotRecord
 		}
 
-		context.services.snapshot.bulkCreate(snapshots)
+		morpheusContext.services.snapshot.bulkCreate(snapshots)
 	}
 
 	private void updateMatchedSnapshots(List<SyncList.UpdateItem<Snapshot, Map>> updateList) {
 		def vmIds = updateList?.collect { it.masterItem.vm_uuid }
 		List<ComputeServer> servers = []
 		if (vmIds) {
-			servers = context.services.computeServer.list(
+			servers = morpheusContext.services.computeServer.list(
 				new DataQuery()
 					.withFilter('cloud.id', cloud.id)
 					.withFilter('externalId', 'in', vmIds)
@@ -150,6 +150,6 @@ class SnapshotsSync {
 			}
 		}
 
-		context.services.snapshot.bulkSave(snapshotsToUpdate)
+		morpheusContext.services.snapshot.bulkSave(snapshotsToUpdate)
 	}
 }

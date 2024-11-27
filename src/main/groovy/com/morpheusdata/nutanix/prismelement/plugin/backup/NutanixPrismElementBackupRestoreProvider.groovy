@@ -34,11 +34,11 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider {
 	protected Plugin plugin
-	protected MorpheusContext context
+	protected MorpheusContext morpheusContext
 
-	NutanixPrismElementBackupRestoreProvider(Plugin plugin, MorpheusContext context) {
+	NutanixPrismElementBackupRestoreProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		this.plugin = plugin
-		this.context = context
+		this.morpheusContext = morpheusContext
 	}
 
 	/**
@@ -102,12 +102,12 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 				return rtn
 			}
 
-			def cloud = context.services.cloud.get(cloudId)
+			def cloud = morpheusContext.services.cloud.get(cloudId)
 
 			// now that we've got our cloud, set the proxy
 			client.networkProxy = cloud.apiProxy
 
-			def server = context.services.computeServer.get(serverId)
+			def server = morpheusContext.services.computeServer.get(serverId)
 			def resp = NutanixPrismElementApiService.restoreSnapshot(client, [zone: cloud, vmId: server.externalId, snapshotId:backupRestore.externalId])
 			if (!resp.success) {
 				rtn.data.backupRestore.status = BackupResult.Status.FAILED
@@ -153,7 +153,7 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 				return rtn
 			}
 
-			def cloud = context.services.cloud.get(cloudId)
+			def cloud = morpheusContext.services.cloud.get(cloudId)
 
 			// now that we've got our cloud, set the proxy
 			client.networkProxy = cloud.apiProxy

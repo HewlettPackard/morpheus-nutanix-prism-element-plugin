@@ -22,15 +22,15 @@ import groovy.util.logging.Slf4j
  */
 @Slf4j
 class ImagesSync {
-	private final MorpheusContext context
+	private final MorpheusContext morpheusContext
 	private final HttpApiClient client
 	private final Cloud cloud
 	// TODO: The API restricts it to either qcow2 or iso, and then we
 	//       strip out the iso in the start of execute, so do we need an allow list?
 	private final List<String> ALLOWED_IMAGE_TYPES = ['qcow2', 'disk', 'raw', 'iso']
 
-	ImagesSync(MorpheusContext context, Cloud cloud, HttpApiClient client) {
-		this.context = context
+	ImagesSync(MorpheusContext morpheusContext, Cloud cloud, HttpApiClient client) {
+		this.morpheusContext = morpheusContext
 		this.cloud = cloud
 		this.client = client
 	}
@@ -39,13 +39,13 @@ class ImagesSync {
 		log.info("Executing image sync for cloud $cloud.name")
 
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
 			def listResults = NutanixPrismElementApiService.listImages(client, authConfig)
 			if (listResults.success == true) {
 				//ignore isos for now
 				def cloudImages = listResults?.images?.findAll { it.imageType != 'iso' }
 
-				def existingLocations = context.async.virtualImage.location.list(
+				def existingLocations = morpheusContext.async.virtualImage.location.list(
 					new DataQuery()
 						.withFilter(
 							new DataAndFilter(
@@ -62,7 +62,7 @@ class ImagesSync {
 						|| nutanixImage?.name == imageLocationProjection.imageName
 						|| nutanixImage?.vmDiskId == imageLocationProjection.externalId
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageLocationIdentityProjection, VirtualImageLocation>> updateItems ->
-					context.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd {
 					log.debug("Adding missing image locations: $it")
 					addMissingVirtualImageLocations(it)
@@ -71,7 +71,7 @@ class ImagesSync {
 					updateVirtualImageLocations(it)
 				}.onDelete {
 					log.debug("Deleting image locations: $it")
-					context.services.virtualImage.location.bulkRemove(it)
+					morpheusContext.services.virtualImage.location.bulkRemove(it)
 				}.start()
 
 				// If there wasn't a corresponding location for an image, remove that image
@@ -83,7 +83,7 @@ class ImagesSync {
 	}
 
 	private addMissingVirtualImageLocations(Collection<Map> addItems) {
-		def existingRecords = context.async.virtualImage.listIdentityProjections(
+		def existingRecords = morpheusContext.async.virtualImage.listIdentityProjections(
 			new DataQuery()
 				.withFilters(
 					new DataFilter('imageType', 'in', ALLOWED_IMAGE_TYPES),
@@ -114,7 +114,7 @@ class ImagesSync {
 			log.debug("adding images: $itemsToAdd")
 			addMissingVirtualImages(itemsToAdd)
 		}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageIdentityProjection, VirtualImage>> updateItems ->
-			context.async.virtualImage.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+			morpheusContext.async.virtualImage.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 		}.start()
 	}
 
@@ -130,7 +130,7 @@ class ImagesSync {
 
 		if (locationAdds) {
 			log.debug("About to create ${locationAdds.size()} locations")
-			context.services.virtualImage.location.create(locationAdds, cloud)
+			morpheusContext.services.virtualImage.location.create(locationAdds, cloud)
 		}
 	}
 
@@ -144,8 +144,8 @@ class ImagesSync {
 			image
 		}
 
-		context.services.virtualImage.bulkCreate(images)
-		context.services.virtualImage.location.bulkCreate(locations)
+		morpheusContext.services.virtualImage.bulkCreate(images)
+		morpheusContext.services.virtualImage.location.bulkCreate(locations)
 	}
 
 	private static VirtualImage buildVirtualImage(Cloud cloud, Map cloudImage) {
@@ -184,7 +184,7 @@ class ImagesSync {
 		log.debug "updateVirtualImageLocations: ${cloud} ${updateItems.size()}"
 		List<VirtualImageLocation> saveLocationList = []
 		List<VirtualImage> saveImageList = []
-		def virtualImagesById = context.async.virtualImage
+		def virtualImagesById = morpheusContext.async.virtualImage
 			.listById(updateItems.collect { it.existingItem.virtualImage.id })
 			.toMap { it.id }.blockingGet()
 
@@ -226,16 +226,16 @@ class ImagesSync {
 		}
 
 		if (saveLocationList) {
-			context.services.virtualImage.location.save(saveLocationList, cloud)
+			morpheusContext.services.virtualImage.location.save(saveLocationList, cloud)
 		}
 
 		if (saveImageList) {
-			context.async.virtualImage.save(saveImageList.unique(), cloud).blockingGet()
+			morpheusContext.async.virtualImage.save(saveImageList.unique(), cloud).blockingGet()
 		}
 	}
 
 	private removeSyncedImagesWithoutLocations() {
-		def images = context.services.virtualImage.list(new DataQuery().withFilters(
+		def images = morpheusContext.services.virtualImage.list(new DataQuery().withFilters(
 			new DataFilter("category", "nutanix.acropolis.image.${cloud.id}"),
 			new DataFilter("userUploaded", false),
 			new DataOrFilter(
@@ -249,7 +249,7 @@ class ImagesSync {
 		)).findAll { it.imageLocations.size() == 0 }
 		if (images) {
 			log.debug("Removing ${images.size()} images without locations")
-			context.services.virtualImage.bulkRemove(images)
+			morpheusContext.services.virtualImage.bulkRemove(images)
 		}
 	}
 }

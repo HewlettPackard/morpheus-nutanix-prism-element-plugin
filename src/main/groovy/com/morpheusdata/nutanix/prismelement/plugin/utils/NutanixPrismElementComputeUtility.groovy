@@ -66,11 +66,11 @@ class NutanixPrismElementComputeUtility {
 		return rtn
 	}
 
-	static ComputeServer saveAndGet(MorpheusContext context, ComputeServer server) {
-		def saveSuccessful = context.async.computeServer.bulkSave([server]).blockingGet()
+	static ComputeServer saveAndGet(MorpheusContext morpheusContext, ComputeServer server) {
+		def saveSuccessful = morpheusContext.async.computeServer.bulkSave([server]).blockingGet()
 		if (!saveSuccessful) {
 			log.warn("Error saving server: ${server?.id}")
 		}
-		return context.async.computeServer.get(server.id).blockingGet()
+		return morpheusContext.async.computeServer.get(server.id).blockingGet()
 	}
 }

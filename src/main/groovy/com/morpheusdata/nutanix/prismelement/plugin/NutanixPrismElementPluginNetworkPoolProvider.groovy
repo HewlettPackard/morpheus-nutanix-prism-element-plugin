@@ -38,13 +38,13 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
 	public static final String NETWORK_POOL_PROVIDER_NAME = 'Nutanix Prism Element'
 
-	protected MorpheusContext context
+	protected MorpheusContext morpheusContext
 	protected Plugin plugin
 
-	NutanixPrismElementPluginNetworkPoolProvider(Plugin plugin, MorpheusContext ctx) {
+	NutanixPrismElementPluginNetworkPoolProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		super()
 		this.@plugin = plugin
-		this.@context = ctx
+		this.@morpheusContext = morpheusContext
 	}
 
 	/**
@@ -152,7 +152,7 @@ class NutanixPrismElementPluginNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	MorpheusContext getMorpheus() {
-		this.@context
+		this.@morpheusContext
 	}
 
 	/**

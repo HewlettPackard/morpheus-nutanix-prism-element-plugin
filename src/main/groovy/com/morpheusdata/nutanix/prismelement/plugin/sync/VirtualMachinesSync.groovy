@@ -25,7 +25,6 @@ import com.morpheusdata.model.*
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
 import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
-import com.morpheusdata.core.MorpheusSynchronousDataService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementSyncUtility
 import groovy.util.logging.Slf4j
 import io.reactivex.rxjava3.core.Observable
@@ -37,20 +36,20 @@ import io.reactivex.rxjava3.core.Observable
  */
 @Slf4j
 class VirtualMachinesSync {
-	private final MorpheusContext context
+	private final MorpheusContext morpheusContext
 	private final HttpApiClient client
 	private final Cloud cloud
 	private final Collection<ComputeServerInterfaceType> netTypes
 	private final Collection<ComputeServerType> computeServerTypes
 
 	VirtualMachinesSync(
-		MorpheusContext context,
+		MorpheusContext morpheusContext,
 		Cloud cloud,
 		HttpApiClient client,
 		Collection<ComputeServerInterfaceType> netTypes,
 		Collection<ComputeServerType> computeServerTypes
 	) {
-		this.context = context
+		this.morpheusContext = morpheusContext
 		this.cloud = cloud
 		this.client = client
 		this.netTypes = netTypes
@@ -60,23 +59,23 @@ class VirtualMachinesSync {
 	void execute() {
 		log.info("Executing Virtual Machine sync for cloud ${cloud.name}")
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
 			def listConfig = [:]
 			def listResults = NutanixPrismElementApiService.listVirtualMachinesV2(client, authConfig, listConfig)
 			if (listResults.success == true) {
-				def systemNetworks = context.services.network.list(new DataQuery()
+				def systemNetworks = morpheusContext.services.network.list(new DataQuery()
 					.withFilter('refType', 'ComputeZone')
 					.withFilter('refId', cloud.id))
 
 				def objList = listResults.virtualMachines
 
 				def defaultServerType = computeServerTypes.find { it.code == 'nutanixUnmanaged' }
-				def existingItems = context.async.computeServer.listIdentityProjections(
+				def existingItems = morpheusContext.async.computeServer.listIdentityProjections(
 					new DataQuery()
 						.withFilter('computeServerType.code', '!=', 'nutanixMetalHypervisor')
 				)
 
-				List<ServicePlan> availablePlans = context.services.servicePlan.list(
+				List<ServicePlan> availablePlans = morpheusContext.services.servicePlan.list(
 					new DataQuery()
 						.withFilter('active', true)
 						.withFilter('deleted', false)
@@ -85,15 +84,15 @@ class VirtualMachinesSync {
 
 				List<ResourcePermission> availablePlanPermissions = []
 				if (availablePlans) {
-					availablePlanPermissions = context.services.resourcePermission.list(
+					availablePlanPermissions = morpheusContext.services.resourcePermission.list(
 						new DataQuery()
 							.withFilter('morpheusServiceType', 'ServicePlan')
 							.withFilter('morpheusResourceId', 'in', availablePlans.collect { pl -> pl.id })
 					)
 				}
 
-				ServicePlan fallbackPlan = context.services.servicePlan.find(new DataQuery().withFilter('code', 'internal-custom-nutanix'))
-				OsType osType = context.services.osType.find(new DataQuery().withFilter('code', 'unknown'))
+				ServicePlan fallbackPlan = morpheusContext.services.servicePlan.find(new DataQuery().withFilter('code', 'internal-custom-nutanix'))
+				OsType osType = morpheusContext.services.osType.find(new DataQuery().withFilter('code', 'unknown'))
 
 				SyncTask<ComputeServerIdentityProjection, Map, ComputeServer> syncTask = new SyncTask<>(existingItems, objList)
 				syncTask.addMatchFunction { ComputeServerIdentityProjection existingItem, Map cloudItem ->
@@ -106,9 +105,9 @@ class VirtualMachinesSync {
 					updateMatchedVirtualMachines(updateItems, availablePlans, availablePlanPermissions, fallbackPlan)
 				}.onDelete { deleteItems ->
 					// TODO: switch back to bulkRemove once fixed
-					context.services.computeServer.remove(deleteItems)
+					morpheusContext.services.computeServer.remove(deleteItems)
 				}.withLoadObjectDetailsFromFinder { updateItems ->
-					context.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()
 			}
 		} catch (e) {
@@ -131,7 +130,7 @@ class VirtualMachinesSync {
 			def add = buildVm(it, osType, defaultServerType)
 			add.plan = SyncUtils.findServicePlanBySizing(availablePlans, add.maxMemory, add.maxCores, null, fallbackPlan, null, cloud.account, availablePlanPermissions)
 
-			def savedServer = context.services.computeServer.create(add)
+			def savedServer = morpheusContext.services.computeServer.create(add)
 			if (savedServer) {
 				performPostSaveSync(savedServer, it, systemNetworks)
 			}
@@ -181,7 +180,7 @@ class VirtualMachinesSync {
 			def volumeResults = cacheVirtualMachineVolumes(cloudItem.vm_disk_info as List<Map>, server)
 			if (volumeResults.saveRequired) {
 				// get latest in case of modifications from the volumes
-				server = context.services.computeServer.get(server.id)
+				server = morpheusContext.services.computeServer.get(server.id)
 				if (!server.computeCapacityInfo) {
 					server.maxStorage = volumeResults.maxStorage
 					server.capacityInfo = new ComputeCapacityInfo(
@@ -213,11 +212,11 @@ class VirtualMachinesSync {
 	}
 
 	protected ComputeServer saveAndGet(ComputeServer server) {
-		def saveSuccessful = context.async.computeServer.bulkSave([server]).blockingGet()
+		def saveSuccessful = morpheusContext.async.computeServer.bulkSave([server]).blockingGet()
 		if (!saveSuccessful) {
 			log.warn("Error saving server: ${server?.id}")
 		}
-		return context.async.computeServer.get(server.id).blockingGet()
+		return morpheusContext.async.computeServer.get(server.id).blockingGet()
 	}
 
 	private static boolean updateVirtualMachineStats(ComputeServer server, Map vm) {
@@ -274,7 +273,7 @@ class VirtualMachinesSync {
 			.unique()
 			.with { networkIds ->
 				if (networkIds) {
-					context.services.network.list(
+					morpheusContext.services.network.list(
 						new DataQuery()
 							.withFilter('refType', 'ComputeZone')
 							.withFilter('refId', cloud.id)
@@ -356,17 +355,17 @@ class VirtualMachinesSync {
 
 			def parentId = matchedServer.host_uuid
 			if (parentId) {
-				currentServer.parentServer = context.services.computeServer.find(
+				currentServer.parentServer = morpheusContext.services.computeServer.find(
 					new DataQuery()
 						.withFilter('cloud.id', cloud.id)
 						.withFilter('externalId', parentId)
 				)
 			}
 			if (currentServer.computeServerType?.guestVm) {
-				NutanixPrismElementSyncUtility.updateServerContainersAndInstances(context, plan, currentServer)
+				NutanixPrismElementSyncUtility.updateServerContainersAndInstances(morpheusContext, plan, currentServer)
 			}
 			if (save) {
-				context.services.computeServer.save(currentServer)
+				morpheusContext.services.computeServer.save(currentServer)
 			}
 
 			performPostSaveSync(currentServer, matchedServer, systemNetworks)
@@ -408,7 +407,7 @@ class VirtualMachinesSync {
 						def volumeId = addItem.disk_address.vmdisk_uuid
 
 						if (addItem.is_cdrom != true) {
-							def storageVolumeType = context.services.storageVolume.storageVolumeType.find(
+							def storageVolumeType = morpheusContext.services.storageVolume.storageVolumeType.find(
 								new DataQuery().withFilter('externalId', "nutanix_${addItem.disk_address.device_bus.toUpperCase()}")
 							)
 
@@ -422,7 +421,7 @@ class VirtualMachinesSync {
 									cloudId: server.cloud?.id, displayOrder: addItem.disk_address.device_index)
 
 								if (addItem.storage_container_uuid) {
-									volume.datastore = context.services.cloud.datastore.find(
+									volume.datastore = morpheusContext.services.cloud.datastore.find(
 										new DataQuery()
 											.withFilter('refType', 'ComputeZone')
 											.withFilter('refId', cloud.id)
@@ -440,7 +439,7 @@ class VirtualMachinesSync {
 					}
 
 					if (disks) {
-						def result = context.async.storageVolume.create(disks, server).blockingGet()
+						def result = morpheusContext.async.storageVolume.create(disks, server).blockingGet()
 						if (!result) {
 							log.error("failed to create storage volume(s) for server $server.name")
 						}
@@ -491,7 +490,7 @@ class VirtualMachinesSync {
 					if (disks) {
 						rtn.saveRequired = true
 						// TODO: replace with newer api when fixed, use deprecated api for now
-						context.services.storageVolume.save(disks)
+						morpheusContext.services.storageVolume.save(disks)
 					}
 				}
 				.onDelete { deleteItems ->
@@ -503,7 +502,7 @@ class VirtualMachinesSync {
 
 					if (disks) {
 						// TODO: replace with newer api when fixed, use deprecated api for now
-						context.async.storageVolume.remove(disks, server, false).blockingGet()
+						morpheusContext.async.storageVolume.remove(disks, server, false).blockingGet()
 						rtn.saveRequired = true
 					}
 				}.start()
@@ -556,7 +555,7 @@ class VirtualMachinesSync {
 
 					if (netInterfaces) {
 						// TODO: replace with newer api when fixed, use deprecated api for now
-						context.async.computeServer.computeServerInterface.create(netInterfaces, server).blockingGet()
+						morpheusContext.async.computeServer.computeServerInterface.create(netInterfaces, server).blockingGet()
 					}
 				}
 				.onUpdate { updateItems ->
@@ -598,12 +597,12 @@ class VirtualMachinesSync {
 					}
 					if (netInterfaces) {
 						// TODO: replace with newer api when fixed, use deprecated api for now
-						context.services.computeServer.computeServerInterface.save(netInterfaces)
+						morpheusContext.services.computeServer.computeServerInterface.save(netInterfaces)
 					}
 				}
 				.onDelete { deleteItems ->
 					if (deleteItems) {
-						context.async.computeServer.computeServerInterface.remove(deleteItems, server).blockingGet()
+						morpheusContext.async.computeServer.computeServerInterface.remove(deleteItems, server).blockingGet()
 					}
 				}.start()
 		} catch (e) {

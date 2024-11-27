@@ -22,8 +22,6 @@ import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
-import com.morpheusdata.core.backup.response.BackupExecutionResponse
-import com.morpheusdata.core.backup.response.BackupRestoreResponse
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
@@ -48,9 +46,6 @@ import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 
-import java.util.concurrent.TimeUnit
-import java.net.http.HttpClient
-
 import static com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility.saveAndGet
 
 @Slf4j
@@ -58,12 +53,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
-	protected MorpheusContext context
+	protected MorpheusContext morpheusContext
 	protected Plugin plugin
 
-	NutanixPrismElementPluginProvisionProvider(Plugin plugin, MorpheusContext ctx) {
+	NutanixPrismElementPluginProvisionProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		super()
-		this.@context = ctx
+		this.@morpheusContext = morpheusContext
 		this.@plugin = plugin
 	}
 
@@ -83,7 +78,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			} else {
 				VirtualImage virtualImage
 				try {
-					virtualImage = context.services.virtualImage.get(virtualImageId)
+					virtualImage = morpheusContext.services.virtualImage.get(virtualImageId)
 				} catch (e) {
 					log.error "error in get image: ${e}"
 				}
@@ -91,7 +86,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 					resp.msg = "No virtual image found for ${virtualImageId}"
 				} else {
 					workload.server.sourceImage = virtualImage
-					saveAndGet(context, workload.server)
+					saveAndGet(morpheusContext, workload.server)
 					resp.success = true
 				}
 			}
@@ -336,12 +331,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			server.setConfigProperty('osUsername', workload.getConfigProperty('nutanixUsr'))
 			server.setConfigProperty('osPassword', workload.getConfigProperty('nutanixPwd'))
 			server.setConfigProperty('publicKeyId', workload.getConfigProperty('publicKeyId'))
-			server = saveAndGet(context, server)
+			server = saveAndGet(morpheusContext, server)
 
 			Map createOpts = buildWorkloadCreateVmOpts(cloud, server, workload, workloadRequest, opts)
 
 			// ensure image is uploaded
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
 			def imageId = getOrUploadImage(client, authConfig, cloud, workload.server.sourceImage, workload.instance.createdBy, createOpts.containerId)
 			if (!imageId) {
 				return ServiceResponse.error("No image file found for virtual image ${server.sourceImage?.id}:${server.sourceImage?.name}")
@@ -387,13 +382,13 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		def lockKey = "nutanix.imageupload.${cloud.regionCode}.${virtualImage?.id}".toString()
 		try {
 			//hold up to a 1 hour lock for image upload
-			lockId = context.acquireLock(lockKey, [timeout: 60l * 60l * 1000l, ttl: 60l * 60l * 1000l]).blockingGet()
+			lockId = morpheusContext.acquireLock(lockKey, [timeout: 60l * 60l * 1000l, ttl: 60l * 60l * 1000l]).blockingGet()
 
 			// Check if it already exists
 			if (virtualImage) {
 				VirtualImageLocation virtualImageLocation
 				try {
-					virtualImageLocation = context.services.virtualImage.location.find(
+					virtualImageLocation = morpheusContext.services.virtualImage.location.find(
 						new DataQuery()
 							.withFilter('virtualImage.id', virtualImage.id)
 							.withFilter('refType', 'ComputeZone')
@@ -429,7 +424,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 							refId       : cloud.id,
 							refType     : 'ComputeZone'
 						])
-						location = context.async.virtualImage.location.create(virtualImageLocation, cloud).blockingGet()
+						location = morpheusContext.async.virtualImage.location.create(virtualImageLocation, cloud).blockingGet()
 					}
 				}
 			}
@@ -437,11 +432,11 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			// If nutanix didn't have it either, let's do the full upload
 			if (!imageExternalId) {
 				// Create the image
-				def cloudFiles = context.async.virtualImage.getVirtualImageFiles(virtualImage).blockingGet()
+				def cloudFiles = morpheusContext.async.virtualImage.getVirtualImageFiles(virtualImage).blockingGet()
 				def imageFile = cloudFiles?.find { cloudFile -> cloudFile.name.toLowerCase().endsWith(".qcow2") }
 				// The url given will be used by Nutanix to download the image.. it will be in a RUNNING status until the download is complete
 				// For morpheus images, this is fine as it is publicly accessible. But, for customer uploaded images, need to upload the bytes
-				def copyUrl = context.async.virtualImage.getCloudFileStreamUrl(virtualImage, imageFile, createdBy, cloud).blockingGet()
+				def copyUrl = morpheusContext.async.virtualImage.getCloudFileStreamUrl(virtualImage, imageFile, createdBy, cloud).blockingGet()
 				def containerImage = [
 					name         : virtualImage.name,
 					imageSrc     : imageFile?.getURL(),
@@ -473,14 +468,14 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 						refType      : 'ComputeZone',
 						sharedStorage: true
 					])
-					location = context.services.virtualImage.location.create(virtualImageLocation, cloud)
+					location = morpheusContext.services.virtualImage.location.create(virtualImageLocation, cloud)
 				} else {
 					log.error("Error in creating the image: ${imageResults.msg}")
 				}
 			}
 		} finally {
 			if (lockId) {
-				context.releaseLock(lockKey, [lock: lockId]).blockingGet()
+				morpheusContext.releaseLock(lockKey, [lock: lockId]).blockingGet()
 			}
 		}
 		return imageExternalId
@@ -542,7 +537,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		} else {
 			log.warn("error on cloud config: ${cloudFileResults}")
 			server.statusMessage = 'Failed to load cloud config'
-			saveAndGet(context, server)
+			saveAndGet(morpheusContext, server)
 		}
 
 		if (cloudFileResults.imageId) {
@@ -597,7 +592,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		if (datastore) {
 			rtn = datastore
 		} else if (datastoreOption == 'auto' || !datastoreOption) {
-			def datastores = context.services.cloud.datastore.list(
+			def datastores = morpheusContext.services.cloud.datastore.list(
 				new DataQuery().withFilters(
 					new DataFilter('refType', 'ComputeZone'),
 					new DataFilter('refId', cloud.id),
@@ -652,14 +647,14 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 
 		if (!createResults.success || !createResults.results?.uuid) {
 			server.statusMessage = 'Failed to create server'
-			saveAndGet(context, server)
+			saveAndGet(morpheusContext, server)
 			return false
 		}
 
 		log.debug("create server: ${createResults}")
 		server.externalId = createResults.results.uuid
 		server.powerState = ComputeServer.PowerState.on
-		server = saveAndGet(context, server)
+		server = saveAndGet(morpheusContext, server)
 
 		def loadVmResults = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: cloud], server.externalId)
 		def startResults = NutanixPrismElementApiService.startVm(
@@ -669,7 +664,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		)
 		if (!startResults.success) {
 			server.statusMessage = 'Failed to start server'
-			saveAndGet(context, server)
+			saveAndGet(morpheusContext, server)
 			return false
 		}
 
@@ -679,7 +674,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			return true
 		} else {
 			server.statusMessage = 'Failed to load server details'
-			saveAndGet(context, server)
+			saveAndGet(morpheusContext, server)
 			return false
 		}
 	}
@@ -742,7 +737,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				volume.externalId = vmDisk?.disk_address.vmdisk_uuid
 				volume.internalId = vmDisk?.disk_address.disk_label
 				volume.setConfigProperty("address", volume.internalId)
-				context.services.storageVolume.save(volume)
+				morpheusContext.services.storageVolume.save(volume)
 			}
 		}
 	}
@@ -759,7 +754,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 						if (!existingMatch) {
 							existingMacs << nic.macAddress
 							networkInterface.externalId = nic.macAddress
-							context.services.computeServer.computeServerInterface.save(networkInterface)
+							morpheusContext.services.computeServer.computeServerInterface.save(networkInterface)
 						}
 					}
 				}
@@ -947,7 +942,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	MorpheusContext getMorpheus() {
-		return this.@context
+		return this.@morpheusContext
 	}
 
 	/**
@@ -1082,7 +1077,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				def resizedDisk = vmDisks.find{ it.disk_address.vmdisk_uuid == diskId }.disk_address
 				existingVolume.externalId = resizedDisk.vmdisk_uuid
 				existingVolume.maxStorage = updateProps.maxStorage as Long
-				context.services.storageVolume.save(existingVolume)
+				morpheusContext.services.storageVolume.save(existingVolume)
 			} else {
 				log.error "Error in resizing volume: ${resizeResults}"
 				rtn.error = resizeResults.error ?: "Error in resizing volume"
@@ -1100,7 +1095,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				addOpts.containerId = dataStore?.externalId
 			}
 			def sizeGb = it.size?.toInteger()
-			def busType = context.services.storageVolume.storageVolumeType.get(it?.storageType?.toLong())?.code?.replace('nutanix-','')
+			def busType = morpheusContext.services.storageVolume.storageVolumeType.get(it?.storageType?.toLong())?.code?.replace('nutanix-','')
 			def diskResults = NutanixPrismElementApiService.addDisk(client, addOpts, vmId, sizeGb, busType)
 			log.debug("create disk success: ${diskResults.success}")
 			if(!diskResults.success) {
@@ -1127,11 +1122,11 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				log.error("success adding disk but disk not found in nutanix list")
 				return
 			}
-			def computeServer = context.services.computeServer.get(server.id)
-			def newVolume = NutanixPrismElementSyncUtility.buildStorageVolume(context, computeServer.account, computeServer, it as Map)
-			context.services.storageVolume.create(newVolume)
+			def computeServer = morpheusContext.services.computeServer.get(server.id)
+			def newVolume = NutanixPrismElementSyncUtility.buildStorageVolume(morpheusContext, computeServer.account, computeServer, it as Map)
+			morpheusContext.services.storageVolume.create(newVolume)
 			computeServer.volumes.add(newVolume)
-			context.services.computeServer.save(computeServer)
+			morpheusContext.services.computeServer.save(computeServer)
 		}
 
 		// Delete any removed volumes
@@ -1140,12 +1135,12 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			def delDisk = vmDisks.find({ it.disk_address.vmdisk_uuid == volume.externalId })
 			def deleteDiskResults = NutanixPrismElementApiService.deleteDisk(client, cloud, vmId, delDisk)
 			log.info("Delete Disk Results: ${deleteDiskResults}")
-			def storageVolume = context.services.storageVolume.get(volume.id)
-			def computeServer = context.services.computeServer.get(server.id)
+			def storageVolume = morpheusContext.services.storageVolume.get(volume.id)
+			def computeServer = morpheusContext.services.computeServer.get(server.id)
 			computeServer.volumes.remove(storageVolume)
-			context.services.computeServer.save(computeServer)
+			morpheusContext.services.computeServer.save(computeServer)
 			// TODO: switch back to bulkRemove once fixed
-			context.async.storageVolume.remove([storageVolume], computeServer, true).blockingGet()
+			morpheusContext.async.storageVolume.remove([storageVolume], computeServer, true).blockingGet()
 		}
 
 		// This operation is considered failed if any of the request's resizes failed.
@@ -1160,10 +1155,10 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		}
 		def vmId = server.externalId
 		def existingNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, vmId)?.nics
-		def computeServer = context.services.computeServer.get(server.id)
+		def computeServer = morpheusContext.services.computeServer.get(server.id)
 		resizeRequest.interfacesAdd?.each { newInterfaceOpts ->
 			log.info("adding network: ${newInterfaceOpts}")
-			def targetNetwork = context.services.network.get(newInterfaceOpts.network.id.toLong())
+			def targetNetwork = morpheusContext.services.network.get(newInterfaceOpts.network.id.toLong())
 			if (!targetNetwork) {
 				log.error("couldn't find network id: ${newInterfaceOpts.network.id}. skipping...")
 				return
@@ -1177,7 +1172,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			def networkResults = NutanixPrismElementApiService.addNic(client, networkConfig, server.externalId)
 			log.info("network results: ${networkResults}")
 			if(networkResults.success == true) {
-				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(context, computeServer, newInterfaceOpts.network)
+				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(morpheusContext, computeServer, newInterfaceOpts.network)
 				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, server.externalId)?.nics
 				vmNics.each { vmNic ->
 					def existingNic = existingNics.find{it.macAddress == vmNic.macAddress}
@@ -1187,7 +1182,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 					}
 				}
 				newInterface.uniqueId = "morpheus-nic-${computeServer.id}-${computeServer.interfaces.size()}"
-				context.services.computeServer.computeServerInterface.create(newInterface)
+				morpheusContext.services.computeServer.computeServerInterface.create(newInterface)
 				computeServer.interfaces.add(newInterface)
 			}
 		}
@@ -1196,14 +1191,14 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			def deleteResults = NutanixPrismElementApiService.deleteNic(client, deleteConfig, server.externalId, networkDelete.externalId)
 			log.debug("deleteResults: ${deleteResults}")
 			if(deleteResults.success == true) {
-				def networkInterface = context.services.computeServer.computeServerInterface.get(networkDelete.id)
+				def networkInterface = morpheusContext.services.computeServer.computeServerInterface.get(networkDelete.id)
 				computeServer.interfaces.remove(networkInterface)
 				// TODO: switch back to bulkRemove once fixed
-				context.async.computeServer.computeServerInterface.remove([networkDelete], computeServer).blockingGet()
+				morpheusContext.async.computeServer.computeServerInterface.remove([networkDelete], computeServer).blockingGet()
 			}
 		}
 
-		context.services.computeServer.save(computeServer)
+		morpheusContext.services.computeServer.save(computeServer)
 		// this function only returns success since the embedded version didn't fail the resize if something
 		// went wrong the the network stuff
 		return ServiceResponse.success()
@@ -1227,8 +1222,8 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 		ServiceResponse rtn = ServiceResponse.prepare()
 		HttpApiClient client = new HttpApiClient()
 		try {
-			server = context.services.computeServer.get(server.id)
-			rtn = resizeCompute(context, client, server, resizeRequest)
+			server = morpheusContext.services.computeServer.get(server.id)
+			rtn = resizeCompute(morpheusContext, client, server, resizeRequest)
 			if (!rtn.success) {
 				return rtn
 			}
@@ -1331,18 +1326,18 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			} else if (imageType == 'custom' && config.imageId) {
 				Long virtualImageId = config.imageId?.toLong()
 				if (virtualImageId) {
-					virtualImage = context.services.virtualImage.get(virtualImageId)
+					virtualImage = morpheusContext.services.virtualImage.get(virtualImageId)
 				}
 			} else {
 				// TODO: this is the fallback... should we really do this?
-				virtualImage = context.services.virtualImage.find(new DataQuery().withFilter('code', 'nutanix.image.morpheus.ubuntu.16.04'))
+				virtualImage = morpheusContext.services.virtualImage.find(new DataQuery().withFilter('code', 'nutanix.image.morpheus.ubuntu.16.04'))
 			}
 
 			if (!virtualImage) {
 				rtn.msg = "No virtual image selected"
 			} else {
 				server.sourceImage = virtualImage
-				saveAndGet(context, server)
+				saveAndGet(morpheusContext, server)
 				rtn.success = true
 			}
 		} catch (e) {
@@ -1369,7 +1364,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 			def createOpts = buildHostCreateVmOpts(server.cloud, server, hostRequest)
 
 			// ensure image is uploaded
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, server.cloud)
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, server.cloud)
 			def imageId = getOrUploadImage(client, authConfig, server.cloud, server.sourceImage, server.createdBy, createOpts.containerId)
 			if (!imageId) {
 				return ServiceResponse.error("No image file found for virtual image ${server.sourceImage?.id}:${server.sourceImage?.name}")
@@ -1478,7 +1473,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 
 			def snapId = taskResults?.results?.entity_list?.find { it.entity_type == 'snapshot'}?.entity_id
 			if(snapId) {
-				Snapshot savedSnapshot = context.services.snapshot.create(new Snapshot(
+				Snapshot savedSnapshot = morpheusContext.services.snapshot.create(new Snapshot(
 					account        : server.account ?: server.cloud.owner,
 					cloud          : server.cloud,
 					name: snapshotName,
@@ -1490,7 +1485,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 				if (!savedSnapshot) {
 					return ServiceResponse.error("Error saving snapshot")
 				} else {
-					context.async.snapshot.addSnapshot(savedSnapshot, server).blockingGet()
+					morpheusContext.async.snapshot.addSnapshot(savedSnapshot, server).blockingGet()
 				}
 				return ServiceResponse.success()
 			} else {
@@ -1509,7 +1504,7 @@ class NutanixPrismElementPluginProvisionProvider extends AbstractProvisionProvid
 	 */
 	@Override
 	ServiceResponse deleteSnapshots(ComputeServer server, Map opts) {
-		def snapshots = context.services.snapshot.listById(server.snapshots.collect { it.id })
+		def snapshots = morpheusContext.services.snapshot.listById(server.snapshots.collect { it.id })
 		for (final def snapshot in snapshots) {
 			def resp = deleteSnapshot(snapshot, opts)
 			if (!resp.success) {

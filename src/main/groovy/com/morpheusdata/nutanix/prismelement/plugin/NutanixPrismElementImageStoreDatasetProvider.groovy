@@ -33,9 +33,9 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 	public static final PROVIDER_KEY = "nutanixContainers"
 	public static final PROVIDER_DESCRIPTION = "The default image store to use with Nutanix Prism Element"
 
-	NutanixPrismElementImageStoreDatasetProvider(Plugin plugin, MorpheusContext context) {
+	NutanixPrismElementImageStoreDatasetProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		this.plugin = plugin
-		this.morpheusContext = context
+		this.morpheusContext = morpheusContext
 	}
 
 	/**

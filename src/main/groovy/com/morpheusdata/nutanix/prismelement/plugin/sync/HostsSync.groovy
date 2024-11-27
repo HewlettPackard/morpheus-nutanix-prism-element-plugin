@@ -21,7 +21,6 @@ package com.morpheusdata.nutanix.prismelement.plugin.sync
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
-import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.*
@@ -35,26 +34,26 @@ import groovy.util.logging.Slf4j
  */
 @Slf4j
 class HostsSync {
-	private final MorpheusContext context
+	private final MorpheusContext morpheusContext
 	private final HttpApiClient client
 	private final Cloud cloud
 
-	HostsSync(MorpheusContext context, Cloud cloud, HttpApiClient client) {
-		this.context = context
+	HostsSync(MorpheusContext morpheusContext, Cloud cloud, HttpApiClient client) {
+		this.morpheusContext = morpheusContext
 		this.cloud = cloud
 		this.client = client
 	}
 
 	def execute() {
 		log.info("Executing hosts sync for cloud ${cloud.name}")
-		def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+		def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
 		def listResults = NutanixPrismElementApiService.listHosts(client, authConfig)
 		log.debug("$listResults")
 		if (listResults.success == true) {
 			def objList = listResults.results
-			def serverType = context.async.cloud.findComputeServerTypeByCode('nutanixMetalHypervisor').blockingGet()
-			def serverOs = context.services.osType.find(new DataQuery().withFilter('code', 'linux'))
-			def existingItems = context.async.computeServer.listIdentityProjections(new DataQuery()
+			def serverType = morpheusContext.async.cloud.findComputeServerTypeByCode('nutanixMetalHypervisor').blockingGet()
+			def serverOs = morpheusContext.services.osType.find(new DataQuery().withFilter('code', 'linux'))
+			def existingItems = morpheusContext.async.computeServer.listIdentityProjections(new DataQuery()
 				.withFilter('refType', 'ComputeZone')
 				.withFilter('refId', cloud.id)
 				.withFilter('computeServerType.code', "nutanixMetalHypervisor")
@@ -65,7 +64,7 @@ class HostsSync {
 			sync.addMatchFunction { ComputeServerIdentityProjection existingHost, Map cloudHost ->
 				existingHost.externalId == cloudHost?.uuid
 			}.withLoadObjectDetailsFromFinder {
-				context.async.computeServer.listById(it.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.computeServer.listById(it.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { addItems ->
 				log.debug("Adding ${addItems.size()} servers")
 				addServers(addItems, serverType, serverOs)
@@ -111,7 +110,7 @@ class HostsSync {
 					accessType: 'ipmi',
 					host: ipmiAddress
 				)
-				access = context.async.computeServer.access.create(access).blockingGet()
+				access = morpheusContext.async.computeServer.access.create(access).blockingGet()
 				newServer.accesses << access
 			}
 
@@ -127,7 +126,7 @@ class HostsSync {
 			newServers << newServer
 		}
 
-		context.services.computeServer.bulkCreate(newServers)
+		morpheusContext.services.computeServer.bulkCreate(newServers)
 	}
 
 	def updateServers(List<SyncTask.UpdateItem<ComputeServer, Map>> updateItems) {
@@ -138,7 +137,7 @@ class HostsSync {
 			def shouldUpdate = false
 
 			// Collect all the memory from children to determine this host's used memory
-			def childServers = context.services.computeServer.list(
+			def childServers = morpheusContext.services.computeServer.list(
 				new DataQuery().withFilters(
 					new DataFilter('parentServer', "!=", null),
 					new DataFilter<Long>('parentServer.id', item.existingItem.id),
@@ -181,27 +180,27 @@ class HostsSync {
 		}
 
 		if (serversToUpdate) {
-			context.services.computeServer.bulkSave(serversToUpdate)
+			morpheusContext.services.computeServer.bulkSave(serversToUpdate)
 		}
 	}
 
 	private void deleteServers(List<ComputeServerIdentityProjection> deleteItems) {
 		for (final def item in deleteItems) {
 			// First remove any reference to host from children
-			def childServers = context.services.computeServer.list(new DataQuery().withFilter('parentServerId', item.id))
+			def childServers = morpheusContext.services.computeServer.list(new DataQuery().withFilter('parentServerId', item.id))
 			if (childServers) {
 				childServers.collect {
 					it.parentServer = null
 					it
 				}.with {
-					context.services.computeServer.bulkSave(it)
+					morpheusContext.services.computeServer.bulkSave(it)
 				}
 
 			}
 		}
 
 		// TODO: switch back to bulkRemove once fixed
-		context.async.computeServer.remove(deleteItems).blockingGet()
+		morpheusContext.async.computeServer.remove(deleteItems).blockingGet()
 	}
 
 	/**

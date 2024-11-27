@@ -34,12 +34,12 @@ import groovy.util.logging.Slf4j
  */
 @Slf4j
 class ContainersSync {
-	private final MorpheusContext context
+	private final MorpheusContext morpheusContext
 	private final HttpApiClient client
 	private final Cloud cloud
 
-	ContainersSync(MorpheusContext context, Cloud cloud, HttpApiClient client) {
-		this.context = context
+	ContainersSync(MorpheusContext morpheusContext, Cloud cloud, HttpApiClient client) {
+		this.morpheusContext = morpheusContext
 		this.cloud = cloud
 		this.client = client
 	}
@@ -47,14 +47,14 @@ class ContainersSync {
 	def execute() {
 		log.info("Executing container sync for cloud ${cloud.name}")
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(context, cloud)
+			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
 			def listResults = NutanixPrismElementApiService.listContainers(client, authConfig)
 			if (listResults.success == true) {
 				def objList = listResults?.containers?.findAll {
 					it.name?.toLowerCase() != 'nutanixmanagementshare'
 				}
 
-				def existingItems = context.async.cloud.datastore.listIdentityProjections(
+				def existingItems = morpheusContext.async.cloud.datastore.listIdentityProjections(
 					new DataQuery()
 						.withFilter('refType', 'ComputeZone')
 						.withFilter('refId', cloud.id)
@@ -83,14 +83,14 @@ class ContainersSync {
 						)
 					}
 
-					context.services.cloud.datastore.bulkCreate(datastores)
+					morpheusContext.services.cloud.datastore.bulkCreate(datastores)
 				}.onDelete { List<Datastore> morpheusItems ->
 					log.debug("removing datastores: ${morpheusItems}")
-					context.services.cloud.datastore.bulkRemove(morpheusItems)
+					morpheusContext.services.cloud.datastore.bulkRemove(morpheusItems)
 				}.onUpdate {
 					// do nothing
 				}.withLoadObjectDetailsFromFinder { updateItems ->
-					context.async.cloud.datastore.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.cloud.datastore.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()
 			}
 		} catch (e) {

@@ -35,11 +35,11 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvider {
 	protected Plugin plugin
-	protected MorpheusContext context
+	protected MorpheusContext morpheusContext
 
-	NutanixPrismElementBackupExecutionProvider(Plugin plugin, MorpheusContext context) {
+	NutanixPrismElementBackupExecutionProvider(Plugin plugin, MorpheusContext morpheusContext) {
 		this.plugin = plugin
-		this.context = context
+		this.morpheusContext = morpheusContext
 	}
 
 	/**
@@ -97,7 +97,7 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 				return rtn
 			}
 
-			def cloud = context.services.cloud.get(cloudId)
+			def cloud = morpheusContext.services.cloud.get(cloudId)
 			client.networkProxy = cloud.apiProxy
 
 			def result = NutanixPrismElementApiService.deleteSnapshot(client, [zone: cloud], snapshotId)
@@ -149,13 +149,13 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 		try {
 			// Clean out vm unique markers before taking a snapshot
 			if(server.serverOs?.platform != PlatformType.windows) {
-				context.executeCommandOnServer(server,
+				morpheusContext.executeCommandOnServer(server,
 					'sudo rm -f /etc/cloud/cloud.cfg.d/99-manual-cache.cfg; sudo cp /etc/machine-id /tmp/machine-id-old; sudo rm -f /etc/machine-id; sudo touch /etc/machine-id ; sync ; sync ; sleep 5',
 					false, server.sshUsername, server.sshPassword, null, null,
 					null, null, true, true).blockingGet()
 			}
 
-			def workload = context.services.workload.get(backup.containerId)
+			def workload = morpheusContext.services.workload.get(backup.containerId)
 			def snapshotName = "${workload.instance.name}.${workload.id}.${System.currentTimeMillis()}".toString()
 			def snapshotOpts = [
 				zone: cloud,
@@ -218,10 +218,10 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 				return rtn
 			}
 
-			def cloud = context.services.cloud.get(cloudId)
+			def cloud = morpheusContext.services.cloud.get(cloudId)
 
 			client.networkProxy = cloud.apiProxy
-			def server = context.services.computeServer.get(serverId)
+			def server = morpheusContext.services.computeServer.get(serverId)
 
 			def taskResults = NutanixPrismElementApiService.getTask(client, [zone: cloud], backupResult.getConfigMap().taskId)
 			if(taskResults.success == true && taskResults.results.percentage_complete == 100) {
@@ -254,7 +254,7 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 			if([BackupResult.Status.FAILED, BackupResult.Status.CANCELLED, BackupResult.Status.SUCCEEDED].contains(rtn.data.backupResult.status)) {
 				if(server.sourceImage?.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
 					// Since we cleared out the cloud init + machine-id for the snapshot, put it back in place
-					context.executeCommandOnServer(server,
+					morpheusContext.executeCommandOnServer(server,
 						"sudo bash -c \"echo 'manual_cache_clean: True' >> /etc/cloud/cloud.cfg.d/99-manual-cache.cfg\"; sudo cat /tmp/machine-id-old > /etc/machine-id ; sudo rm /tmp/machine-id-old ; sync",
 						false, server.sshUsername, server.sshPassword, null, null,
 						null, null, true, true).blockingGet()
