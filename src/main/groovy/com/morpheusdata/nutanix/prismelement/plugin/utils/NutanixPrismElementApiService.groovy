@@ -625,42 +625,42 @@ class NutanixPrismElementApiService {
 		//get the snapshot
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def snapshotResults = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
+		def snapshotResults = client.callJsonApi(apiUrl, v2Api+ 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 		println("snapshotResults: ${snapshotResults}")
 		if (snapshotResults?.success && snapshotResults?.error != true) {
-			def snapshotInfo = snapshotResults.data //new groovy.json.JsonSlurper().parseText(results.content)
+			def snapshotInfo = snapshotResults.data
 			log.debug("snapshot info: ${rtn.results}")
-			def vmDisks = snapshotInfo.vmCreateSpecification.vmDisks?.findAll { it.isCdrom != true }
+			def vmDisks = snapshotInfo.vm_create_spec.vm_disks?.findAll { it.is_cdrom != true }
 			println("disks: ${vmDisks}")
-			def vmDiskId = vmDisks?.size() > 0 ? vmDisks[0].vmDiskClone?.vmDiskUuid : null
-			def containerId = vmDisks?.size() > 0 ? vmDisks[0].vmDiskClone?.containerUuid : null
+			def vmDiskId = vmDisks?.size() > 0 ? vmDisks[0].vm_disk_clone?.disk_address?.vmdisk_uuid : null
+			def containerId = vmDisks?.size() > 0 ? vmDisks[0].vm_disk_clone?.storage_container_uuid : null
 			rtn.containerId = containerId
 			//throw error if null
 			//groupUuid
 			def body = [
-				name       : cloneConfig.name,
-				imageType  : 'disk_image',
-				vmDiskClone: [
-					containerUuid  : containerId,
-					snapshotGroupId: snapshotInfo.groupUuid,
-					vmDiskUuid     : vmDiskId
+				name       : imageName,
+				imageType  : 'DISK_IMAGE',
+				vm_disk_clone: [
+					container_uuid  : containerId,
+					snapshot_group_id: snapshotInfo.group_uuid,
+					vm_disk_uuid     : vmDiskId
 				]
 			]
 			log.info("clone to template body: ${body}")
 			//clone to template
-			def results = client.callJsonApi(apiUrl, betaApi + 'images', null, null, requestOpts + [body: body], 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts + [body: body], 'POST')
 			log.debug("cloneVmToImage: ${results}")
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
 				rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-				rtn.taskUuid = rtn.results.taskUuid
+				rtn.taskUuid = rtn.results.task_uuid
 				log.debug("results: ${rtn.results}")
 			} else if (results?.error == true) {
-				rtn.errorCode = results.errorCode
+				rtn.errorCode = results.error_code
 				rtn.error == true
 			}
 		} else if (snapshotResults?.error == true) {
-			rtn.errorCode = snapshotResults.errorCode
+			rtn.errorCode = snapshotResults.error_code
 			rtn.error == true
 		}
 		return rtn
