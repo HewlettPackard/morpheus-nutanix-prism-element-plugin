@@ -1412,7 +1412,7 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + serverId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId , null, null, requestOpts, 'DELETE')
 		log.debug("deleteVm: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
