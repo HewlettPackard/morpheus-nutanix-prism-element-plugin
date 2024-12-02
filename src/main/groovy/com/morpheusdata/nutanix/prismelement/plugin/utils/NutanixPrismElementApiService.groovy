@@ -491,10 +491,10 @@ class NutanixPrismElementApiService {
 		def query = [includeAddressAssignments: 'true']
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
-		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+			rtn.results = results.data
 			log.debug("getVirtualMachineNics results: ${rtn.results}")
 			rtn.results.entities?.each { entity ->
 				rtn.nics << entity

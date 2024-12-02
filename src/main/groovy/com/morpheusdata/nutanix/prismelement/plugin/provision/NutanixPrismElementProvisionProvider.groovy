@@ -741,10 +741,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				if (networkInterface.externalId == null) {
 					//find a free one
 					nics?.each { nic ->
-						def existingMatch = existingMacs.find { it == nic.macAddress }
+						def existingMatch = existingMacs.find { it == nic.mac_address }
 						if (!existingMatch) {
-							existingMacs << nic.macAddress
-							networkInterface.externalId = nic.macAddress
+							existingMacs << nic.mac_address
+							networkInterface.externalId = nic.mac_address
 							morpheusContext.services.computeServer.computeServerInterface.save(networkInterface)
 						}
 					}
@@ -1144,10 +1144,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(morpheusContext, computeServer, newInterfaceOpts.network)
 				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, server.externalId)?.nics
 				vmNics.each { vmNic ->
-					def existingNic = existingNics.find{it.macAddress == vmNic.macAddress}
+					def existingNic = existingNics.find{it.mac_address == vmNic.mac_address}
 					if(!existingNic) {
-						newInterface.externalId = vmNic.macAddress
-						newInterface.publicIpAddress = vmNic.requestedIpAddress
+						newInterface.externalId = vmNic.mac_address
+						newInterface.publicIpAddress = vmNic.requested_ip_address
 					}
 				}
 				newInterface.uniqueId = "morpheus-nic-${computeServer.id}-${computeServer.interfaces.size()}"
