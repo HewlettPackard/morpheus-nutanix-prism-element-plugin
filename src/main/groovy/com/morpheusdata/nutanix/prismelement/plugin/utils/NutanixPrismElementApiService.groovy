@@ -285,22 +285,6 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listStoragePools(HttpApiClient client, opts) {
-		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'storage_pool/', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			log.debug("results: ${rtn.results}")
-		}
-		return rtn
-	}
-
 	static listVirtualMachinesV1(HttpApiClient client, Map authConfig, Map opts) {
 		def rtn = [success: false, virtualMachines: [], total: 0]
 		try {
