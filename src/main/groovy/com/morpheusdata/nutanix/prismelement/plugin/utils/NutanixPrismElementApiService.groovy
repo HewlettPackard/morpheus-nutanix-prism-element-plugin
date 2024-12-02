@@ -1197,14 +1197,16 @@ class NutanixPrismElementApiService {
 		def vmResult = loadVirtualMachine(client, opts, serverId)
 		if (vmResult?.success) {
 			if (vmResult.results?.power_state && vmResult.results?.power_state?.toLowerCase() != "off") {
-				def body = [logicalTimestamp: (opts.timestamp ?: 1)]
-				//cache
 				def headers = buildHeaders(null, username, password)
+				def body = [
+					transition: "OFF",
+					logicalTimestamp: (opts.timestamp ?: 1)
+				]
 				def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-				def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + serverId + '/power_op/off', null, null, requestOpts, 'POST')
+				def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId + '/set_power_state', null, null, requestOpts, 'POST')
 				log.debug("stopVm: ${results}")
 				if (results.success == true && results.data) {
-					def taskId = results.data.taskUuid
+					def taskId = results.data.task_uuid
 					def taskResults = checkTaskReady(client, opts.zone, taskId)
 					def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
 					if (taskSuccess == true) {
