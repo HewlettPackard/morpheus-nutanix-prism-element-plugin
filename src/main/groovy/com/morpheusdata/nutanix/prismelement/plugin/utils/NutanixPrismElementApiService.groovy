@@ -1533,10 +1533,10 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + snapshotId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + snapshotId, null, null, requestOpts, 'DELETE')
 		log.debug("deleteSnapshot: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
