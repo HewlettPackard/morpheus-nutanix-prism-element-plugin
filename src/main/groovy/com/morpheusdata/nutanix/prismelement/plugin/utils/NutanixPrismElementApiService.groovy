@@ -240,9 +240,8 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'images/' + imageId + '/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'images/' + imageId + '/', null, null, requestOpts, 'GET')
 		log.debug("results: ${results}")
-		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
 			rtn.image = results.data
 			rtn.success = results.success
