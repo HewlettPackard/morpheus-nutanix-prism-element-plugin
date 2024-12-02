@@ -92,10 +92,7 @@ class NutanixPrismElementPlugin extends Plugin {
 		}
 
 		def config = [
-			basePath  : '/api/nutanix/v3/',
-			apiVersion: 'v2.0',
-			apiUrl    : (cloud.serviceUrl ?: cloud.configMap.apiUrl),
-			apiNumber : 2.0,
+			apiUrl: (cloud.serviceUrl ?: cloud.configMap.apiUrl),
 		]
 		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('username')) {
 			config.username = cloud.accountCredentialData['username']

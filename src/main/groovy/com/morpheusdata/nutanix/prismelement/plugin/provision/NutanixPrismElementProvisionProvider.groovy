@@ -650,7 +650,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		def loadVmResults = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: cloud], server.externalId)
 		def startResults = NutanixPrismElementApiService.startVm(
 			client,
-			[zone: cloud, timestamp: loadVmResults?.virtualMachine?.logicalTimestamp],
+			[zone: cloud, timestamp: loadVmResults?.results?.vm_logical_timestamp],
 			server.externalId
 		)
 		if (!startResults.success) {
@@ -675,7 +675,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		def found = false
 		if (server.externalId) {
 			def serverDetail = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: server.cloud], server.externalId)
-			if (serverDetail.success == true && serverDetail.virtualMachine.state == 'on') {
+			if (serverDetail.success == true && serverDetail.results.power_state == 'on') {
 				found = true
 				rtn.success = true
 				rtn.results = serverDetail.results
@@ -702,6 +702,15 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		try {
 			ComputeServer server = workload.server
 			Cloud cloud = server.cloud
+
+			if(server.sourceImage?.isCloudInit || (server.sourceImage?.isSysprep && !server.sourceImage?.isForceCustomization)) {
+				def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, server.externalId)?.disks
+				vmDisks.each { vmDisk ->
+					if(vmDisk.is_cdrom) {
+						NutanixPrismElementApiService.ejectDisk(client, [zone:cloud], server.externalId, vmDisk.id)
+					}
+				}
+			}
 
 			def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, server.externalId)?.disks
 			updateVolumes(server, vmDisks)
@@ -741,10 +750,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				if (networkInterface.externalId == null) {
 					//find a free one
 					nics?.each { nic ->
-						def existingMatch = existingMacs.find { it == nic.macAddress }
+						def existingMatch = existingMacs.find { it == nic.mac_address }
 						if (!existingMatch) {
-							existingMacs << nic.macAddress
-							networkInterface.externalId = nic.macAddress
+							existingMacs << nic.mac_address
+							networkInterface.externalId = nic.mac_address
 							morpheusContext.services.computeServer.computeServerInterface.save(networkInterface)
 						}
 					}
@@ -809,8 +818,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		HttpApiClient client = new HttpApiClient()
 		try {
 			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
-			if (vmResults?.virtualMachine?.logicalTimestamp)
-				vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+			if (vmResults?.results?.vm_logical_timestamp)
+				vmOpts.timestamp = vmResults?.results?.vm_logical_timestamp
 			def stopResults = stopServer(workload.server)
 			if (!stopResults.success) {
 				return stopResults
@@ -851,12 +860,11 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			client.networkProxy = cloud.apiProxy
 			try {
 				Map serverDetails = NutanixPrismElementApiService.checkServerReady(client, [zone: cloud], serverUuid)
-				if (serverDetails.success && serverDetails.virtualMachine) {
+				if (serverDetails.success && serverDetails.ipAddresses) {
 					rtn.externalId = serverUuid
 					rtn.success = serverDetails.success
-					rtn.publicIp = serverDetails.vmDetails?.ipAddresses[0]
-					rtn.privateIp = serverDetails.vmDetails?.ipAddresses[0]
-					rtn.hostname = serverDetails.vmDetails?.hostName
+					rtn.publicIp = serverDetails.ipAddresses[0]
+					rtn.privateIp = serverDetails.ipAddresses[0]
 					return ServiceResponse.success(rtn)
 
 				} else {
@@ -1028,7 +1036,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		resizeRequest.volumesUpdate.each { it ->
 			def existingVolume = it.existingModel
 			Map updateProps = it.updateProps
-			if(updateProps.maxStorage <= it.existingModel.maxStorage) {
+			if(updateProps.maxStorage < existingVolume.maxStorage) {
 				log.info("requested size {} bytes is less than existing size of {} bytes for disk {}, skipping",
 					updateProps.maxStorage,
 					existingVolume.maxStorage,
@@ -1145,10 +1153,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(morpheusContext, computeServer, newInterfaceOpts.network)
 				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, server.externalId)?.nics
 				vmNics.each { vmNic ->
-					def existingNic = existingNics.find{it.macAddress == vmNic.macAddress}
+					def existingNic = existingNics.find{it.mac_address == vmNic.mac_address}
 					if(!existingNic) {
-						newInterface.externalId = vmNic.macAddress
-						newInterface.publicIpAddress = vmNic.requestedIpAddress
+						newInterface.externalId = vmNic.mac_address
+						newInterface.publicIpAddress = vmNic.requested_ip_address
 					}
 				}
 				newInterface.uniqueId = "morpheus-nic-${computeServer.id}-${computeServer.interfaces.size()}"
@@ -1457,7 +1465,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				return ServiceResponse.error("Failed to create snapshot", null, snapshotResults)
 			}
 
-			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, [zone: server.cloud], taskId)
+			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, taskId)
 			if (!taskResults.success) {
 				return ServiceResponse.error("Error waiting for create snapshot task to complete")
 			}
@@ -1546,7 +1554,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				return ServiceResponse.error(resp.msg as String)
 			}
 
-			resp = NutanixPrismElementApiService.checkTaskReady(client, [zone: server.cloud], resp.results?.taskUuid)
+			resp = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, resp.results?.task_uuid)
 			if (!resp.success) {
 				return ServiceResponse.error("Error waiting for revert snapshot task to complete")
 			}

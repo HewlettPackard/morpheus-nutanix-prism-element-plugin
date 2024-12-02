@@ -69,7 +69,7 @@ class NetworkSync {
 			def networkAdds = []
 			addList?.each {
 				log.debug("addList: ${it}")
-				def managedNetwork = it.ipConfig?.networkAddress ? true : false
+				def managedNetwork = it.ip_config?.network_address ? true : false
 				def networkType = managedNetwork ? nutanixManagedVlan : nutanixVlan
 				def add = new Network(
 					owner: cloud.owner,
@@ -77,7 +77,7 @@ class NetworkSync {
 					name: it.name ?: it.uuid,
 					code: "nutanix.acropolis.network.${cloud.id}.${it.uuid}",
 					cloud: cloud,
-					vlanId: it.vlanId?.toInteger(),
+					vlanId: it.vlan_id?.toInteger(),
 					uniqueId: it.uuid,
 					externalId: it.uuid,
 					type: networkType,
@@ -88,27 +88,27 @@ class NetworkSync {
 				)
 				if (managedNetwork) {
 					def poolType = new NetworkPoolType(code: 'nutanix')
-					add.prefixLength = it.ipConfig.prefixLength
-					add.dhcpIp = it.ipConfig.dhcpServerAddress
-					add.dhcpServer = it.ipConfig.dhcpServerAddress?.length() > 0
-					add.subnetAddress = it.ipConfig.networkAddress
-					add.gateway = it.ipConfig.defaultGateway
-					add.tftpServer = it.ipConfig.dhcpOptions?.tftpServerName
-					add.bootFile = it.ipConfig.dhcpOptions?.bootFileName
-					//add. it.ipConfig.dhcpOptions?.domainSearch
-					def poolRanges = it.ipConfig.pool?.collect { range -> range.range }
+					add.prefixLength = it.ip_config.prefix_length
+					add.dhcpIp = it.ip_config.dhcp_server_address
+					add.dhcpServer = it.ip_config.dhcp_server_address?.length() > 0
+					add.subnetAddress = it.ip_config.network_address
+					add.gateway = it.ip_config.default_gateway
+					add.tftpServer = it.ip_config.dhcp_options?.tftpServerName
+					add.bootFile = it.ip_config.dhcp_options?.bootFileName
+
+					def poolRanges = it.ip_config.pool?.collect { range -> range.range }
 					def addNetworkPool = new NetworkPool(
 						category: "nutanix.acropolis.network.${cloud.id}",
-						name: it.ipConfig.networkAddress,
+						name: it.ip_config.network_address,
 						externalId: it.uuid,
-						dnsDomain: it.ipConfig.dhcpOptions?.domainName,
-						dnsSearchPath: it.ipConfig.dhcpOptions?.domainSearch,
-						dnsServers: [it.ipConfig.dhcpOptions?.domainNameServers],
+						dnsDomain: it.ip_config.dhcp_options?.domainName,
+						dnsSearchPath: it.ip_config.dhcp_options?.domainSearch,
+						dnsServers: [it.ip_config.dhcp_options?.domainNameServers],
 						refId: cloud.id,
 						refType: 'ComputeZone',
-						dhcpServer: it.ipConfig.dhcpServerAddress?.length() > 0,
-						subnetAddress: it.ipConfig.networkAddress,
-						gateway: it.ipConfig.defaultGateway,
+						dhcpServer: it.ip_config.dhcp_server_address?.length() > 0,
+						subnetAddress: it.ip_config.network_address,
+						gateway: it.ip_config.default_gateway,
 						type: poolType,
 						owner: cloud.owner,
 						account: cloud.account
@@ -152,7 +152,7 @@ class NetworkSync {
 				Network existingItem = it.existingItem
 				if (existingItem) {
 					def itemChanged = false
-					def managedNetwork = masterItem.ipConfig?.networkAddress ? true : false
+					def managedNetwork = masterItem.ip_config?.network_address ? true : false
 					def networkType = managedNetwork ? nutanixManagedVlan : nutanixVlan
 
 					if (existingItem.name != (masterItem.name ?: masterItem.uuid)) {
@@ -163,9 +163,9 @@ class NetworkSync {
 						existingItem.type = networkType
 						itemChanged = true
 					}
-					if (masterItem.ipConfig?.networkAddress) {
+					if (masterItem.ip_config?.networkAddress) {
 						if (existingItem.pool && (existingItem.pool.ipRanges == null || existingItem.pool.ipRanges?.size() == 0)) {
-							def poolRanges = masterItem.ipConfig.pool?.collect { range -> range.range }
+							def poolRanges = masterItem.ip_config.pool?.collect { range -> range.range }
 							if (poolRanges?.size() > 0) {
 								poolRanges.each { poolRange ->
 									def rangeAddrs = poolRange.tokenize(' ')

@@ -200,7 +200,7 @@ class VirtualMachinesSync {
 		}
 
 		if (server != null && server.status != 'provisioning' && cloudItem.legacyVm) {
-			def savedRequired = updateVirtualMachineStats(server, cloudItem.legacyVm)
+			def savedRequired = updateVirtualMachineStats(server, cloudItem.legacyVm as Map)
 			if (savedRequired) {
 				server = saveAndGet(server)
 			}

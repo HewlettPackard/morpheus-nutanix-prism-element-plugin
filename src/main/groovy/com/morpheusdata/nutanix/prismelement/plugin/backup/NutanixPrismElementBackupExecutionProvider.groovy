@@ -223,7 +223,7 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 			client.networkProxy = cloud.apiProxy
 			def server = morpheusContext.services.computeServer.get(serverId)
 
-			def taskResults = NutanixPrismElementApiService.getTask(client, [zone: cloud], backupResult.getConfigMap().taskId)
+			def taskResults = NutanixPrismElementApiService.getTask(client, cloud, backupResult.getConfigMap().taskId)
 			if(taskResults.success == true && taskResults.results.percentage_complete == 100) {
 				def results = taskResults.results
 				if(results.progress_status == 'Succeeded') {

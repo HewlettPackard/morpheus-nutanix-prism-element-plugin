@@ -20,7 +20,7 @@ package com.morpheusdata.nutanix.prismelement.plugin.utils
 
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
-import com.morpheusdata.response.ServiceResponse
+import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
 
@@ -37,6 +37,7 @@ class NutanixPrismElementApiService {
 	static v2Api = '/api/nutanix/v2.0/'
 	static betaApi = '/api/nutanix/v0.8/'
 	static Integer WEB_CONNECTION_TIMEOUT = 120 * 1000
+	private static oneGB = (1024 * 1024 * 1024) as Long
 
 	static testConnection(HttpApiClient client, Map opts) {
 		def rtn = [success: false, invalidLogin: false]
@@ -46,7 +47,7 @@ class NutanixPrismElementApiService {
 			def password = getNutanixPassword(opts.zone)
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/networks/', null, null, requestOpts, 'GET')
+			def results = client.callJsonApi(apiUrl, v2Api + 'cluster', null, null, requestOpts, 'GET')
 			rtn.success = results?.success && results?.error != true
 
 			if (!rtn.success) {
@@ -113,7 +114,7 @@ class NutanixPrismElementApiService {
 	static listContainers(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, containers: []]
 		def apiMethod = 'GET'
-		def apiPath = ('/api/nutanix/v2.0/storage_containers')
+		def apiPath = (v2Api + 'storage_containers')
 
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
@@ -139,33 +140,18 @@ class NutanixPrismElementApiService {
 
 	static listImages(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, images: []]
-		//set the path for the different api versions
-		def apiPath
-		def apiMethod = 'GET'
-		if (authConfig.apiNumber > 2)
-			apiPath = ('/api/nutanix/v2.0/images')
-		else if (authConfig.apiNumber > 1)
-			apiPath = ('/api/nutanix/' + authConfig.apiVersion + '/images')
-		else
-			apiPath = ('/api/nutanix/' + authConfig.apiVersion + '/images/')
+
 		//call the api
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, apiMethod)
+		def results = client.callJsonApi(authConfig.apiUrl, v2Api + 'images', null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
 			results.data?.entities?.each { entity ->
-				if (authConfig.apiNumber > 1) {
-					def row = [uuid       : entity.uuid, name: entity.name, imageStatus: entity.image_state, vmDiskId: entity.vm_disk_id, externalId: entity.vm_disk_id,
-							   containerId: entity.storage_container_id, containerUuid: entity.storage_container_uuid, deleted: entity.deleted, timestamp: entity.logical_timestamp]
-					row.imageType = (entity.image_type == 'DISK_IMAGE' || entity.image_type?.toLowerCase() == 'disk' || entity.image_type == null) ? 'qcow2' : 'iso'
-					rtn.images << row
-				} else {
-					def row = [uuid       : entity.uuid, name: entity.name, imageStatus: 'Active', vmDiskId: entity.vmDiskId, externalId: entity.vmDiskId,
-							   containerId: entity.containerId]
-					row.imageType = (entity.imageType == 'DISK_IMAGE' || entity.imageType?.toLowerCase() == 'disk' || entity.imageType == null) ? 'qcow2' : 'iso'
-					rtn.images << row
-				}
+				def row = [uuid       : entity.uuid, name: entity.name, imageStatus: entity.image_state, vmDiskId: entity.vm_disk_id, externalId: entity.vm_disk_id,
+						   containerId: entity.storage_container_id, containerUuid: entity.storage_container_uuid, deleted: entity.deleted, timestamp: entity.logical_timestamp]
+				row.imageType = (entity.image_type == 'DISK_IMAGE' || entity.image_type?.toLowerCase() == 'disk' || entity.image_type == null) ? 'qcow2' : 'iso'
+				rtn.images << row
 			}
 			log.debug("listImages: ${rtn.images}")
 		}
@@ -179,10 +165,9 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/', null, null, requestOpts, 'GET')
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+		def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts, 'GET')
+		if (results.success) {
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find image entity: ${entity} for: ${name}")
 				if (rtn.success == false) {
@@ -215,15 +200,13 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/', null, null, requestOpts, 'GET')
-
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+		def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts, 'GET')
+		if (results.success) {
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find image entity: ${entity} for: ${name}")
 				if (rtn.success == false) {
-					if (entity.vmDiskId == imageId) {
+					if (entity.vm_disk_id == imageId) {
 						rtn.image = entity
 						rtn.success = true
 					}
@@ -241,9 +224,8 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/' + imageId + '/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'images/' + imageId + '/', null, null, requestOpts, 'GET')
 		log.debug("results: ${results}")
-		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
 			rtn.image = results.data
 			rtn.success = results.success
@@ -251,30 +233,14 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listTasks(HttpApiClient client, opts) {
+static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = [headers: headers, proxySettings: opts.proxySettings]
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/tasks/', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			log.debug("task results: ${rtn.results}")
-		}
-		return rtn
-	}
-
-	static getTask(HttpApiClient client, zone, taskId) {
-		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(zone)
-		def username = getNutanixUsername(zone)
-		def password = getNutanixPassword(zone)
+		def apiUrl = getNutanixApiUrl(cloud)
+		def username = getNutanixUsername(cloud)
+		def password = getNutanixPassword(cloud)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/tasks/' + taskId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'tasks/' + taskId, null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 
 		if (rtn.success == true) {
@@ -283,22 +249,6 @@ class NutanixPrismElementApiService {
 		} else if (results?.error == true) {
 			rtn.errorCode = results.errorCode
 			rtn.error == true
-		}
-		return rtn
-	}
-
-	static listStoragePools(HttpApiClient client, opts) {
-		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/storage_pool/', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			log.debug("results: ${rtn.results}")
 		}
 		return rtn
 	}
@@ -325,61 +275,17 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listVirtualMachines(HttpApiClient client, Map authConfig, Map opts) {
-		def rtn = [success: false, virtualMachines: [], total: 0]
-		try {
-			def apiPath = authConfig.basePath + 'vms/list'
-			def headers = buildHeaders(null, authConfig.username, authConfig.password)
-			def perPage = opts.perPage ?: 50
-			def apiBody = [kind: 'vm', offset: 0, length: perPage]
-			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: apiBody)
-			//get v1 data
-			def offset = 0
-			def vmList = listVirtualMachinesV2(client, authConfig, opts)
-			//page it
-			def keepGoing = true
-			while (keepGoing) {
-				def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'POST')
-				if (results.success == true) {
-					results.data?.entities?.each { row ->
-						def obj = row
-						obj.externalId = row.metadata?.uuid
-						obj.legacyVm2 = vmList.virtualMachines.find { it.externalId == obj.externalId }
-						obj.legacyVm = obj.legacyVm2.legacyVm
-						//log.debug("legacyVm: ${obj.legacyVm}")
-						rtn.virtualMachines << obj
-					}
-					if (results.data?.metadata?.offset != null && results.data?.metadata?.total_matches > rtn.virtualMachines.size()) {
-						offset += perPage
-						def apiBody2 = [kind: 'vm', offset: offset, length: perPage]
-						requestOpts.body = apiBody2
-					} else {
-						keepGoing = false
-						rtn.total = rtn.virtualMachines?.size()
-					}
-				} else {
-					keepGoing = false
-					rtn.msg = results.msg
-				}
-				rtn.success = true
-			}
-		} catch (e) {
-			log.error("error listing virtual machines: ${e}", e)
-		}
-		return rtn
-	}
-
 	static listVirtualMachinesV2(HttpApiClient client, Map authConfig, Map opts) {
 		def rtn = [success: false, virtualMachines: [], total: 0]
 		try {
 			def apiPath = v2Api + 'vms'
-			def headers = buildHeaders(null, authConfig.username, authConfig.password)
+			def headers = buildHeaders(null, authConfig.username.toString(), authConfig.password.toString())
 
 			def query = [include_vm_disk_config: 'true', include_vm_nic_config: 'true']
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 			//get v1 data
 			def vmList = listVirtualMachinesV1(client, authConfig, opts)
-			def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'GET')
+			def results = client.callJsonApi(authConfig.apiUrl.toString(), apiPath, null, null, requestOpts, 'GET')
 			//page it
 			def keepGoing = true
 			if (results.success == true) {
@@ -440,14 +346,13 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/', null, null, requestOpts, 'GET')
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms', null, null, requestOpts, 'GET')
+		if (results.success) {
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find vm entity: ${entity} for: ${name}")
 				if (rtn.success == false) {
-					if (entity.config?.name == name) {
+					if (entity.name == name) {
 						rtn.virtualMachine = entity
 						rtn.success = true
 					}
@@ -465,11 +370,9 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/', null, null, requestOpts, 'GET')
-
-		//rtn.success = results?.success && results?.error != true
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/', null, null, requestOpts, 'GET')
 		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find vm entity: ${entity} for: ${vmId}")
 				if (rtn.success == false) {
@@ -491,22 +394,17 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 
 		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId, null, null, requestOpts, 'GET')
+		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: [include_vm_disk_config: 'true', include_vm_nic_config: 'true'])
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId, null, null, requestOpts, 'GET')
 
-		//rtn.success = results?.success && results?.error != true
 		if (results.success == true && results.error != true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			def vmResults = client.callJsonApi(apiUrl, '/PrismGateway/services/rest/v1/vms/' + vmId, null, null, requestOpts, 'GET')
-			rtn.vmResults = vmResults.data
-			rtn.virtualMachine = rtn.results
-			rtn.vmDetails = rtn.vmResults
-			rtn.success = vmResults.success
+			rtn.results = results.data
+			rtn.success = results.success
 		}
 		return rtn
 	}
 
-	static getVirtualMachineDisks(HttpApiClient client, cloud, vmId) {
+	static getVirtualMachineDisks(HttpApiClient client, Cloud cloud, vmId) {
 		def rtn = [success: false, disks: []]
 		def apiUrl = getNutanixApiUrl(cloud)
 		def username = getNutanixUsername(cloud)
@@ -515,7 +413,7 @@ class NutanixPrismElementApiService {
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 		// v2 api doesn't let you get just the disks
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId, null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -536,10 +434,10 @@ class NutanixPrismElementApiService {
 		def query = [includeAddressAssignments: 'true']
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+			rtn.results = results.data
 			log.debug("getVirtualMachineNics results: ${rtn.results}")
 			rtn.results.entities?.each { entity ->
 				rtn.nics << entity
@@ -548,18 +446,22 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listNetworks(HttpApiClient client, opts) {
+	static listNetworks(HttpApiClient client, Map opts) {
 		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/networks/', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			log.debug("network results: ${rtn.results}")
+		try {
+			def apiUrl = getNutanixApiUrl(opts.zone)
+			def username = getNutanixUsername(opts.zone)
+			def password = getNutanixPassword(opts.zone)
+			def headers = buildHeaders(null, username.toString(), password.toString())
+			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
+			def results = client.callJsonApi(apiUrl, v2Api + 'networks/', null, null, requestOpts, 'GET')
+			rtn.success = results?.success && results?.error != true
+			if (rtn.success == true) {
+				rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+				log.debug("network results: ${rtn.results}")
+			}
+		} catch (e) {
+			log.error("error listing networks: ${e}", e)
 		}
 		return rtn
 	}
@@ -627,42 +529,42 @@ class NutanixPrismElementApiService {
 		//get the snapshot
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def snapshotResults = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + snapshotId, null, null, requestOpts, 'GET')
+		def snapshotResults = client.callJsonApi(apiUrl, v2Api+ 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 		println("snapshotResults: ${snapshotResults}")
 		if (snapshotResults?.success && snapshotResults?.error != true) {
-			def snapshotInfo = snapshotResults.data //new groovy.json.JsonSlurper().parseText(results.content)
+			def snapshotInfo = snapshotResults.data
 			log.debug("snapshot info: ${rtn.results}")
-			def vmDisks = snapshotInfo.vmCreateSpecification.vmDisks?.findAll { it.isCdrom != true }
+			def vmDisks = snapshotInfo.vm_create_spec.vm_disks?.findAll { it.is_cdrom != true }
 			println("disks: ${vmDisks}")
-			def vmDiskId = vmDisks?.size() > 0 ? vmDisks[0].vmDiskClone?.vmDiskUuid : null
-			def containerId = vmDisks?.size() > 0 ? vmDisks[0].vmDiskClone?.containerUuid : null
+			def vmDiskId = vmDisks?.size() > 0 ? vmDisks[0].vm_disk_clone?.disk_address?.vmdisk_uuid : null
+			def containerId = vmDisks?.size() > 0 ? vmDisks[0].vm_disk_clone?.storage_container_uuid : null
 			rtn.containerId = containerId
 			//throw error if null
 			//groupUuid
 			def body = [
-				name       : cloneConfig.name,
-				imageType  : 'disk_image',
-				vmDiskClone: [
-					containerUuid  : containerId,
-					snapshotGroupId: snapshotInfo.groupUuid,
-					vmDiskUuid     : vmDiskId
+				name       : imageName,
+				imageType  : 'DISK_IMAGE',
+				vm_disk_clone: [
+					container_uuid  : containerId,
+					snapshot_group_id: snapshotInfo.group_uuid,
+					vm_disk_uuid     : vmDiskId
 				]
 			]
 			log.info("clone to template body: ${body}")
 			//clone to template
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images', null, null, requestOpts + [body: body], 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts + [body: body], 'POST')
 			log.debug("cloneVmToImage: ${results}")
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
 				rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-				rtn.taskUuid = rtn.results.taskUuid
+				rtn.taskUuid = rtn.results.task_uuid
 				log.debug("results: ${rtn.results}")
 			} else if (results?.error == true) {
-				rtn.errorCode = results.errorCode
+				rtn.errorCode = results.error_code
 				rtn.error == true
 			}
 		} else if (snapshotResults?.error == true) {
-			rtn.errorCode = snapshotResults.errorCode
+			rtn.errorCode = snapshotResults.error_code
 			rtn.error == true
 		}
 		return rtn
@@ -676,148 +578,6 @@ class NutanixPrismElementApiService {
 			rtn.error = 'Please specify a name'
 		} else {
 			rtn = createServerUsingV2Api(client, opts)
-		}
-		return rtn
-	}
-
-	private static createServerUsingStandardApi(HttpApiClient client, opts) {
-		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def containerId = opts.containerId
-		def osDiskSize = (int) opts.maxStorage.div(ComputeUtility.ONE_MEGABYTE)
-		def maxMemory = (int) opts.maxMemory.div(ComputeUtility.ONE_MEGABYTE)
-
-		def osDisk = [vmDiskClone: [vmDiskUuid: opts.imageId, minimumSizeMb: osDiskSize]]
-		def rootType = opts.rootVolume?.type?.name
-		def diskTypes = [rootType]
-		if (rootType == 'sata')
-			osDisk.diskAddress = [deviceBus: 'sata']
-		else if (rootType == 'ide')
-			osDisk.diskAddress = [deviceBus: 'ide']
-		else if (rootType == 'scsi')
-			osDisk.diskAddress = [deviceBus: 'scsi']
-		def vmDisks = [osDisk]
-		if (opts.diskSize) {
-			def dataDiskSize = (int) opts.diskSize.div(ComputeUtility.ONE_MEGABYTE)
-			vmDisks << [vmDiskCreate: [sizeMb: dataDiskSize, containerUuid: containerId]]
-		} else if (opts.dataDisks?.size() > 0) {
-			opts.dataDisks?.each { disk ->
-				def diskContainerId
-				if (disk.datastore?.externalId) {
-					diskContainerId = disk.datastore.externalId
-				}
-				def dataDiskSize = (int) disk.maxStorage.div(ComputeUtility.ONE_MEGABYTE)
-				def vmDataDisk = [vmDiskCreate: [sizeMb: dataDiskSize, containerUuid: diskContainerId ?: containerId]]
-				def diskType = disk.type?.name
-				diskTypes << diskType
-				if (diskType == 'sata')
-					vmDataDisk.diskAddress = [deviceBus: 'sata']
-				else if (diskType == 'ide')
-					vmDataDisk.diskAddress = [deviceBus: 'ide']
-				else if (diskType == 'scsi')
-					vmDataDisk.diskAddress = [deviceBus: 'scsi']
-				vmDisks << vmDataDisk
-			}
-		}
-		diskTypes = diskTypes?.unique()
-		if (opts.cloudFileId)
-			vmDisks << [isCdrom: true, vmDiskClone: [vmDiskUuid: opts.cloudFileId, minimumSize: (ComputeUtility.ONE_MEGABYTE)]]
-		//def cloudInitDisk = [vmDiskClone:[vmDiskUuid:1]]
-		def vmNics = []
-		//nic network
-		if (opts.networkConfig?.primaryInterface?.network?.uniqueId) { //new style multi network
-			def vmNic = [networkUuid: opts.networkConfig.primaryInterface.network.uniqueId]
-			if (opts.networkConfig?.primaryInterface?.ipAddress && opts.networkConfig?.primaryInterface?.network?.type?.code?.contains('Managed')) {
-				vmNic.requestedIpAddress = opts.networkConfig.primaryInterface.ipAddress
-				vmNic.requestIp = true
-			}
-			if (opts.networkConfig.primaryInterface.type?.code == 'nutanix.E1000')
-				vmNic.model = 'e1000'
-			vmNics << vmNic
-			//extra networks
-			opts.networkConfig.extraInterfaces?.each { extraInterface ->
-				if (extraInterface.network?.uniqueId) {
-					vmNic = [networkUuid: extraInterface.network?.uniqueId]
-					if (extraInterface?.ipAddress && extraInterface?.network?.type?.code?.contains('Managed')) {
-						vmNic.requestedIpAddress = extraInterface.ipAddress
-						vmNic.requestIp = true
-					}
-					if (extraInterface.type?.code == 'nutanix.E1000')
-						vmNic.model = 'e1000'
-					vmNics << vmNic
-				}
-			}
-		} else if (opts.networkId) { //old style
-			def vmNic = [networkUuid: opts.networkId]
-			if (opts.ipAddress) {
-				vmNic.requestedIpAddress = opts.ipAddress
-				vmNic.requestIp = true
-			}
-			vmNics << vmNic
-		}
-		//create request body
-		def numVcpus = ((opts.maxCores ?: 1) / (opts.coresPerSocket ?: 1)).toLong()
-		def body = [memoryMb       : ((int) maxMemory),
-					name           : opts.name,
-					numVcpus       : numVcpus,
-					numCoresPerVcpu: opts.coresPerSocket ?: 1,
-					vmNics         : vmNics,
-					vmDisks        : vmDisks
-		]
-		if (opts.cloudConfig) {
-			body.vmCustomizationConfig = [
-				userdata: opts.cloudConfig
-			]
-		}
-		if (opts.uuid)
-			body.uuid = opts.uuid
-		//set the boot config if more than one bus types
-		if (diskTypes.size() > 1 || opts.uefi == true) {
-			body.bootConfig = [bootDeviceType: 'disk', diskAddress: [deviceBus: rootType, deviceIndex: 0]]
-		}
-		if (opts.uefi == true) {
-			body.bootConfig = body.bootConfig ?: [:]
-			body.bootConfig['secureBoot'] = true
-			body.bootConfig['uefiBoot'] = true
-			body.machineType = "Q35"
-		}
-		log.debug("create server body: ${body}")
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-		def results = client.callJsonApi(apiUrl, standardApi + 'vms', null, null, requestOpts, 'POST')
-		log.info("createServer: ${results}")
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true && results.data?.taskUuid) {
-			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(client, opts.zone, taskId)
-			if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
-				def vmCheckResults = checkVmReady(opts, opts.uuid)
-				if (vmCheckResults.success == true)
-					taskResults = [success: true, error: false, results: [entityList: [[uuid: opts.uuid]], entity_list: [[entity_id: opts.uuid]]]]
-			}
-			if (taskResults.success == true && taskResults.error != true) {
-				def serverId = taskResults.results.entity_list[0].entity_id
-				def serverResults = findVirtualMachineId(opts, serverId)
-				if (serverResults.success == true) {
-					def vm = serverResults?.virtualMachine
-					if (vm) {
-						rtn.taskUuid = taskId
-						rtn.results = vm
-						rtn.serverId = vm.uuid
-						rtn.completeTime = taskResults.completeTime
-						rtn.success = true
-					}
-				} else {
-					rtn.msg = 'could not find template'
-				}
-			} else {
-				rtn.msg = 'task failed'
-			}
-		} else {
-			log.error("error creating nutanix vm: ${results}")
-			rtn.msg = 'error creating nutanix vm'
 		}
 		return rtn
 	}
@@ -966,7 +726,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static updateServer(HttpApiClient client, opts) {
+	static updateServer(HttpApiClient client, Map opts) {
 		log.debug("updateServer ${opts}")
 		def rtn = [success: false]
 		if (!opts.serverId) {
@@ -983,12 +743,12 @@ class NutanixPrismElementApiService {
 						numCoresPerVcpu: (opts.coresPerSocket ?: 1)
 			]
 			log.info("resize server body: ${body}")
-			def headers = buildHeaders(null, username, password)
+			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + opts.serverId, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + opts.serverId, null, null, requestOpts, 'PUT')
 			log.info("updateServer: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -1017,7 +777,7 @@ class NutanixPrismElementApiService {
 			log.info("resize disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId + '/disks/update', null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/update', null, null, requestOpts, 'PUT')
 			log.info("resizeDisk results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
@@ -1045,15 +805,18 @@ class NutanixPrismElementApiService {
 			def apiUrl = getNutanixApiUrl(opts.zone)
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
-			def updateSpec = [isEmpty: true]
-			def body = [updateSpec: updateSpec]
-			log.info("resize disk body: ${body}")
+			def diskToUpdate = [
+				disk_address: diskAddress,
+				is_empty: true,
+			]
+			def body = [vm_disks: [diskToUpdate]]
+			log.info("eject disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks/' + diskAddress, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/update' , null, null, requestOpts, 'PUT')
 			log.info("ejectDisk results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -1066,7 +829,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static addDisk(HttpApiClient client, opts, vmId, sizeGB, type) {
+	static addDisk(HttpApiClient client, Map opts, vmId, sizeGB, type) {
 		log.debug("addDisk ${opts}, vm:${vmId}")
 		def rtn = [success: false]
 		if (!vmId) {
@@ -1078,19 +841,19 @@ class NutanixPrismElementApiService {
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def containerId = opts.containerId
-			def diskSize = (int) sizeGB * 1024
+			def diskSize = (int) sizeGB * oneGB
 			def vmDisks = []
-			vmDisks << [vmDiskCreate: [sizeMb: diskSize, containerUuid: containerId], diskAddress: [deviceBus: type]]
-			def body = [disks: vmDisks]
+			vmDisks << [vm_disk_create: [size: diskSize, storage_container_uuid: containerId], disk_address: [device_bus: type]]
+			def body = [vm_disks: vmDisks]
 			log.info("add disk body: ${body}")
-			def headers = buildHeaders(null, username, password)
+			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/attach', null, null, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -1113,21 +876,21 @@ class NutanixPrismElementApiService {
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def vmNics = []
-			def vmNic = [networkUuid: opts.networkUuid]
+			def vmNic = [network_uuid: opts.networkUuid]
 			if (opts.ipAddress) {
-				vmNic.requestIp = true
-				vmNic.requestedIpAddress = opts.ipAddress
+				vmNic.request_ip = true
+				vmNic.requested_ip_address = opts.ipAddress
 			}
 			vmNics << vmNic
-			def body = [specList: vmNics]
+			def body = [spec_list: vmNics]
 			log.info("add nic body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/nics', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/nics', null, null, requestOpts, 'POST')
 
 			log.info("addNic results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -1149,17 +912,29 @@ class NutanixPrismElementApiService {
 			def apiUrl = getNutanixApiUrl(opts.zone)
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
-			def vmDisks = []
-			vmDisks << [isCdrom: true, addr: addr, vmDiskClone: [vmDiskUuid: cloudFileId, minimumSize: (ComputeUtility.ONE_MEGABYTE)]]
-			def body = [disks: vmDisks]
-			log.info("add disk body: ${body}")
+
 			def headers = buildHeaders(null, username, password)
+			def vmDisks = []
+			vmDisks << [
+				is_cdrom: true,
+				disk_address: addr,
+				vm_disk_clone: [
+					disk_address: [
+						vmdisk_uuid: cloudFileId
+					],
+					minimum_size: ComputeUtility.ONE_MEGABYTE
+				]
+			]
+			def body = [
+				disks: vmDisks
+			]
+			log.info("add disk body: ${body}")
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -1186,7 +961,7 @@ class NutanixPrismElementApiService {
 			def headers = buildHeaders(null, username, password)
 			def body = [vm_disks: [nutanixDiskObject]]
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId + '/disks/detach', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/detach', null, null, requestOpts, 'POST')
 
 			log.info("deleteDisk: ${results}")
 			if (results.success == true && results.data) {
@@ -1267,7 +1042,7 @@ class NutanixPrismElementApiService {
 		}
 	}
 
-	static cloneServer(HttpApiClient client, opts) {
+	static cloneServer(HttpApiClient client, Map opts) {
 		log.debug("cloneServer ${opts}")
 		def rtn = [success: false]
 		if (!opts.serverId && !opts.snapshotId) {
@@ -1282,49 +1057,49 @@ class NutanixPrismElementApiService {
 			if (opts.uuid)
 				specs.uuid = opts.uuid
 			def specList = [specs]
-			def body = [specList: specList]
-			if (opts.cloudConfig) {
-				body.vmCustomizationConfig = [
+			def body = [spec_list: specList]
+			// CloudInit is defined for /vms/{uuid}/clone but not /snapshots/{uuid}/clone
+			if (opts.cloudConfig && opts.serverId) {
+				body.vm_customization_config = [
 					userdata: opts.cloudConfig
 				]
 				//if sysprep - its not an iso install
 				if (opts.platform == 'platform')
-					body.vmCustomizationConfig.fresh_install = false
+					body.vm_customization_config.fresh_install = false
 			}
 			log.info("clone server body: ${body}")
-			def results
-			def headers = buildHeaders(null, username, password)
+			def results = [success: false]
+			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 
 			if (opts.snapshotId) {
 				log.debug("cloning from snapshot ${opts.snapshotId}")
-				results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + opts.snapshotId + '/clone', null, null, requestOpts, 'POST')
+				results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + opts.snapshotId + '/clone', null, null, requestOpts, 'POST')
 			} else if (opts.serverId) {
 				log.debug("cloning from server ${opts.serverId}")
-				results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + opts.serverId + '/clone', null, null, requestOpts, 'POST')
+				results = client.callJsonApi(apiUrl, v2Api + 'vms/' + opts.serverId + '/clone', null, null, requestOpts, 'POST')
 			}
 			log.info("cloneServer: ${results}")
 			if (results.success == true) {
-				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts.zone, taskId)
+				def taskId = results.data.task_uuid
+				def taskResults = checkTaskReady(client, opts.zone as Cloud, taskId)
 				if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
 					def vmCheckResults = checkVmReady(client, opts, opts.uuid)
 					if (vmCheckResults.success == true)
 						taskResults = [success: true, error: false, results: [entityList: [[uuid: opts.uuid]], entity_lst: [[entity_id: opts.uuid]]]]
 				}
 				if (taskResults.success == true && taskResults.error != true) {
-					def serverId = taskResults.results.entity_list[0].entity_id
 					def serverResults = findVirtualMachine(client, opts, opts.name)
 					if (serverResults.success == true) {
 						def vm = serverResults?.virtualMachine
 						if (vm) {
 							if (opts.cloudFileId) {
 								log.debug("CDROM Detected on Nutanix Clone, Swapping out cloud init file!")
-								def cdromDisk = getVirtualMachineDisks(client, opts.zone, vm.uuid)?.disks?.find { it.isCdrom }
+								def cdromDisk = getVirtualMachineDisks(client, opts.zone, vm.uuid)?.disks?.find { it.is_cdrom }
 								if (cdromDisk) {
 									deleteDisk(client, opts.zone, vm.uuid, cdromDisk)
 								}
-								addCdrom(client, opts, vm.uuid, opts.cloudFileId, cdromDisk?.addr ?: ['deviceBus': 'ide', 'deviceIndex': 0])
+								addCdrom(client, opts, vm.uuid, opts.cloudFileId, cdromDisk?.disk_address ?: ['device_bus': 'IDE', 'device_index': 0])
 							}
 							rtn.taskUuid = taskId
 							rtn.results = vm
@@ -1348,14 +1123,17 @@ class NutanixPrismElementApiService {
 		def apiUrl = getNutanixApiUrl(opts.zone)
 		def username = getNutanixUsername(opts.zone)
 		def password = getNutanixPassword(opts.zone)
-		def body = [logicalTimestamp: (opts.timestamp ?: 1)]
-		//cache
+
 		def headers = buildHeaders(null, username, password)
+		def body = [
+			transition: "ON",
+			vm_logical_timestamp: (opts.timestamp ?: 1)
+		]
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + serverId + '/power_op/on', null, null, requestOpts, 'POST')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId + '/set_power_state', null, null, requestOpts, 'POST')
 		log.debug("startVm: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
 			if (taskSuccess == true) {
@@ -1376,15 +1154,17 @@ class NutanixPrismElementApiService {
 		//loadVirtualMachine and check power status. Nutanix fails task if VM already powered off.
 		def vmResult = loadVirtualMachine(client, opts, serverId)
 		if (vmResult?.success) {
-			if (vmResult.vmDetails?.powerState && vmResult.vmDetails?.powerState?.toLowerCase() != "off") {
-				def body = [logicalTimestamp: (opts.timestamp ?: 1)]
-				//cache
+			if (vmResult.results?.power_state && vmResult.results?.power_state?.toLowerCase() != "off") {
 				def headers = buildHeaders(null, username, password)
+				def body = [
+					transition: "OFF",
+					logicalTimestamp: (opts.timestamp ?: 1)
+				]
 				def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-				def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + serverId + '/power_op/off', null, null, requestOpts, 'POST')
+				def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId + '/set_power_state', null, null, requestOpts, 'POST')
 				log.debug("stopVm: ${results}")
 				if (results.success == true && results.data) {
-					def taskId = results.data.taskUuid
+					def taskId = results.data.task_uuid
 					def taskResults = checkTaskReady(client, opts.zone, taskId)
 					def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
 					if (taskSuccess == true) {
@@ -1413,10 +1193,10 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + serverId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId , null, null, requestOpts, 'DELETE')
 		log.debug("deleteVm: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
@@ -1436,10 +1216,10 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/' + imageId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, v2Api + 'images/' + imageId, null, null, requestOpts, 'DELETE')
 		log.debug("deleteImage: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
@@ -1460,11 +1240,11 @@ class NutanixPrismElementApiService {
 
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + snapshotId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+			rtn.results = results.data
 			log.debug("task results: ${rtn.results}")
 		} else if (results?.error == true) {
 			rtn.errorCode = results.errorCode
@@ -1481,19 +1261,16 @@ class NutanixPrismElementApiService {
 		def vmUuid
 		def vmResult = loadVirtualMachine(client, opts, opts.vmId)
 		if (vmResult?.success) {
-			vmUuid = vmResult.vmDetails.vmId
-			//def snapshotUuid = java.util.UUID.randomUUID().toString()
-			//def body = [snapshotSpecs:[[vmUuid:vmUuid, uuid:snapshotUuid, snapshotName:opts.snapshotName]]]
-			def body = [snapshotSpecs: [[vmUuid: vmUuid, snapshotName: opts.snapshotName]]]
+			vmUuid = vmResult.results?.uuid
+			def body = [snapshot_specs: [[vm_uuid: vmUuid, snapshot_name: opts.snapshotName]]]
 			log.info("Create snapshot body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'snapshots', null, null, requestOpts, 'POST')
 
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
-				//rtn.snapshotUuid = snapshotUuid
-				rtn.results = results.data
+				rtn.results = [taskUuid: results.data.task_uuid]
 				log.trace("createSnapshot: ${rtn.results}")
 			}
 		} else {
@@ -1510,10 +1287,10 @@ class NutanixPrismElementApiService {
 		def vmUuid
 		def vmResult = loadVirtualMachine(client, opts, opts.vmId)
 		if (vmResult?.success) {
-			vmUuid = vmResult.vmDetails.vmId
+			vmUuid = vmResult.results?.uuid
 
 			def body = [restore_network_configuration: true, snapshot_uuid: opts.snapshotId, uuid: vmUuid]
-			log.info("Create snapshot body: ${body}")
+			log.info("Restore snapshot body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmUuid + '/restore', null, null, requestOpts, 'POST')
@@ -1535,10 +1312,10 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + snapshotId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + snapshotId, null, null, requestOpts, 'DELETE')
 		log.debug("deleteSnapshot: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
@@ -1568,19 +1345,17 @@ class NutanixPrismElementApiService {
 				sleep(1000l * 20l)
 				def serverDetail = loadVirtualMachine(client, opts, vmId)
 				log.debug("serverDetail: ${serverDetail}")
-				if (serverDetail.success == true && serverDetail.virtualMachine.state == 'on' && serverDetail.vmDetails.ipAddresses?.size() > 0 && serverDetail.vmDetails.ipAddresses.find { checkIpv4Ip(it) }) {
-					if (serverDetail.virtualMachine.state == 'on') {
+				if (serverDetail.success == true
+					&& serverDetail.results.power_state == 'on'
+					&& hasIpAddress(serverDetail.results)) {
 						rtn.success = true
-						rtn.virtualMachine = serverDetail.virtualMachine
-						rtn.vmDetails = serverDetail.vmDetails
-						serverDetail.vmDetails.ipAddresses = serverDetail.vmDetails.ipAddresses.findAll { checkIpv4Ip(it) }
-						pending = false
-					} else if (serverDetail.virtualMachine.state == 'off') {
-						rtn.error = true
 						rtn.results = serverDetail.results
-						rtn.success = true
+						rtn.ipAddresses = serverDetail.results.vm_nics?.collect {
+							it.ip_addresses
+						}?.flatten()?.findAll {
+							checkIpv4Ip(it)
+						}
 						pending = false
-					}
 				}
 				attempts++
 				if (attempts > 60)
@@ -1592,6 +1367,15 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
+	static boolean hasIpAddress(Map vm) {
+		vm?.vm_nics?.collect {
+			it.ip_addresses
+		}?.flatten()
+		?.any {
+			checkIpv4Ip(it)
+		}
+	}
+
 	static Map insertContainerImage(HttpApiClient client, opts) {
 		def rtn = [success: false]
 		log.info("insertContainerImage: ${opts}")
@@ -1601,7 +1385,7 @@ class NutanixPrismElementApiService {
 		if (match) {
 			log.debug("using found image")
 			rtn.imageId = match.uuid
-			rtn.imageDiskId = match.vmDiskId
+			rtn.imageDiskId = match.vm_disk_id
 			rtn.success = true
 		} else {
 			log.debug("inserting image")
@@ -1617,7 +1401,7 @@ class NutanixPrismElementApiService {
 						def vmImage = imageResults?.image
 						if (vmImage) {
 							rtn.imageId = vmImage.uuid
-							rtn.imageDiskId = vmImage.vmDiskId
+							rtn.imageDiskId = vmImage.vm_disk_id
 							rtn.success = true
 						}
 					} else {
@@ -1639,7 +1423,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static checkTaskReady(HttpApiClient client, zone, taskId) {
+	static checkTaskReady(HttpApiClient client, Cloud cloud, taskId) {
 		def rtn = [success: false]
 		try {
 			if (taskId == null)
@@ -1648,7 +1432,7 @@ class NutanixPrismElementApiService {
 			def attempts = 0
 			while (pending) {
 				sleep(1000l * 10l)
-				def taskDetail = getTask(client, zone, taskId)
+				def taskDetail = getTask(client, cloud, taskId)
 				log.info("taskDetail - ${taskId}: ${taskDetail}")
 				if (taskDetail.success == true && taskDetail.results.progress_status) {
 					if (taskDetail.results.progress_status == 'Succeeded') {
@@ -1687,9 +1471,8 @@ class NutanixPrismElementApiService {
 				sleep(1000l * 10l)
 				def vmDetails = loadVirtualMachine(client, opts, vmId)
 				log.debug("vmDetails - ${vmId}: ${vmDetails}")
-				if (vmDetails.success == true && vmDetails.vmDetails?.powerState) {
+				if (vmDetails.success == true && vmDetails.results?.power_state) {
 					rtn.success = true
-					rtn.results = vmDetails
 					pending = false
 				}
 				attempts++
@@ -1713,8 +1496,8 @@ class NutanixPrismElementApiService {
 	}
 
 	//utils
-	static getNutanixApiUrl(zone) {
-		def apiUrl = zone.serviceUrl ?: zone.getConfigMap()?.apiUrl
+	static getNutanixApiUrl(Cloud cloud) {
+		def apiUrl = cloud.serviceUrl ?: cloud.getConfigMap()?.apiUrl
 		if (apiUrl) {
 			if (apiUrl.startsWith('http')) {
 				URIBuilder uriBuilder = new URIBuilder("${apiUrl}")
@@ -1726,19 +1509,21 @@ class NutanixPrismElementApiService {
 		throw new Exception('no nutanix api url specified')
 	}
 
-	static getNutanixUsername(zone) {
-		def rtn = zone.serviceUsername ?: zone.credentialData?.username ?: zone.getConfigProperty('username')
+	static getNutanixUsername(Cloud cloud) {
+		def rtn = cloud.serviceUsername ?: cloud.accountCredentialData?.username ?: cloud.getConfigProperty('username')
 		if (!rtn) {
 			throw new Exception('no nutanix username specified')
 		}
 		return rtn
 	}
 
-	static getNutanixPassword(zone) {
-		def rtn = zone.servicePassword ?: zone.credentialData?.password ?: zone.getConfigProperty('password')
+	static getNutanixPassword(Cloud cloud) {
+		def rtn = cloud.servicePassword ?: cloud.accountCredentialData?.password ?: cloud.getConfigProperty('password')
 		if (!rtn) {
 			throw new Exception('no nutanix password specified')
 		}
 		return rtn
 	}
+
+
 }
