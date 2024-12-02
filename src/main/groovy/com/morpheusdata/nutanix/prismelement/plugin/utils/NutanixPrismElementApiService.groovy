@@ -45,7 +45,7 @@ class NutanixPrismElementApiService {
 			def password = getNutanixPassword(opts.zone)
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = client.callJsonApi(apiUrl, betaApi + 'networks/', null, null, requestOpts, 'GET')
+			def results = client.callJsonApi(apiUrl, v2Api + 'cluster', null, null, requestOpts, 'GET')
 			rtn.success = results?.success && results?.error != true
 
 			if (!rtn.success) {
