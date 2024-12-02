@@ -1414,7 +1414,7 @@ class NutanixPrismElementApiService {
 		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId , null, null, requestOpts, 'DELETE')
 		log.debug("deleteVm: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
@@ -1434,10 +1434,10 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'images/' + imageId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, v2Api + 'images/' + imageId, null, null, requestOpts, 'DELETE')
 		log.debug("deleteImage: ${results}")
 		if (results.success == true && results.data) {
-			def taskId = results.data.taskUuid
+			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
 			if (taskResults.success == true && taskResults.error != true) {
 				rtn.taskUuid = taskId
