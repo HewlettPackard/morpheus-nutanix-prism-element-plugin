@@ -1446,16 +1446,15 @@ class NutanixPrismElementApiService {
 			vmUuid = vmResult.results?.uuid
 			//def snapshotUuid = java.util.UUID.randomUUID().toString()
 			//def body = [snapshotSpecs:[[vmUuid:vmUuid, uuid:snapshotUuid, snapshotName:opts.snapshotName]]]
-			def body = [snapshotSpecs: [[vmUuid: vmUuid, snapshotName: opts.snapshotName]]]
+			def body = [snapshot_specs: [[vm_uuid: vmUuid, snapshot_name: opts.snapshotName]]]
 			log.info("Create snapshot body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, betaApi + 'snapshots/', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'snapshots', null, null, requestOpts, 'POST')
 
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
-				//rtn.snapshotUuid = snapshotUuid
-				rtn.results = results.data
+				rtn.results = [taskUuid: results.data.task_uuid]
 				log.trace("createSnapshot: ${rtn.results}")
 			}
 		} else {
