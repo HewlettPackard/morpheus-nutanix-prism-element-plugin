@@ -427,11 +427,9 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'vms/', null, null, requestOpts, 'GET')
-
-		//rtn.success = results?.success && results?.error != true
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/', null, null, requestOpts, 'GET')
 		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find vm entity: ${entity} for: ${vmId}")
 				if (rtn.success == false) {
@@ -637,148 +635,6 @@ class NutanixPrismElementApiService {
 			rtn.error = 'Please specify a name'
 		} else {
 			rtn = createServerUsingV2Api(client, opts)
-		}
-		return rtn
-	}
-
-	private static createServerUsingStandardApi(HttpApiClient client, opts) {
-		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def containerId = opts.containerId
-		def osDiskSize = (int) opts.maxStorage.div(ComputeUtility.ONE_MEGABYTE)
-		def maxMemory = (int) opts.maxMemory.div(ComputeUtility.ONE_MEGABYTE)
-
-		def osDisk = [vmDiskClone: [vmDiskUuid: opts.imageId, minimumSizeMb: osDiskSize]]
-		def rootType = opts.rootVolume?.type?.name
-		def diskTypes = [rootType]
-		if (rootType == 'sata')
-			osDisk.diskAddress = [deviceBus: 'sata']
-		else if (rootType == 'ide')
-			osDisk.diskAddress = [deviceBus: 'ide']
-		else if (rootType == 'scsi')
-			osDisk.diskAddress = [deviceBus: 'scsi']
-		def vmDisks = [osDisk]
-		if (opts.diskSize) {
-			def dataDiskSize = (int) opts.diskSize.div(ComputeUtility.ONE_MEGABYTE)
-			vmDisks << [vmDiskCreate: [sizeMb: dataDiskSize, containerUuid: containerId]]
-		} else if (opts.dataDisks?.size() > 0) {
-			opts.dataDisks?.each { disk ->
-				def diskContainerId
-				if (disk.datastore?.externalId) {
-					diskContainerId = disk.datastore.externalId
-				}
-				def dataDiskSize = (int) disk.maxStorage.div(ComputeUtility.ONE_MEGABYTE)
-				def vmDataDisk = [vmDiskCreate: [sizeMb: dataDiskSize, containerUuid: diskContainerId ?: containerId]]
-				def diskType = disk.type?.name
-				diskTypes << diskType
-				if (diskType == 'sata')
-					vmDataDisk.diskAddress = [deviceBus: 'sata']
-				else if (diskType == 'ide')
-					vmDataDisk.diskAddress = [deviceBus: 'ide']
-				else if (diskType == 'scsi')
-					vmDataDisk.diskAddress = [deviceBus: 'scsi']
-				vmDisks << vmDataDisk
-			}
-		}
-		diskTypes = diskTypes?.unique()
-		if (opts.cloudFileId)
-			vmDisks << [isCdrom: true, vmDiskClone: [vmDiskUuid: opts.cloudFileId, minimumSize: (ComputeUtility.ONE_MEGABYTE)]]
-		//def cloudInitDisk = [vmDiskClone:[vmDiskUuid:1]]
-		def vmNics = []
-		//nic network
-		if (opts.networkConfig?.primaryInterface?.network?.uniqueId) { //new style multi network
-			def vmNic = [networkUuid: opts.networkConfig.primaryInterface.network.uniqueId]
-			if (opts.networkConfig?.primaryInterface?.ipAddress && opts.networkConfig?.primaryInterface?.network?.type?.code?.contains('Managed')) {
-				vmNic.requestedIpAddress = opts.networkConfig.primaryInterface.ipAddress
-				vmNic.requestIp = true
-			}
-			if (opts.networkConfig.primaryInterface.type?.code == 'nutanix.E1000')
-				vmNic.model = 'e1000'
-			vmNics << vmNic
-			//extra networks
-			opts.networkConfig.extraInterfaces?.each { extraInterface ->
-				if (extraInterface.network?.uniqueId) {
-					vmNic = [networkUuid: extraInterface.network?.uniqueId]
-					if (extraInterface?.ipAddress && extraInterface?.network?.type?.code?.contains('Managed')) {
-						vmNic.requestedIpAddress = extraInterface.ipAddress
-						vmNic.requestIp = true
-					}
-					if (extraInterface.type?.code == 'nutanix.E1000')
-						vmNic.model = 'e1000'
-					vmNics << vmNic
-				}
-			}
-		} else if (opts.networkId) { //old style
-			def vmNic = [networkUuid: opts.networkId]
-			if (opts.ipAddress) {
-				vmNic.requestedIpAddress = opts.ipAddress
-				vmNic.requestIp = true
-			}
-			vmNics << vmNic
-		}
-		//create request body
-		def numVcpus = ((opts.maxCores ?: 1) / (opts.coresPerSocket ?: 1)).toLong()
-		def body = [memoryMb       : ((int) maxMemory),
-					name           : opts.name,
-					numVcpus       : numVcpus,
-					numCoresPerVcpu: opts.coresPerSocket ?: 1,
-					vmNics         : vmNics,
-					vmDisks        : vmDisks
-		]
-		if (opts.cloudConfig) {
-			body.vmCustomizationConfig = [
-				userdata: opts.cloudConfig
-			]
-		}
-		if (opts.uuid)
-			body.uuid = opts.uuid
-		//set the boot config if more than one bus types
-		if (diskTypes.size() > 1 || opts.uefi == true) {
-			body.bootConfig = [bootDeviceType: 'disk', diskAddress: [deviceBus: rootType, deviceIndex: 0]]
-		}
-		if (opts.uefi == true) {
-			body.bootConfig = body.bootConfig ?: [:]
-			body.bootConfig['secureBoot'] = true
-			body.bootConfig['uefiBoot'] = true
-			body.machineType = "Q35"
-		}
-		log.debug("create server body: ${body}")
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-		def results = client.callJsonApi(apiUrl, standardApi + 'vms', null, null, requestOpts, 'POST')
-		log.info("createServer: ${results}")
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true && results.data?.taskUuid) {
-			def taskId = results.data.taskUuid
-			def taskResults = checkTaskReady(client, opts.zone, taskId)
-			if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
-				def vmCheckResults = checkVmReady(opts, opts.uuid)
-				if (vmCheckResults.success == true)
-					taskResults = [success: true, error: false, results: [entityList: [[uuid: opts.uuid]], entity_list: [[entity_id: opts.uuid]]]]
-			}
-			if (taskResults.success == true && taskResults.error != true) {
-				def serverId = taskResults.results.entity_list[0].entity_id
-				def serverResults = findVirtualMachineId(opts, serverId)
-				if (serverResults.success == true) {
-					def vm = serverResults?.virtualMachine
-					if (vm) {
-						rtn.taskUuid = taskId
-						rtn.results = vm
-						rtn.serverId = vm.uuid
-						rtn.completeTime = taskResults.completeTime
-						rtn.success = true
-					}
-				} else {
-					rtn.msg = 'could not find template'
-				}
-			} else {
-				rtn.msg = 'task failed'
-			}
-		} else {
-			log.error("error creating nutanix vm: ${results}")
-			rtn.msg = 'error creating nutanix vm'
 		}
 		return rtn
 	}
