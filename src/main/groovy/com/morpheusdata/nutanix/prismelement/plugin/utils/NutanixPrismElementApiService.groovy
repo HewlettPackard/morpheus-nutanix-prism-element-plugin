@@ -249,22 +249,6 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listTasks(HttpApiClient client, opts) {
-		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(opts.zone)
-		def username = getNutanixUsername(opts.zone)
-		def password = getNutanixPassword(opts.zone)
-		def headers = buildHeaders(null, username, password)
-		def requestOpts = [headers: headers, proxySettings: opts.proxySettings]
-		def results = client.callJsonApi(apiUrl, betaApi + 'tasks/', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
-		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			log.debug("task results: ${rtn.results}")
-		}
-		return rtn
-	}
-
 	static getTask(HttpApiClient client, zone, taskId) {
 		def rtn = [success: false]
 		def apiUrl = getNutanixApiUrl(zone)
