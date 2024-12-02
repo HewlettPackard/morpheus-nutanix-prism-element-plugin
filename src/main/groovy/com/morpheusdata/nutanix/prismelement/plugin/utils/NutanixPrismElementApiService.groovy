@@ -922,17 +922,29 @@ class NutanixPrismElementApiService {
 			def apiUrl = getNutanixApiUrl(opts.zone)
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
-			def vmDisks = []
-			vmDisks << [isCdrom: true, addr: addr, vmDiskClone: [vmDiskUuid: cloudFileId, minimumSize: (ComputeUtility.ONE_MEGABYTE)]]
-			def body = [disks: vmDisks]
-			log.info("add disk body: ${body}")
+
 			def headers = buildHeaders(null, username, password)
+			def vmDisks = []
+			vmDisks << [
+				is_cdrom: true,
+				disk_address: addr,
+				vm_disk_clone: [
+					disk_address: [
+						vmdisk_uuid: cloudFileId
+					],
+					minimum_size: ComputeUtility.ONE_MEGABYTE
+				]
+			]
+			def body = [
+				disks: vmDisks
+			]
+			log.info("add disk body: ${body}")
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -1093,11 +1105,11 @@ class NutanixPrismElementApiService {
 						if (vm) {
 							if (opts.cloudFileId) {
 								log.debug("CDROM Detected on Nutanix Clone, Swapping out cloud init file!")
-								def cdromDisk = getVirtualMachineDisks(client, opts.zone, vm.uuid)?.disks?.find { it.isCdrom }
+								def cdromDisk = getVirtualMachineDisks(client, opts.zone, vm.uuid)?.disks?.find { it.is_cdrom }
 								if (cdromDisk) {
 									deleteDisk(client, opts.zone, vm.uuid, cdromDisk)
 								}
-								addCdrom(client, opts, vm.uuid, opts.cloudFileId, cdromDisk?.addr ?: ['deviceBus': 'ide', 'deviceIndex': 0])
+								addCdrom(client, opts, vm.uuid, opts.cloudFileId, cdromDisk?.disk_address ?: ['device_bus': 'IDE', 'device_index': 0])
 							}
 							rtn.taskUuid = taskId
 							rtn.results = vm
