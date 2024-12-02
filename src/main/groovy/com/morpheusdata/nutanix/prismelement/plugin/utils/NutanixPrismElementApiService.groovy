@@ -1277,11 +1277,11 @@ class NutanixPrismElementApiService {
 
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+			rtn.results = results.data
 			log.debug("task results: ${rtn.results}")
 		} else if (results?.error == true) {
 			rtn.errorCode = results.errorCode
@@ -1299,8 +1299,6 @@ class NutanixPrismElementApiService {
 		def vmResult = loadVirtualMachine(client, opts, opts.vmId)
 		if (vmResult?.success) {
 			vmUuid = vmResult.results?.uuid
-			//def snapshotUuid = java.util.UUID.randomUUID().toString()
-			//def body = [snapshotSpecs:[[vmUuid:vmUuid, uuid:snapshotUuid, snapshotName:opts.snapshotName]]]
 			def body = [snapshot_specs: [[vm_uuid: vmUuid, snapshot_name: opts.snapshotName]]]
 			log.info("Create snapshot body: ${body}")
 			def headers = buildHeaders(null, username, password)
