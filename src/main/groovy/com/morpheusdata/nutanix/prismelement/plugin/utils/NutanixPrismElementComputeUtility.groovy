@@ -19,13 +19,13 @@ class NutanixPrismElementComputeUtility {
 				externalId   : server.externalId
 			]
 			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
-			if (vmResults?.virtualMachine?.state == "off") {
+			if (vmResults?.results?.power_state == "off") {
 				log.debug("${label} >> vm already stopped")
 				rtn.success = true
 			} else {
 				log.debug("${label} >> vm needs stopping")
-				if (vmResults?.virtualMachine?.logicalTimestamp)
-					vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+				if (vmResults?.results?.vm_logical_timestamp)
+					vmOpts.timestamp = vmResults?.results?.vm_logical_timestamp
 				def stopResults = NutanixPrismElementApiService.stopVm(client, vmOpts, vmOpts.externalId)
 				rtn.success = stopResults.success
 				rtn.msg = stopResults.msg
@@ -48,13 +48,13 @@ class NutanixPrismElementComputeUtility {
 				externalId   : server.externalId
 			]
 			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
-			if (vmResults?.virtualMachine?.state == "on") {
+			if (vmResults?.results?.power_state == "on") {
 				log.debug("${label} >> vm already started")
 				rtn.success = true
 			} else {
 				log.debug("${label} >> vm needs starting")
-				if (vmResults?.virtualMachine?.logicalTimestamp)
-					vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+				if (vmResults?.results?.vm_logical_timestamp)
+					vmOpts.timestamp = vmResults?.results?.vm_logical_timestamp
 				def startResults = NutanixPrismElementApiService.startVm(client, vmOpts, vmOpts.externalId)
 				rtn.success = startResults.success
 				rtn.msg = startResults.msg

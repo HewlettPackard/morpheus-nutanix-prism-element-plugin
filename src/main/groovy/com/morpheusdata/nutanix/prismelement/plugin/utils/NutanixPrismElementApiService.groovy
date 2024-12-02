@@ -490,17 +490,12 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 
 		def headers = buildHeaders(null, username, password)
-		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId, null, null, requestOpts, 'GET')
+		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: [include_vm_disk_config: 'true', include_vm_nic_config: 'true'])
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId, null, null, requestOpts, 'GET')
 
-		//rtn.success = results?.success && results?.error != true
 		if (results.success == true && results.error != true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			def vmResults = client.callJsonApi(apiUrl, standardApi + 'vms/' + vmId, null, null, requestOpts, 'GET')
-			rtn.vmResults = vmResults.data
-			rtn.virtualMachine = rtn.results
-			rtn.vmDetails = rtn.vmResults
-			rtn.success = vmResults.success
+			rtn.results = results.data
+			rtn.success = results.success
 		}
 		return rtn
 	}
@@ -1379,7 +1374,7 @@ class NutanixPrismElementApiService {
 		//loadVirtualMachine and check power status. Nutanix fails task if VM already powered off.
 		def vmResult = loadVirtualMachine(client, opts, serverId)
 		if (vmResult?.success) {
-			if (vmResult.vmDetails?.powerState && vmResult.vmDetails?.powerState?.toLowerCase() != "off") {
+			if (vmResult.results?.power_state && vmResult.results?.power_state?.toLowerCase() != "off") {
 				def body = [logicalTimestamp: (opts.timestamp ?: 1)]
 				//cache
 				def headers = buildHeaders(null, username, password)
@@ -1484,7 +1479,7 @@ class NutanixPrismElementApiService {
 		def vmUuid
 		def vmResult = loadVirtualMachine(client, opts, opts.vmId)
 		if (vmResult?.success) {
-			vmUuid = vmResult.vmDetails.vmId
+			vmUuid = vmResult.results?.uuid
 			//def snapshotUuid = java.util.UUID.randomUUID().toString()
 			//def body = [snapshotSpecs:[[vmUuid:vmUuid, uuid:snapshotUuid, snapshotName:opts.snapshotName]]]
 			def body = [snapshotSpecs: [[vmUuid: vmUuid, snapshotName: opts.snapshotName]]]
@@ -1513,7 +1508,7 @@ class NutanixPrismElementApiService {
 		def vmUuid
 		def vmResult = loadVirtualMachine(client, opts, opts.vmId)
 		if (vmResult?.success) {
-			vmUuid = vmResult.vmDetails.vmId
+			vmUuid = vmResult.results?.uuid
 
 			def body = [restore_network_configuration: true, snapshot_uuid: opts.snapshotId, uuid: vmUuid]
 			log.info("Create snapshot body: ${body}")
@@ -1571,19 +1566,17 @@ class NutanixPrismElementApiService {
 				sleep(1000l * 20l)
 				def serverDetail = loadVirtualMachine(client, opts, vmId)
 				log.debug("serverDetail: ${serverDetail}")
-				if (serverDetail.success == true && serverDetail.virtualMachine.state == 'on' && serverDetail.vmDetails.ipAddresses?.size() > 0 && serverDetail.vmDetails.ipAddresses.find { checkIpv4Ip(it) }) {
-					if (serverDetail.virtualMachine.state == 'on') {
+				if (serverDetail.success == true
+					&& serverDetail.results.power_state == 'on'
+					&& hasIpAddress(serverDetail.results)) {
 						rtn.success = true
-						rtn.virtualMachine = serverDetail.virtualMachine
-						rtn.vmDetails = serverDetail.vmDetails
-						serverDetail.vmDetails.ipAddresses = serverDetail.vmDetails.ipAddresses.findAll { checkIpv4Ip(it) }
-						pending = false
-					} else if (serverDetail.virtualMachine.state == 'off') {
-						rtn.error = true
 						rtn.results = serverDetail.results
-						rtn.success = true
+						rtn.ipAddresses = serverDetail.results.vm_nics?.collect {
+							it.ip_addresses
+						}?.flatten()?.findAll {
+							checkIpv4Ip(it)
+						}
 						pending = false
-					}
 				}
 				attempts++
 				if (attempts > 60)
@@ -1593,6 +1586,15 @@ class NutanixPrismElementApiService {
 			log.error("An Exception Has Occurred", e)
 		}
 		return rtn
+	}
+
+	static boolean hasIpAddress(Map vm) {
+		vm?.vm_nics?.collect {
+			it.ip_addresses
+		}?.flatten()
+		?.any {
+			checkIpv4Ip(it)
+		}
 	}
 
 	static Map insertContainerImage(HttpApiClient client, opts) {
@@ -1690,9 +1692,8 @@ class NutanixPrismElementApiService {
 				sleep(1000l * 10l)
 				def vmDetails = loadVirtualMachine(client, opts, vmId)
 				log.debug("vmDetails - ${vmId}: ${vmDetails}")
-				if (vmDetails.success == true && vmDetails.vmDetails?.powerState) {
+				if (vmDetails.success == true && vmDetails.results?.power_state) {
 					rtn.success = true
-					rtn.results = vmDetails
 					pending = false
 				}
 				attempts++
@@ -1744,4 +1745,6 @@ class NutanixPrismElementApiService {
 		}
 		return rtn
 	}
+
+
 }

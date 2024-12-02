@@ -650,7 +650,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		def loadVmResults = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: cloud], server.externalId)
 		def startResults = NutanixPrismElementApiService.startVm(
 			client,
-			[zone: cloud, timestamp: loadVmResults?.virtualMachine?.logicalTimestamp],
+			[zone: cloud, timestamp: loadVmResults?.results?.vm_logical_timestamp],
 			server.externalId
 		)
 		if (!startResults.success) {
@@ -675,7 +675,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		def found = false
 		if (server.externalId) {
 			def serverDetail = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: server.cloud], server.externalId)
-			if (serverDetail.success == true && serverDetail.virtualMachine.state == 'on') {
+			if (serverDetail.success == true && serverDetail.results.power_state == 'on') {
 				found = true
 				rtn.success = true
 				rtn.results = serverDetail.results
@@ -809,8 +809,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		HttpApiClient client = new HttpApiClient()
 		try {
 			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
-			if (vmResults?.virtualMachine?.logicalTimestamp)
-				vmOpts.timestamp = vmResults?.virtualMachine?.logicalTimestamp
+			if (vmResults?.results?.vm_logical_timestamp)
+				vmOpts.timestamp = vmResults?.results?.vm_logical_timestamp
 			def stopResults = stopServer(workload.server)
 			if (!stopResults.success) {
 				return stopResults
@@ -851,12 +851,11 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			client.networkProxy = cloud.apiProxy
 			try {
 				Map serverDetails = NutanixPrismElementApiService.checkServerReady(client, [zone: cloud], serverUuid)
-				if (serverDetails.success && serverDetails.virtualMachine) {
+				if (serverDetails.success && serverDetails.ipAddresses) {
 					rtn.externalId = serverUuid
 					rtn.success = serverDetails.success
-					rtn.publicIp = serverDetails.vmDetails?.ipAddresses[0]
-					rtn.privateIp = serverDetails.vmDetails?.ipAddresses[0]
-					rtn.hostname = serverDetails.vmDetails?.hostName
+					rtn.publicIp = serverDetails.ipAddresses[0]
+					rtn.privateIp = serverDetails.ipAddresses[0]
 					return ServiceResponse.success(rtn)
 
 				} else {

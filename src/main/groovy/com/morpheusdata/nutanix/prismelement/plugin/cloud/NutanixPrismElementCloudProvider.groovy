@@ -731,8 +731,9 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			def removeOpts = [zone: cloud]
 			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, removeOpts, serverId)
 			if (vmResults.success) {
-				if (vmResults.virtualMachine?.logicalTimestamp)
-					removeOpts.timestamp = vmResults.virtualMachine?.logicalTimestamp
+				if (vmResults.results?.vm_logical_timestamp) {
+					removeOpts.timestamp = vmResults.results?.vm_logical_timestamp
+				}
 				def stopResults = NutanixPrismElementApiService.stopVm(client, removeOpts, serverId)
 				if (stopResults.success) {
 					def removeResults = NutanixPrismElementApiService.deleteServer(client, removeOpts, serverId)
