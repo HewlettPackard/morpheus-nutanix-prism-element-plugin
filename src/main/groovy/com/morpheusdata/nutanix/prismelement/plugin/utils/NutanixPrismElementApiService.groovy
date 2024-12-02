@@ -178,10 +178,9 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'images/', null, null, requestOpts, 'GET')
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+		def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts, 'GET')
+		if (results.success) {
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find image entity: ${entity} for: ${name}")
 				if (rtn.success == false) {
@@ -1573,7 +1572,7 @@ class NutanixPrismElementApiService {
 		if (match) {
 			log.debug("using found image")
 			rtn.imageId = match.uuid
-			rtn.imageDiskId = match.vmDiskId
+			rtn.imageDiskId = match.vm_disk_id
 			rtn.success = true
 		} else {
 			log.debug("inserting image")
@@ -1589,7 +1588,7 @@ class NutanixPrismElementApiService {
 						def vmImage = imageResults?.image
 						if (vmImage) {
 							rtn.imageId = vmImage.uuid
-							rtn.imageDiskId = vmImage.vmDiskId
+							rtn.imageDiskId = vmImage.vm_disk_id
 							rtn.success = true
 						}
 					} else {
