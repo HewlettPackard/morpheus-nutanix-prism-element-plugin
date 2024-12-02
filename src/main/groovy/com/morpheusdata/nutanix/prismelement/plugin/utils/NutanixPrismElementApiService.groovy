@@ -288,61 +288,17 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static listVirtualMachines(HttpApiClient client, Map authConfig, Map opts) {
-		def rtn = [success: false, virtualMachines: [], total: 0]
-		try {
-			def apiPath = authConfig.basePath + 'vms/list'
-			def headers = buildHeaders(null, authConfig.username, authConfig.password)
-			def perPage = opts.perPage ?: 50
-			def apiBody = [kind: 'vm', offset: 0, length: perPage]
-			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: apiBody)
-			//get v1 data
-			def offset = 0
-			def vmList = listVirtualMachinesV2(client, authConfig, opts)
-			//page it
-			def keepGoing = true
-			while (keepGoing) {
-				def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'POST')
-				if (results.success == true) {
-					results.data?.entities?.each { row ->
-						def obj = row
-						obj.externalId = row.metadata?.uuid
-						obj.legacyVm2 = vmList.virtualMachines.find { it.externalId == obj.externalId }
-						obj.legacyVm = obj.legacyVm2.legacyVm
-						//log.debug("legacyVm: ${obj.legacyVm}")
-						rtn.virtualMachines << obj
-					}
-					if (results.data?.metadata?.offset != null && results.data?.metadata?.total_matches > rtn.virtualMachines.size()) {
-						offset += perPage
-						def apiBody2 = [kind: 'vm', offset: offset, length: perPage]
-						requestOpts.body = apiBody2
-					} else {
-						keepGoing = false
-						rtn.total = rtn.virtualMachines?.size()
-					}
-				} else {
-					keepGoing = false
-					rtn.msg = results.msg
-				}
-				rtn.success = true
-			}
-		} catch (e) {
-			log.error("error listing virtual machines: ${e}", e)
-		}
-		return rtn
-	}
-
 	static listVirtualMachinesV2(HttpApiClient client, Map authConfig, Map opts) {
 		def rtn = [success: false, virtualMachines: [], total: 0]
 		try {
 			def apiPath = v2Api + 'vms'
-			def headers = buildHeaders(null, authConfig.username, authConfig.password)
+			def headers = buildHeaders(null, authConfig.username.toString(), authConfig.password.toString())
 
 			def query = [include_vm_disk_config: 'true', include_vm_nic_config: 'true']
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 			//get v1 data
 			def vmList = listVirtualMachinesV1(client, authConfig, opts)
-			def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, 'GET')
+			def results = client.callJsonApi(authConfig.apiUrl.toString(), apiPath, null, null, requestOpts, 'GET')
 			//page it
 			def keepGoing = true
 			if (results.success == true) {
