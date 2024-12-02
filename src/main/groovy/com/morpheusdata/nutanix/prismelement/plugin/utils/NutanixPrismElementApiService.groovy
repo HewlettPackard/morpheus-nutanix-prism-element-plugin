@@ -403,14 +403,13 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, betaApi + 'vms/', null, null, requestOpts, 'GET')
-		//rtn.success = results?.success && results?.error != true
-		if (results.success == true) {
-			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms', null, null, requestOpts, 'GET')
+		if (results.success) {
+			rtn.results = results.data
 			rtn.results.entities?.each { entity ->
 				log.debug("find vm entity: ${entity} for: ${name}")
 				if (rtn.success == false) {
-					if (entity.config?.name == name) {
+					if (entity.name == name) {
 						rtn.virtualMachine = entity
 						rtn.success = true
 					}
