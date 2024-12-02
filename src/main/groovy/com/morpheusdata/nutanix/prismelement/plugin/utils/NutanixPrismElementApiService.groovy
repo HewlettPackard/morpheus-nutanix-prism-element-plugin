@@ -20,7 +20,6 @@ package com.morpheusdata.nutanix.prismelement.plugin.utils
 
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
-import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
 
@@ -46,7 +45,7 @@ class NutanixPrismElementApiService {
 			def password = getNutanixPassword(opts.zone)
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/networks/', null, null, requestOpts, 'GET')
+			def results = client.callJsonApi(apiUrl, betaApi + 'networks/', null, null, requestOpts, 'GET')
 			rtn.success = results?.success && results?.error != true
 
 			if (!rtn.success) {
@@ -113,7 +112,7 @@ class NutanixPrismElementApiService {
 	static listContainers(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, containers: []]
 		def apiMethod = 'GET'
-		def apiPath = ('/api/nutanix/v2.0/storage_containers')
+		def apiPath = (v2Api + 'storage_containers')
 
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
@@ -143,7 +142,7 @@ class NutanixPrismElementApiService {
 		def apiPath
 		def apiMethod = 'GET'
 		if (authConfig.apiNumber > 2)
-			apiPath = ('/api/nutanix/v2.0/images')
+			apiPath = (v2Api + 'images')
 		else if (authConfig.apiNumber > 1)
 			apiPath = ('/api/nutanix/' + authConfig.apiVersion + '/images')
 		else
@@ -179,7 +178,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'images/', null, null, requestOpts, 'GET')
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -215,7 +214,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'images/', null, null, requestOpts, 'GET')
 
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
@@ -241,7 +240,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/' + imageId + '/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'images/' + imageId + '/', null, null, requestOpts, 'GET')
 		log.debug("results: ${results}")
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
@@ -258,7 +257,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = [headers: headers, proxySettings: opts.proxySettings]
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/tasks/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'tasks/', null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -274,7 +273,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/tasks/' + taskId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'tasks/' + taskId, null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 
 		if (rtn.success == true) {
@@ -294,7 +293,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/storage_pool/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'storage_pool/', null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -440,7 +439,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'vms/', null, null, requestOpts, 'GET')
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -465,7 +464,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'vms/', null, null, requestOpts, 'GET')
 
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true) {
@@ -492,12 +491,12 @@ class NutanixPrismElementApiService {
 
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId, null, null, requestOpts, 'GET')
 
 		//rtn.success = results?.success && results?.error != true
 		if (results.success == true && results.error != true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
-			def vmResults = client.callJsonApi(apiUrl, '/PrismGateway/services/rest/v1/vms/' + vmId, null, null, requestOpts, 'GET')
+			def vmResults = client.callJsonApi(apiUrl, standardApi + 'vms/' + vmId, null, null, requestOpts, 'GET')
 			rtn.vmResults = vmResults.data
 			rtn.virtualMachine = rtn.results
 			rtn.vmDetails = rtn.vmResults
@@ -515,7 +514,7 @@ class NutanixPrismElementApiService {
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
 		// v2 api doesn't let you get just the disks
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId, null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -536,7 +535,7 @@ class NutanixPrismElementApiService {
 		def query = [includeAddressAssignments: 'true']
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: query)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/nics', null, null, requestOpts, 'GET')
 		if (results.success == true) {
 			rtn.success = true
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -555,7 +554,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/networks/', null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'networks/', null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -627,7 +626,7 @@ class NutanixPrismElementApiService {
 		//get the snapshot
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def snapshotResults = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + snapshotId, null, null, requestOpts, 'GET')
+		def snapshotResults = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 		println("snapshotResults: ${snapshotResults}")
 		if (snapshotResults?.success && snapshotResults?.error != true) {
 			def snapshotInfo = snapshotResults.data //new groovy.json.JsonSlurper().parseText(results.content)
@@ -650,7 +649,7 @@ class NutanixPrismElementApiService {
 			]
 			log.info("clone to template body: ${body}")
 			//clone to template
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images', null, null, requestOpts + [body: body], 'POST')
+			def results = client.callJsonApi(apiUrl, betaApi + 'images', null, null, requestOpts + [body: body], 'POST')
 			log.debug("cloneVmToImage: ${results}")
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
@@ -985,7 +984,7 @@ class NutanixPrismElementApiService {
 			log.info("resize server body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + opts.serverId, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + opts.serverId, null, null, requestOpts, 'PUT')
 			log.info("updateServer: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
@@ -1017,7 +1016,7 @@ class NutanixPrismElementApiService {
 			log.info("resize disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId + '/disks/update', null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/update', null, null, requestOpts, 'PUT')
 			log.info("resizeDisk results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
@@ -1050,7 +1049,7 @@ class NutanixPrismElementApiService {
 			log.info("resize disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks/' + diskAddress, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/disks/' + diskAddress, null, null, requestOpts, 'PUT')
 			log.info("ejectDisk results: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
@@ -1085,7 +1084,7 @@ class NutanixPrismElementApiService {
 			log.info("add disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 
@@ -1123,7 +1122,7 @@ class NutanixPrismElementApiService {
 			log.info("add nic body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/nics', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/nics', null, null, requestOpts, 'POST')
 
 			log.info("addNic results: ${results}")
 			if (results.success == true && results.data) {
@@ -1155,7 +1154,7 @@ class NutanixPrismElementApiService {
 			log.info("add disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 			if (results.success == true && results.data) {
@@ -1186,7 +1185,7 @@ class NutanixPrismElementApiService {
 			def headers = buildHeaders(null, username, password)
 			def body = [vm_disks: [nutanixDiskObject]]
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v2.0/vms/' + vmId + '/disks/detach', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/detach', null, null, requestOpts, 'POST')
 
 			log.info("deleteDisk: ${results}")
 			if (results.success == true && results.data) {
@@ -1298,10 +1297,10 @@ class NutanixPrismElementApiService {
 
 			if (opts.snapshotId) {
 				log.debug("cloning from snapshot ${opts.snapshotId}")
-				results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + opts.snapshotId + '/clone', null, null, requestOpts, 'POST')
+				results = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + opts.snapshotId + '/clone', null, null, requestOpts, 'POST')
 			} else if (opts.serverId) {
 				log.debug("cloning from server ${opts.serverId}")
-				results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + opts.serverId + '/clone', null, null, requestOpts, 'POST')
+				results = client.callJsonApi(apiUrl, betaApi + 'vms/' + opts.serverId + '/clone', null, null, requestOpts, 'POST')
 			}
 			log.info("cloneServer: ${results}")
 			if (results.success == true) {
@@ -1352,7 +1351,7 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + serverId + '/power_op/on', null, null, requestOpts, 'POST')
+		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + serverId + '/power_op/on', null, null, requestOpts, 'POST')
 		log.debug("startVm: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
@@ -1381,7 +1380,7 @@ class NutanixPrismElementApiService {
 				//cache
 				def headers = buildHeaders(null, username, password)
 				def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-				def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + serverId + '/power_op/off', null, null, requestOpts, 'POST')
+				def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + serverId + '/power_op/off', null, null, requestOpts, 'POST')
 				log.debug("stopVm: ${results}")
 				if (results.success == true && results.data) {
 					def taskId = results.data.taskUuid
@@ -1413,7 +1412,7 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/vms/' + serverId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + serverId + '/', null, null, requestOpts, 'DELETE')
 		log.debug("deleteVm: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
@@ -1436,7 +1435,7 @@ class NutanixPrismElementApiService {
 		//cache
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/images/' + imageId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, betaApi + 'images/' + imageId + '/', null, null, requestOpts, 'DELETE')
 		log.debug("deleteImage: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
@@ -1460,7 +1459,7 @@ class NutanixPrismElementApiService {
 
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + snapshotId, null, null, requestOpts, 'GET')
+		def results = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
@@ -1488,7 +1487,7 @@ class NutanixPrismElementApiService {
 			log.info("Create snapshot body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, betaApi + 'snapshots/', null, null, requestOpts, 'POST')
 
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
@@ -1535,7 +1534,7 @@ class NutanixPrismElementApiService {
 		def password = getNutanixPassword(opts.zone)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(apiUrl, '/api/nutanix/v0.8/snapshots/' + snapshotId + '/', null, null, requestOpts, 'DELETE')
+		def results = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + snapshotId + '/', null, null, requestOpts, 'DELETE')
 		log.debug("deleteSnapshot: ${results}")
 		if (results.success == true && results.data) {
 			def taskId = results.data.taskUuid
