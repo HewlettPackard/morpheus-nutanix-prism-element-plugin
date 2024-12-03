@@ -805,15 +805,18 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def apiUrl = getNutanixApiUrl(opts.zone)
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
-			def updateSpec = [isEmpty: true]
-			def body = [updateSpec: updateSpec]
-			log.info("resize disk body: ${body}")
+			def diskToUpdate = [
+				disk_address: diskAddress,
+				is_empty: true,
+			]
+			def body = [vm_disks: [diskToUpdate]]
+			log.info("eject disk body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/disks/' + diskAddress, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/update' , null, null, requestOpts, 'PUT')
 			log.info("ejectDisk results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
