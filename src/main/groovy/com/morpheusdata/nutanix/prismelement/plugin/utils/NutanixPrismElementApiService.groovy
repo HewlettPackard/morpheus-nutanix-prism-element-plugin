@@ -871,21 +871,21 @@ class NutanixPrismElementApiService {
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def vmNics = []
-			def vmNic = [networkUuid: opts.networkUuid]
+			def vmNic = [network_uuid: opts.networkUuid]
 			if (opts.ipAddress) {
-				vmNic.requestIp = true
-				vmNic.requestedIpAddress = opts.ipAddress
+				vmNic.request_ip = true
+				vmNic.requested_ip_address = opts.ipAddress
 			}
 			vmNics << vmNic
-			def body = [specList: vmNics]
+			def body = [spec_list: vmNics]
 			log.info("add nic body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/nics', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/nics', null, null, requestOpts, 'POST')
 
 			log.info("addNic results: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
