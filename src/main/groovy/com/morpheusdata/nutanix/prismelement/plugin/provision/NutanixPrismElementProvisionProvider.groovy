@@ -1456,7 +1456,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				return ServiceResponse.error("Failed to create snapshot", null, snapshotResults)
 			}
 
-			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, [zone: server.cloud], taskId)
+			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, taskId)
 			if (!taskResults.success) {
 				return ServiceResponse.error("Error waiting for create snapshot task to complete")
 			}
@@ -1545,7 +1545,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				return ServiceResponse.error(resp.msg as String)
 			}
 
-			resp = NutanixPrismElementApiService.checkTaskReady(client, [zone: server.cloud], resp.results?.taskUuid)
+			resp = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, resp.results?.taskUuid)
 			if (!resp.success) {
 				return ServiceResponse.error("Error waiting for revert snapshot task to complete")
 			}

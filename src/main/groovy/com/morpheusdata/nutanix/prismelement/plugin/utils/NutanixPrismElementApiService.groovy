@@ -20,6 +20,7 @@ package com.morpheusdata.nutanix.prismelement.plugin.utils
 
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.HttpApiClient
+import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
 
@@ -231,11 +232,11 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static getTask(HttpApiClient client, zone, taskId) {
+static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def rtn = [success: false]
-		def apiUrl = getNutanixApiUrl(zone)
-		def username = getNutanixUsername(zone)
-		def password = getNutanixPassword(zone)
+		def apiUrl = getNutanixApiUrl(cloud)
+		def username = getNutanixUsername(cloud)
+		def password = getNutanixPassword(cloud)
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(apiUrl, v2Api + 'tasks/' + taskId, null, null, requestOpts, 'GET')
@@ -1418,7 +1419,7 @@ class NutanixPrismElementApiService {
 		return rtn
 	}
 
-	static checkTaskReady(HttpApiClient client, zone, taskId) {
+	static checkTaskReady(HttpApiClient client, Cloud cloud, taskId) {
 		def rtn = [success: false]
 		try {
 			if (taskId == null)
@@ -1427,7 +1428,7 @@ class NutanixPrismElementApiService {
 			def attempts = 0
 			while (pending) {
 				sleep(1000l * 10l)
-				def taskDetail = getTask(client, zone, taskId)
+				def taskDetail = getTask(client, cloud, taskId)
 				log.info("taskDetail - ${taskId}: ${taskDetail}")
 				if (taskDetail.success == true && taskDetail.results.progress_status) {
 					if (taskDetail.results.progress_status == 'Succeeded') {
@@ -1491,8 +1492,8 @@ class NutanixPrismElementApiService {
 	}
 
 	//utils
-	static getNutanixApiUrl(zone) {
-		def apiUrl = zone.serviceUrl ?: zone.getConfigMap()?.apiUrl
+	static getNutanixApiUrl(Cloud cloud) {
+		def apiUrl = cloud.serviceUrl ?: cloud.getConfigMap()?.apiUrl
 		if (apiUrl) {
 			if (apiUrl.startsWith('http')) {
 				URIBuilder uriBuilder = new URIBuilder("${apiUrl}")
@@ -1504,16 +1505,16 @@ class NutanixPrismElementApiService {
 		throw new Exception('no nutanix api url specified')
 	}
 
-	static getNutanixUsername(zone) {
-		def rtn = zone.serviceUsername ?: zone.credentialData?.username ?: zone.getConfigProperty('username')
+	static getNutanixUsername(Cloud cloud) {
+		def rtn = cloud.serviceUsername ?: cloud.accountCredentialData?.username ?: cloud.getConfigProperty('username')
 		if (!rtn) {
 			throw new Exception('no nutanix username specified')
 		}
 		return rtn
 	}
 
-	static getNutanixPassword(zone) {
-		def rtn = zone.servicePassword ?: zone.credentialData?.password ?: zone.getConfigProperty('password')
+	static getNutanixPassword(Cloud cloud) {
+		def rtn = cloud.servicePassword ?: cloud.accountCredentialData?.password ?: cloud.getConfigProperty('password')
 		if (!rtn) {
 			throw new Exception('no nutanix password specified')
 		}
