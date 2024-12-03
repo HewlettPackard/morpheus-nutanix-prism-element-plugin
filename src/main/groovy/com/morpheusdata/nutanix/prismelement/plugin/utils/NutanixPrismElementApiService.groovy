@@ -37,6 +37,7 @@ class NutanixPrismElementApiService {
 	static v2Api = '/api/nutanix/v2.0/'
 	static betaApi = '/api/nutanix/v0.8/'
 	static Integer WEB_CONNECTION_TIMEOUT = 120 * 1000
+	private static oneGB = (1024 * 1024 * 1024) as Long
 
 	static testConnection(HttpApiClient client, Map opts) {
 		def rtn = [success: false, invalidLogin: false]
@@ -747,7 +748,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + opts.serverId, null, null, requestOpts, 'PUT')
 			log.info("updateServer: ${results}")
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId
@@ -825,7 +826,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		return rtn
 	}
 
-	static addDisk(HttpApiClient client, opts, vmId, sizeGB, type) {
+	static addDisk(HttpApiClient client, Map opts, vmId, sizeGB, type) {
 		log.debug("addDisk ${opts}, vm:${vmId}")
 		def rtn = [success: false]
 		if (!vmId) {
@@ -837,19 +838,19 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def containerId = opts.containerId
-			def diskSize = (int) sizeGB * 1024
+			def diskSize = (int) sizeGB * oneGB
 			def vmDisks = []
-			vmDisks << [vmDiskCreate: [sizeMb: diskSize, containerUuid: containerId], diskAddress: [deviceBus: type]]
-			def body = [disks: vmDisks]
+			vmDisks << [vm_disk_create: [size: diskSize, storage_container_uuid: containerId], disk_address: [device_bus: type]]
+			def body = [vm_disks: vmDisks]
 			log.info("add disk body: ${body}")
-			def headers = buildHeaders(null, username, password)
+			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + vmId + '/disks', null, null, requestOpts, 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId + '/disks/attach', null, null, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 
 			if (results.success == true && results.data) {
-				def taskId = results.data.taskUuid
+				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
 				if (taskResults.success == true && taskResults.error != true) {
 					rtn.taskUuid = taskId

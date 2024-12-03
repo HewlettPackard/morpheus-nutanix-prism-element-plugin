@@ -1027,7 +1027,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		resizeRequest.volumesUpdate.each { it ->
 			def existingVolume = it.existingModel
 			Map updateProps = it.updateProps
-			if(updateProps.maxStorage <= it.existingModel.maxStorage) {
+			if(updateProps.maxStorage < existingVolume.maxStorage) {
 				log.info("requested size {} bytes is less than existing size of {} bytes for disk {}, skipping",
 					updateProps.maxStorage,
 					existingVolume.maxStorage,
