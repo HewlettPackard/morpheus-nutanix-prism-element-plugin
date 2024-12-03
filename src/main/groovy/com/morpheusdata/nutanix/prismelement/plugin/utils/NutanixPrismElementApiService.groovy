@@ -725,7 +725,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		return rtn
 	}
 
-	static updateServer(HttpApiClient client, opts) {
+	static updateServer(HttpApiClient client, Map opts) {
 		log.debug("updateServer ${opts}")
 		def rtn = [success: false]
 		if (!opts.serverId) {
@@ -742,9 +742,9 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 						numCoresPerVcpu: (opts.coresPerSocket ?: 1)
 			]
 			log.info("resize server body: ${body}")
-			def headers = buildHeaders(null, username, password)
+			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(apiUrl, betaApi + 'vms/' + opts.serverId, null, null, requestOpts, 'PUT')
+			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + opts.serverId, null, null, requestOpts, 'PUT')
 			log.info("updateServer: ${results}")
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid
