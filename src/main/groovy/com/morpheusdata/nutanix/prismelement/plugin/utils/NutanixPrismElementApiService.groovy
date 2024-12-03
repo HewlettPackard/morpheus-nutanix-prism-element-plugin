@@ -138,33 +138,18 @@ class NutanixPrismElementApiService {
 
 	static listImages(HttpApiClient client, Map authConfig) {
 		def rtn = [success: false, images: []]
-		//set the path for the different api versions
-		def apiPath
-		def apiMethod = 'GET'
-		if (authConfig.apiNumber > 2)
-			apiPath = (v2Api + 'images')
-		else if (authConfig.apiNumber > 1)
-			apiPath = ('/api/nutanix/' + authConfig.apiVersion + '/images')
-		else
-			apiPath = ('/api/nutanix/' + authConfig.apiVersion + '/images/')
+
 		//call the api
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-		def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, apiMethod)
+		def results = client.callJsonApi(authConfig.apiUrl, v2Api + 'images', null, null, requestOpts, 'GET')
 		rtn.success = results?.success && results?.error != true
 		if (rtn.success == true) {
 			results.data?.entities?.each { entity ->
-				if (authConfig.apiNumber > 1) {
-					def row = [uuid       : entity.uuid, name: entity.name, imageStatus: entity.image_state, vmDiskId: entity.vm_disk_id, externalId: entity.vm_disk_id,
-							   containerId: entity.storage_container_id, containerUuid: entity.storage_container_uuid, deleted: entity.deleted, timestamp: entity.logical_timestamp]
-					row.imageType = (entity.image_type == 'DISK_IMAGE' || entity.image_type?.toLowerCase() == 'disk' || entity.image_type == null) ? 'qcow2' : 'iso'
-					rtn.images << row
-				} else {
-					def row = [uuid       : entity.uuid, name: entity.name, imageStatus: 'Active', vmDiskId: entity.vmDiskId, externalId: entity.vmDiskId,
-							   containerId: entity.containerId]
-					row.imageType = (entity.imageType == 'DISK_IMAGE' || entity.imageType?.toLowerCase() == 'disk' || entity.imageType == null) ? 'qcow2' : 'iso'
-					rtn.images << row
-				}
+				def row = [uuid       : entity.uuid, name: entity.name, imageStatus: entity.image_state, vmDiskId: entity.vm_disk_id, externalId: entity.vm_disk_id,
+						   containerId: entity.storage_container_id, containerUuid: entity.storage_container_uuid, deleted: entity.deleted, timestamp: entity.logical_timestamp]
+				row.imageType = (entity.image_type == 'DISK_IMAGE' || entity.image_type?.toLowerCase() == 'disk' || entity.image_type == null) ? 'qcow2' : 'iso'
+				rtn.images << row
 			}
 			log.debug("listImages: ${rtn.images}")
 		}

@@ -463,10 +463,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					def authConfig = [
 						username  : username,
 						password  : password,
-						basePath  : '/api/nutanix/v3/',
-						apiVersion: cloudInfo.serviceVersion ?: 'v1',
 						apiUrl    : url,
-						apiNumber : cloudInfo.serviceVersion.replace('v', '').toDouble(),
 					]
 					HttpApiClient apiClient = new HttpApiClient()
 					apiClient.networkProxy = cloudInfo.apiProxy
