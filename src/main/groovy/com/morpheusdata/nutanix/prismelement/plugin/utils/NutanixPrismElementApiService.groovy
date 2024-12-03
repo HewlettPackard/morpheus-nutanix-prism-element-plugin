@@ -1286,7 +1286,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			vmUuid = vmResult.results?.uuid
 
 			def body = [restore_network_configuration: true, snapshot_uuid: opts.snapshotId, uuid: vmUuid]
-			log.info("Create snapshot body: ${body}")
+			log.info("Restore snapshot body: ${body}")
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmUuid + '/restore', null, null, requestOpts, 'POST')

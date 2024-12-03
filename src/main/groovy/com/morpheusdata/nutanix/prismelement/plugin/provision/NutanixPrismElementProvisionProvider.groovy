@@ -1545,7 +1545,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				return ServiceResponse.error(resp.msg as String)
 			}
 
-			resp = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, resp.results?.taskUuid)
+			resp = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, resp.results?.task_uuid)
 			if (!resp.success) {
 				return ServiceResponse.error("Error waiting for revert snapshot task to complete")
 			}
