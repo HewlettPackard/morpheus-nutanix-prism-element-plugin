@@ -10,6 +10,7 @@ import com.morpheusdata.core.synchronous.compute.MorpheusSynchronousComputeServe
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.HostsSync
 import com.morpheusdata.response.ServiceResponse
 import groovy.json.JsonSlurper
 import io.reactivex.rxjava3.core.Maybe
