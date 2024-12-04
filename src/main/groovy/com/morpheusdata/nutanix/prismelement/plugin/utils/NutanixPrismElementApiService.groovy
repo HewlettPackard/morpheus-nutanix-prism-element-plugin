@@ -404,7 +404,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		return rtn
 	}
 
-	static getVirtualMachineDisks(HttpApiClient client, cloud, vmId) {
+	static getVirtualMachineDisks(HttpApiClient client, Cloud cloud, vmId) {
 		def rtn = [success: false, disks: []]
 		def apiUrl = getNutanixApiUrl(cloud)
 		def username = getNutanixUsername(cloud)

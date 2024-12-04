@@ -704,7 +704,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			Cloud cloud = server.cloud
 
 			if(server.sourceImage?.isCloudInit || (server.sourceImage?.isSysprep && !server.sourceImage?.isForceCustomization)) {
-				def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, [zone:cloud], server.externalId)?.disks
+				def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, server.externalId)?.disks
 				vmDisks.each { vmDisk ->
 					if(vmDisk.is_cdrom) {
 						NutanixPrismElementApiService.ejectDisk(client, [zone:cloud], server.externalId, vmDisk.id)
