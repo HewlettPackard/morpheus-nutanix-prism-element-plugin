@@ -35,9 +35,6 @@ class NutanixPrismElementApiService {
 
 	static standardApi = '/PrismGateway/services/rest/v1/'
 	static v2Api = '/api/nutanix/v2.0/'
-	static betaApi = '/api/nutanix/v0.8/'
-	static Integer WEB_CONNECTION_TIMEOUT = 120 * 1000
-	private static oneGB = (1024 * 1024 * 1024) as Long
 
 	static testConnection(HttpApiClient client, Map opts) {
 		def rtn = [success: false, invalidLogin: false]
@@ -841,7 +838,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def username = getNutanixUsername(opts.zone)
 			def password = getNutanixPassword(opts.zone)
 			def containerId = opts.containerId
-			def diskSize = (int) sizeGB * oneGB
+			def diskSize = (int) sizeGB * ComputeUtility.ONE_GIGABYTE
 			def vmDisks = []
 			vmDisks << [vm_disk_create: [size: diskSize, storage_container_uuid: containerId], disk_address: [device_bus: type]]
 			def body = [vm_disks: vmDisks]

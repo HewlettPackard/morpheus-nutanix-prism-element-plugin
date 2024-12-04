@@ -18,11 +18,10 @@
 
 package com.morpheusdata.nutanix.prismelement.plugin.utils
 
+import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.StorageVolumeType
 
 class NutanixPrismElementStorageUtility {
-	private static oneGB = (1024 * 1024 * 1024) as Long
-
 	static Collection<StorageVolumeType> getDefaultStorageVolumes() {
 		Collection<StorageVolumeType> volumeTypes = []
 
@@ -34,7 +33,7 @@ class NutanixPrismElementStorageUtility {
 			description: 'Nutanix - SCSI',
 			displayOrder: 1,
 			defaultType: true,
-			minStorage: oneGB,
+			minStorage: ComputeUtility.ONE_GIGABYTE,
 			allowSearch: true,
 		)
 
@@ -46,7 +45,7 @@ class NutanixPrismElementStorageUtility {
 			description: 'Nutanix - SATA',
 			displayOrder: 2,
 			defaultType: true,
-			minStorage: oneGB,
+			minStorage: ComputeUtility.ONE_GIGABYTE,
 			allowSearch: true,
 		)
 
@@ -58,7 +57,7 @@ class NutanixPrismElementStorageUtility {
 			description: 'Nutanix - IDE',
 			displayOrder: 3,
 			defaultType: true,
-			minStorage: oneGB,
+			minStorage: ComputeUtility.ONE_GIGABYTE,
 			allowSearch: true,
 		)
 
