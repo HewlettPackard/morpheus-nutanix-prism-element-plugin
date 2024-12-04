@@ -1039,7 +1039,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		}
 	}
 
-	static cloneServer(HttpApiClient client, opts) {
+	static cloneServer(HttpApiClient client, Map opts) {
 		log.debug("cloneServer ${opts}")
 		def rtn = [success: false]
 		if (!opts.serverId && !opts.snapshotId) {
@@ -1054,38 +1054,38 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (opts.uuid)
 				specs.uuid = opts.uuid
 			def specList = [specs]
-			def body = [specList: specList]
-			if (opts.cloudConfig) {
-				body.vmCustomizationConfig = [
+			def body = [spec_list: specList]
+			// CloudInit is defined for /vms/{uuid}/clone but not /snapshots/{uuid}/clone
+			if (opts.cloudConfig && opts.serverId) {
+				body.vm_customization_config = [
 					userdata: opts.cloudConfig
 				]
 				//if sysprep - its not an iso install
 				if (opts.platform == 'platform')
-					body.vmCustomizationConfig.fresh_install = false
+					body.vm_customization_config.fresh_install = false
 			}
 			log.info("clone server body: ${body}")
-			def results
-			def headers = buildHeaders(null, username, password)
+			def results = [success: false]
+			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 
 			if (opts.snapshotId) {
 				log.debug("cloning from snapshot ${opts.snapshotId}")
-				results = client.callJsonApi(apiUrl, betaApi + 'snapshots/' + opts.snapshotId + '/clone', null, null, requestOpts, 'POST')
+				results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + opts.snapshotId + '/clone', null, null, requestOpts, 'POST')
 			} else if (opts.serverId) {
 				log.debug("cloning from server ${opts.serverId}")
-				results = client.callJsonApi(apiUrl, betaApi + 'vms/' + opts.serverId + '/clone', null, null, requestOpts, 'POST')
+				results = client.callJsonApi(apiUrl, v2Api + 'vms/' + opts.serverId + '/clone', null, null, requestOpts, 'POST')
 			}
 			log.info("cloneServer: ${results}")
 			if (results.success == true) {
-				def taskId = results.data.taskUuid
-				def taskResults = checkTaskReady(client, opts.zone, taskId)
+				def taskId = results.data.task_uuid
+				def taskResults = checkTaskReady(client, opts.zone as Cloud, taskId)
 				if (taskResults.success != true && taskResults.errorCode == 500 && opts.uuid) {
 					def vmCheckResults = checkVmReady(client, opts, opts.uuid)
 					if (vmCheckResults.success == true)
 						taskResults = [success: true, error: false, results: [entityList: [[uuid: opts.uuid]], entity_lst: [[entity_id: opts.uuid]]]]
 				}
 				if (taskResults.success == true && taskResults.error != true) {
-					def serverId = taskResults.results.entity_list[0].entity_id
 					def serverResults = findVirtualMachine(client, opts, opts.name)
 					if (serverResults.success == true) {
 						def vm = serverResults?.virtualMachine
