@@ -548,12 +548,13 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 				]
 			]
 			log.info("clone to template body: ${body}")
+			requestOpts.body = body
 			//clone to template
-			def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts + [body: body], 'POST')
+			def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts, 'POST')
 			log.debug("cloneVmToImage: ${results}")
 			rtn.success = results?.success && results?.error != true
 			if (rtn.success == true) {
-				rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
+				rtn.results = results.data
 				rtn.taskUuid = rtn.results.task_uuid
 				log.debug("results: ${rtn.results}")
 			} else if (results?.error == true) {
