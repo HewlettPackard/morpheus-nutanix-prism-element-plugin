@@ -1595,7 +1595,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		try {
 
 			def snapshotName = "${workload.instance.name}.${workload.id}.${System.currentTimeMillis()}".toString()
-			if (server.sourceImage && server.sourceImage.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
+			if (server.sourceImage?.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
 				morpheusContext.executeCommandOnServer(server,
 					'sudo rm -f /etc/cloud/cloud.cfg.d/99-manual-cache.cfg; sudo cp /etc/machine-id /tmp/machine-id-old ; sync',
 					false, server.sshUsername, server.sshPassword, null, null, null, null, true, true)
@@ -1698,7 +1698,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			log.error("cloneToTemplate error: ${e}", e)
 			rtn.msg = e.message
 		} finally {
-			if (server.sourceImage && server.sourceImage.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
+			if (server.sourceImage?.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
 				morpheusContext.executeCommandOnServer(server,
 					"sudo bash -c \"echo 'manual_cache_clean: True' >> /etc/cloud/cloud.cfg.d/99-manual-cache.cfg\"; sudo cat /tmp/machine-id-old > /etc/machine-id ; sudo rm /tmp/machine-id-old ; sync",
 					false, server.sshUsername, server.sshPassword, null, null, null, null, true, true)
