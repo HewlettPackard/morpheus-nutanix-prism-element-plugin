@@ -45,7 +45,7 @@ class NutanixPrismElementApiService {
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 			def results = client.callJsonApi(apiUrl, v2Api + 'cluster', null, null, requestOpts, 'GET')
-			rtn.success = results?.success && results?.error != true
+			rtn.success = results?.success && !results?.error
 
 			if (!rtn.success) {
 				rtn.invalidLogin = results.statusCode == 401
@@ -116,7 +116,7 @@ class NutanixPrismElementApiService {
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(authConfig.apiUrl, apiPath, null, null, requestOpts, apiMethod)
-		rtn.success = results?.success && results?.error == null
+		rtn.success = results?.success && !results?.error
 		if (rtn.success) {
 			rtn.results = results.data
 			results.data?.entities?.each { entity ->
@@ -142,7 +142,7 @@ class NutanixPrismElementApiService {
 		def headers = buildHeaders(null, authConfig.username, authConfig.password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(authConfig.apiUrl, v2Api + 'images', null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
+		rtn.success = results?.success && !results?.error
 		if (rtn.success == true) {
 			results.data?.entities?.each { entity ->
 				def row = [uuid       : entity.uuid, name: entity.name, imageStatus: entity.image_state, vmDiskId: entity.vm_disk_id, externalId: entity.vm_disk_id,
@@ -238,12 +238,12 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def headers = buildHeaders(null, username, password)
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(apiUrl, v2Api + 'tasks/' + taskId, null, null, requestOpts, 'GET')
-		rtn.success = results?.success && results?.error != true
+		rtn.success = results?.success && !results?.error
 
 		if (rtn.success == true) {
 			rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
 			log.debug("task results: ${rtn.results}")
-		} else if (results?.error == true) {
+		} else if (results?.error) {
 			rtn.errorCode = results.errorCode
 			rtn.error == true
 		}
@@ -394,7 +394,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers, queryParams: [include_vm_disk_config: 'true', include_vm_nic_config: 'true'])
 		def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmId, null, null, requestOpts, 'GET')
 
-		if (results.success == true && results.error != true) {
+		if (results.success && !results.error) {
 			rtn.results = results.data
 			rtn.success = results.success
 		}
@@ -452,7 +452,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def headers = buildHeaders(null, username.toString(), password.toString())
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 			def results = client.callJsonApi(apiUrl, v2Api + 'networks/', null, null, requestOpts, 'GET')
-			rtn.success = results?.success && results?.error != true
+			rtn.success = results?.success && !results?.error
 			if (rtn.success == true) {
 				rtn.results = results.data //new groovy.json.JsonSlurper().parseText(results.content)
 				log.debug("network results: ${rtn.results}")
@@ -505,7 +505,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def imageUploadUrl = v2Api + "images"
 		def results = client.callJsonApi(apiUrl, imageUploadUrl, null, null, requestOpts, 'POST')
 		log.debug("uploadImage: ${results}")
-		rtn.success = results?.success && results?.error != true
+		rtn.success = results?.success && !results?.error
 		if (rtn.success == true) {
 			rtn.results = results.data
 			rtn.taskUuid = rtn.results.task_uuid
@@ -528,7 +528,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def snapshotResults = client.callJsonApi(apiUrl, v2Api+ 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 		println("snapshotResults: ${snapshotResults}")
-		if (snapshotResults?.success && snapshotResults?.error != true) {
+		if (snapshotResults?.success && !snapshotResults?.error) {
 			def snapshotInfo = snapshotResults.data
 			log.debug("snapshot info: ${rtn.results}")
 			def vmDisks = snapshotInfo.vm_create_spec.vm_disks?.findAll { it.is_cdrom != true }
@@ -552,16 +552,16 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			//clone to template
 			def results = client.callJsonApi(apiUrl, v2Api + 'images', null, null, requestOpts, 'POST')
 			log.debug("cloneVmToImage: ${results}")
-			rtn.success = results?.success && results?.error != true
+			rtn.success = results?.success && !results?.error
 			if (rtn.success == true) {
 				rtn.results = results.data
 				rtn.taskUuid = rtn.results.task_uuid
 				log.debug("results: ${rtn.results}")
-			} else if (results?.error == true) {
+			} else if (results?.error) {
 				rtn.errorCode = results.error_code
 				rtn.error == true
 			}
-		} else if (snapshotResults?.error == true) {
+		} else if (snapshotResults?.error) {
 			rtn.errorCode = snapshotResults.error_code
 			rtn.error == true
 		}
@@ -699,7 +699,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 				if (vmCheckResults.success == true)
 					taskResults = [success: true, error: false, results: [entityList: [[uuid: opts.uuid]], entity_list: [[entity_id: opts.uuid]]]]
 			}
-			if (taskResults.success == true && taskResults.error != true) {
+			if (taskResults.success && !taskResults.error) {
 				def serverId = taskResults.results.entity_list[0].entity_id
 				def serverResults = findVirtualMachineId(client, opts, serverId)
 				if (serverResults.success == true) {
@@ -748,7 +748,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -780,7 +780,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, cloud, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -816,7 +816,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -853,7 +853,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -890,7 +890,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -934,7 +934,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -965,7 +965,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.task_uuid
 				def taskResults = checkTaskReady(client, cloud, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -1000,7 +1000,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			if (results.success == true && results.data) {
 				def taskId = results.data.taskUuid ?: results.data.task_uuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					rtn.taskUuid = taskId
 					rtn.success = true
 				} else {
@@ -1086,7 +1086,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 					if (vmCheckResults.success == true)
 						taskResults = [success: true, error: false, results: [entityList: [[uuid: opts.uuid]], entity_lst: [[entity_id: opts.uuid]]]]
 				}
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					def serverResults = findVirtualMachine(client, opts, opts.name)
 					if (serverResults.success == true) {
 						def vm = serverResults?.virtualMachine
@@ -1133,7 +1133,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		if (results.success == true && results.data) {
 			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
-			def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
+			def taskSuccess = taskResults.success && (!taskResults.error || taskResults.results?.metaResponse?.error == 'kInvalidState')
 			if (taskSuccess == true) {
 				rtn.taskUuid = taskId
 				rtn.success = true
@@ -1164,7 +1164,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 				if (results.success == true && results.data) {
 					def taskId = results.data.task_uuid
 					def taskResults = checkTaskReady(client, opts.zone, taskId)
-					def taskSuccess = taskResults.success == true && (taskResults.error != true || taskResults.results?.metaResponse?.error == 'kInvalidState')
+					def taskSuccess = taskResults.success && (!taskResults.error || taskResults.results?.metaResponse?.error == 'kInvalidState')
 					if (taskSuccess == true) {
 						rtn.taskUuid = taskId
 						rtn.success = true
@@ -1196,7 +1196,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		if (results.success == true && results.data) {
 			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
-			if (taskResults.success == true && taskResults.error != true) {
+			if (taskResults.success && !taskResults.error) {
 				rtn.taskUuid = taskId
 				rtn.success = true
 			} else {
@@ -1219,7 +1219,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		if (results.success == true && results.data) {
 			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
-			if (taskResults.success == true && taskResults.error != true) {
+			if (taskResults.success && !taskResults.error) {
 				rtn.taskUuid = taskId
 				rtn.success = true
 			} else {
@@ -1240,11 +1240,11 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
 		def results = client.callJsonApi(apiUrl, v2Api + 'snapshots/' + snapshotId, null, null, requestOpts, 'GET')
 
-		rtn.success = results?.success && results?.error != true
+		rtn.success = results?.success && !results?.error
 		if (rtn.success == true) {
 			rtn.results = results.data
 			log.debug("task results: ${rtn.results}")
-		} else if (results?.error == true) {
+		} else if (results?.error) {
 			rtn.errorCode = results.errorCode
 			rtn.error == true
 		}
@@ -1266,7 +1266,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 			def results = client.callJsonApi(apiUrl, v2Api + 'snapshots', null, null, requestOpts, 'POST')
 
-			rtn.success = results?.success && results?.error != true
+			rtn.success = results?.success && !results?.error
 			if (rtn.success == true) {
 				rtn.results = [taskUuid: results.data.task_uuid]
 				log.trace("createSnapshot: ${rtn.results}")
@@ -1292,7 +1292,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def headers = buildHeaders(null, username, password)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 			def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + vmUuid + '/restore', null, null, requestOpts, 'POST')
-			rtn.success = results?.success && results?.error != true
+			rtn.success = results?.success && !results?.error
 			if (rtn.success == true) {
 				rtn.results = results.data
 				log.info("restoreSnapshot: ${rtn.results}")
@@ -1315,7 +1315,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 		if (results.success == true && results.data) {
 			def taskId = results.data.task_uuid
 			def taskResults = checkTaskReady(client, opts.zone, taskId)
-			if (taskResults.success == true && taskResults.error != true) {
+			if (taskResults.success && !taskResults.error) {
 				rtn.taskUuid = taskId
 				rtn.success = true
 			} else {
@@ -1392,7 +1392,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 				//wait here?
 				def taskId = createResults.taskUuid
 				def taskResults = checkTaskReady(client, opts.zone, taskId)
-				if (taskResults.success == true && taskResults.error != true) {
+				if (taskResults.success && !taskResults.error) {
 					def imageId = taskResults.results.entity_list[0].entity_id
 					def imageResults = findImage(client, opts, image.name)
 					if (imageResults.success == true) {
