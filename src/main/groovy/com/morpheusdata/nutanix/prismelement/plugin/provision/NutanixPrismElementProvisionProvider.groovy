@@ -1570,4 +1570,141 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 		return rtn
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Boolean hasCloneTemplate() {
+		return true
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse cloneToTemplate(Workload workload, Map opts) {
+		def rtn = ServiceResponse.prepare()
+
+		def server = workload.server
+
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = server.cloud.apiProxy
+
+		def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, server.cloud)
+		try {
+
+			def snapshotName = "${workload.instance.name}.${workload.id}.${System.currentTimeMillis()}".toString()
+			if (server.sourceImage?.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
+				morpheusContext.executeCommandOnServer(server,
+					'sudo rm -f /etc/cloud/cloud.cfg.d/99-manual-cache.cfg; sudo cp /etc/machine-id /tmp/machine-id-old ; sync',
+					false, server.sshUsername, server.sshPassword, null, null, null, null, true, true)
+					.blockingGet()
+			}
+
+			def snapshotOpts = [
+				zone        : server.cloud,
+				vmId        : server.externalId,
+				snapshotName: snapshotName
+			]
+			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, snapshotOpts)
+			if (!snapshotResults.success) {
+				rtn.msg = 'clone failed'
+				return rtn
+			}
+
+			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, snapshotResults.results.taskUuid)
+			if (!taskResults.success || taskResults.error) {
+				rtn.msg = 'clone failed'
+				return rtn
+			}
+
+			//clone it
+			def snapshotEntity = taskResults.results.entity_list.find { it.entity_type == 'Snapshot' }
+			def cloneConfig = [
+				snapshotId: snapshotEntity?.entity_id,
+				name: opts.templateName,
+				containerId: server.cloud.getConfigProperty('imageStoreId')
+			]
+			def cloneResults = NutanixPrismElementApiService.cloneVmToImage(client, authConfig, cloneConfig)
+			log.debug("cloneResults: ${cloneResults}")
+			if (!cloneResults.success) {
+				rtn.msg = 'clone failed'
+				return rtn
+			}
+
+			def cloneTaskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, cloneResults.taskUuid)
+			log.debug("cloneTaskResults: ${cloneTaskResults}")
+			if (!cloneTaskResults.success || cloneTaskResults.error) {
+				rtn.msg = 'clone failed'
+				return rtn
+			}
+
+			//get the image id - create the image
+			def imageId = cloneTaskResults.results.entity_list[0].entity_id
+			def imageResults = NutanixPrismElementApiService.loadImage(client, [zone: server.cloud], imageId)
+			log.debug("imageResults: ${imageResults}")
+			if (imageResults.success && imageResults?.image) {
+				def vmDiskId = imageResults.image.vm_disk_id
+
+				VirtualImage imageToSave = new VirtualImage(
+					owner      : workload.account,
+					category   : "nutanix.acropolis.image.${server.cloud.id}",
+					name       : opts.templateName,
+					code       : "nutanix.acropolis.image.${server.cloud.id}.${imageId}",
+					status     : 'Active',
+					imageType  : 'qcow2',
+					bucketId   : (cloneResults.containerId ?: server.cloud.getConfigProperty('imageStoreId')),
+					uniqueId   : imageId,
+					externalId : vmDiskId,
+					refType    : 'ComputeZone',
+					refId      : "${server.cloud.id}",
+					platform   : server.computeServerType.platform,
+					imageRegion: server.cloud.regionCode,
+				)
+				def sourceImage = server.sourceImage
+				if (sourceImage) {
+					imageToSave.isCloudInit = sourceImage.isCloudInit
+					imageToSave.isForceCustomization = sourceImage.isForceCustomization
+					if (!imageToSave.osType && sourceImage.osType) {
+						imageToSave.osType = sourceImage.osType
+					}
+					if (!imageToSave.platform && sourceImage.platform) {
+						imageToSave.platform = sourceImage.platform
+					}
+				}
+
+				def addLocation = new VirtualImageLocation(
+					code          : "nutanix.acropolis.image.${server.cloud.id}.${imageId}",
+					externalDiskId: vmDiskId,
+					externalId    : vmDiskId,
+					imageName     : opts.templateName,
+					imageRegion: server.cloud.regionCode,
+					internalId: imageId,
+					refId         : server.cloud.id,
+					refType       : 'ComputeZone',
+					owner: server.cloud.owner,
+				)
+				imageToSave.imageLocations = [addLocation]
+				morpheusContext.async.virtualImage.create(imageToSave, server.cloud).blockingGet()
+			}
+			//remove the snapshot
+			def removeResult = NutanixPrismElementApiService.deleteSnapshot(client, [zone: server.cloud], snapshotEntity.entity_id)
+			if (!removeResult.success) {
+				log.error("Failed to remove snapshot: ${removeResult}")
+			}
+			rtn.success = true
+		} catch (e) {
+			log.error("cloneToTemplate error: ${e}", e)
+			rtn.msg = e.message
+		} finally {
+			if (server.sourceImage?.isCloudInit && server.serverOs?.platform != PlatformType.windows) {
+				morpheusContext.executeCommandOnServer(server,
+					"sudo bash -c \"echo 'manual_cache_clean: True' >> /etc/cloud/cloud.cfg.d/99-manual-cache.cfg\"; sudo cat /tmp/machine-id-old > /etc/machine-id ; sudo rm /tmp/machine-id-old ; sync",
+					false, server.sshUsername, server.sshPassword, null, null, null, null, true, true)
+					.blockingGet()
+			}
+		}
+		return rtn
+	}
 }
