@@ -1707,4 +1707,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		}
 		return rtn
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	HostType getHostType() {
+		return HostType.vm
+	}
 }
