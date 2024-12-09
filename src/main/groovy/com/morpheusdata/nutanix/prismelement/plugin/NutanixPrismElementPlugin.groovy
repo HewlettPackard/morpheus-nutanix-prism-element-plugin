@@ -77,7 +77,12 @@ class NutanixPrismElementPlugin extends Plugin {
 	 */
 	@Override
 	void onDestroy() {
-		//nothing to do for now
+		// we need to override the instance type that was modified by the plugin.
+		// This includes optionTypes that changed.
+		List<String> seedsToRun = [
+			"application.ProvisionTypeNutanixSeed",
+		]
+		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
 	}
 
 	static getAuthConfig(MorpheusContext morpheusContext, Cloud cloud) {
