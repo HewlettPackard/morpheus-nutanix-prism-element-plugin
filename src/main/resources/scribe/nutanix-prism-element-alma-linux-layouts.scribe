@@ -1,0 +1,90 @@
+resource "workload-type" "almalinux-nutanix-9" {
+	code             = "almalinux-nutanix-9"
+	shortName        = "almalinux"
+	name             = "AlmaLinux 9"
+	ports            = null
+	containerVersion = "9"
+	repositoryImage  = ""
+	entryPoint       = ""
+	statTypeCode     = "vm"
+	logTypeCode      = "vm"
+	showServerLogs   = true
+	checkTypeCode    = null
+	category         = "almalinux"
+	serverType       = "vm"
+	providerType     = "nutanix"
+	virtualImage     = null
+	osType = {
+		code  = "almalinux.9.64"
+		owner = null
+	}
+	provisionType = "nutanix"
+	backupType    = "nutanixSnapshot"
+	containerPorts = []
+	actions = [
+		{
+			code = "generic-remove-node"
+		}
+	]
+	commEnabled = true
+	commType    = "SSH"
+	commPort    = 22
+}
+
+resource "workload-type-set" "almalinux-nutanix-9-set" {
+	code           = "almalinux-nutanix-9-set"
+	category       = "almalinux"
+	workloadType   = workload-type.almalinux-nutanix-9
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "almalinux-nutanix-9" {
+	code                     = "almalinux-nutanix-9"
+	name                     = "Nutanix VM"
+	sortOrder                = 99
+	description              = "This will provision a single master vm in Nutanix"
+	instanceType             = "almalinux"
+	instanceVersion          = "9"
+	serverCount              = 1
+	portCount                = 1
+	memoryRequirement = 1024 * 1024 * 1024 // 1gb
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	enabled                  = true
+	creatable                = true
+	containers = [
+		workload-type-set.almalinux-nutanix-9-set
+	],
+	actions = [
+		{
+			code = "generic-add-node"
+		}
+	]
+	provisionType = "nutanix"
+}
+
+resource "scale-action" "almalinux-nutanix-9" {
+	code      = "almalinux-nutanix-9"
+	scaleType = "action"
+	layout    = instance-type-layout.almalinux-nutanix-9
+	upAction {
+		code = "generic-add-node"
+	}
+	downAction {
+		code = "generic-remove-node"
+	}
+}
+
+resource "os-type-image" "nutanix-morpheus-almalinux-9" {
+	code          = "nutanix-morpheus-almalinux-9"
+	provisionType = "nutanix"
+	virtualImage = {
+		code = "kvm.image.morpheus.almalinux.9.20241023"
+	}
+	osType = {
+		code  = "almalinux.9.64"
+		owner = null
+	}
+}

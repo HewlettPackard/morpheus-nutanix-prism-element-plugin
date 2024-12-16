@@ -1,0 +1,74 @@
+resource "workload-type" "rocky-nutanix-9" {
+	code             = "rocky-nutanix-9"
+	shortName        = "rocky"
+	name             = "Rocky 9"
+	ports = []
+	containerVersion = "9"
+	repositoryImage  = ""
+	entryPoint       = ""
+	serverType       = "vm"
+	statTypeCode     = "vm"
+	logTypeCode      = "vm"
+	showServerLogs   = true
+	checkTypeCode    = null
+	category         = "rocky"
+	osType           = "rocky.9.64"
+	virtualImage     = null
+	provisionType    = "nutanix"
+	backupType       = "nutanixSnapshot"
+	containerPorts = []
+	actions = [
+		{
+			code = "generic-remove-node"
+		}
+	]
+	commEnabled = true
+	commType    = "SSH"
+	commPort    = 22
+}
+
+resource "workload-type-set" "rocky-nutanix-9-set" {
+	code           = "rocky-nutanix-9-set"
+	category       = "rocky"
+	workloadType   = workload-type.rocky-nutanix-9
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "rocky-nutanix-9" {
+	code                     = "rocky-nutanix-9"
+	name                     = "Nutanix VM"
+	sortOrder                = 99
+	description              = "This will provision a single master vm in Nutanix"
+	instanceType             = "rocky"
+	instanceVersion          = "9"
+	serverCount              = 1
+	portCount                = 1
+	memoryRequirement = 1024 * 1024 * 1024 // 1gb
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	enabled                  = true
+	creatable                = true
+	containers = [
+		workload-type-set.rocky-nutanix-9-set
+	]
+	actions = [
+		{
+			code = "generic-add-node"
+		}
+	]
+	provisionType = "nutanix"
+}
+
+resource "scale-action" "rocky-nutanix-9" {
+	code      = "rocky-nutanix-9"
+	scaleType = "action"
+	layout    = instance-type-layout.rocky-nutanix-9
+	upAction = {
+		code = "generic-add-node"
+	}
+	downAction = {
+		code = "generic-remove-node"
+	}
+}

@@ -1,0 +1,90 @@
+resource "workload-type" "debian-nutanix-11" {
+	code             = "debian-nutanix-11"
+	shortName        = "debian"
+	name             = "Debian 11"
+	ports = [22]
+	containerVersion = "11"
+	repositoryImage  = ""
+	entryPoint       = ""
+	serverType       = "vm"
+	statTypeCode     = "vm"
+	logTypeCode      = "debian"
+	showServerLogs   = true
+	checkTypeCode    = "containerCheck"
+	mountPoint       = "/morpheus"
+	virtualImage     = null
+	osType = {
+		code  = "debian.11.64"
+		owner = null
+	}
+	containerPorts = [
+		{
+			code = "debian.22"
+		}
+	]
+	actions = [
+		{
+			code = "generic-remove-node"
+		}
+	]
+	provisionType = "nutanix"
+	backupType    = "nutanixSnapshot"
+}
+
+resource "workload-type-set" "debian-nutanix-11-set" {
+	code           = "debian-nutanix-11-set"
+	workloadType   = workload-type.debian-nutanix-11
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "debian-nutanix-11" {
+	code                     = "debian-nutanix-11"
+	name                     = "Nutanix VM"
+	sortOrder                = 11
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	instanceVersion          = "11"
+	description              = "This will provision a single process with no redundancy"
+	instanceType             = "debian"
+	serverCount              = 1
+	portCount                = 1
+	enabled                  = true
+	creatable                = true
+	containers = [
+		workload-type-set.debian-nutanix-11-set
+	]
+	actions = [
+		{
+			code = "generic-add-node"
+		}
+	]
+	provisionType = {
+		code = "nutanix"
+	}
+}
+
+resource "scale-action" "debian-nutanix-11" {
+	code      = "debian-nutanix-11"
+	scaleType = "action"
+	layout    = instance-type-layout.debian-nutanix-11
+	upAction = {
+		code = "generic-add-node"
+	}
+	downAction = {
+		code = "generic-remove-node"
+	}
+}
+
+resource "os-type-image" "nutanix-morpheus-debian-11" {
+	code          = "nutanix-morpheus-debian-11"
+	provisionType = "nutanix"
+	virtualImage = {
+		code = "kvm.image.morpheus.debian.11.20240604"
+	}
+	osType = {
+		code  = "debian.11.64"
+		owner = null
+	}
+}

@@ -1,0 +1,184 @@
+resource "service-plan" "nutanix-vm-512" {
+	code                 = "nutanix-vm-512"
+	editable             = true
+	name                 = "1 vCPU, 512MB Memory"
+	description          = "1 vCPU, 512MB Memory"
+	sortOrder            = 0
+	maxStorage           = 10 * 1024 * 1024 * 1024
+	maxMemory            = 512 * 1024 * 1024
+	maxCores             = 1
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-512" {
+	servicePlan = "nutanix-vm-512"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-1024" {
+	code                 = "nutanix-vm-1024"
+	editable             = true
+	name                 = "1 vCPU, 1GB Memory"
+	description          = "1 vCPU, 1GB Memory"
+	sortOrder            = 1
+	maxStorage           = 10 * 1024 * 1024 * 1024
+	maxMemory            = 1024 * 1024 * 1024
+	maxCores             = 1
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-1024" {
+	servicePlan = "nutanix-vm-1024"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-2048" {
+	code                 = "nutanix-vm-2048"
+	editable             = true
+	name                 = "1 vCPU, 2GB Memory"
+	description          = "1 vCPU, 2GB Memory"
+	sortOrder            = 2
+	maxStorage           = 20 * 1024 * 1024 * 1024
+	maxMemory            = 2 * 1024 * 1024 * 1024
+	maxCores             = 1
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-2048" {
+	servicePlan = "nutanix-vm-2048"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-4096" {
+	code                 = "nutanix-vm-4096"
+	editable             = true
+	name                 = "1 vCPU, 4GB Memory"
+	description          = "1 vCPU, 4GB Memory"
+	sortOrder            = 3
+	maxStorage           = 40 * 1024 * 1024 * 1024
+	maxMemory            = 4 * 1024 * 1024 * 1024
+	maxCores             = 1
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-4096" {
+	servicePlan = "nutanix-vm-4096"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-8192" {
+	code                 = "nutanix-vm-8192"
+	editable             = true
+	name                 = "2 vCPU, 8GB Memory"
+	description          = "2 vCPU, 8GB Memory"
+	sortOrder            = 4
+	maxStorage           = 80 * 1024 * 1024 * 1024
+	maxMemory            = 8 * 1024 * 1024 * 1024
+	maxCores             = 2
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-8192" {
+	servicePlan = "nutanix-vm-8192"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-16384" {
+	code                 = "nutanix-vm-16384"
+	editable             = true
+	name                 = "2 vCPU, 16GB Memory"
+	description          = "2 vCPU, 16GB Memory"
+	sortOrder            = 5
+	maxStorage           = 160 * 1024 * 1024 * 1024
+	maxMemory            = 16 * 1024 * 1024 * 1024
+	maxCores             = 2
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-16384" {
+	servicePlan = "nutanix-vm-16384"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-24576" {
+	code                 = "nutanix-vm-24576"
+	editable             = true
+	name                 = "4 vCPU, 24GB Memory"
+	description          = "4 vCPU, 24GB Memory"
+	sortOrder            = 6
+	maxStorage           = 240 * 1024 * 1024 * 1024
+	maxMemory            = 24 * 1024 * 1024 * 1024
+	maxCores             = 4
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-24576" {
+	servicePlan = "nutanix-vm-24576"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "nutanix-vm-32768" {
+	code                 = "nutanix-vm-32768"
+	editable             = true
+	name                 = "4 vCPU, 32GB Memory"
+	description          = "4 vCPU, 32GB Memory"
+	sortOrder            = 7
+	maxStorage           = 320 * 1024 * 1024 * 1024
+	maxMemory            = 32 * 1024 * 1024 * 1024
+	maxCores             = 4
+	provisionType        = "nutanix"
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+}
+
+resource "service-plan-price-set" "nutanix-vm-32768" {
+	servicePlan = "nutanix-vm-32768"
+	priceSet    = "default.priceset"
+}
+
+resource "service-plan" "internal-custom-nutanix" {
+	code                 = "internal-custom-nutanix"
+	editable             = false
+	name                 = "Nutanix Custom"
+	description          = "Nutanix Custom"
+	sortOrder            = 0
+	customMaxStorage     = true
+	customMaxDataStorage = true
+	addVolumes           = true
+	customCpu            = true
+	customCores          = true
+	customMaxMemory      = true
+	deletable            = false
+	provisionable        = false
+	maxStorage           = 0
+	maxMemory            = 0
+	maxCpu               = 0
+	provisionType        = "nutanix"
+}
+
+resource "service-plan-price-set" "internal-custom-nutanix" {
+	servicePlan = "internal-custom-nutanix"
+	priceSet    = "internal.custom.nutanix.priceset"
+}

@@ -1,0 +1,74 @@
+resource "workload-type" "opensuse-nutanix-15-1" {
+	code             = "opensuse-nutanix-15.1"
+	shortName        = "opensuse"
+	name             = "openSUSE 15.1"
+	ports = []
+	containerVersion = "15.1"
+	repositoryImage  = ""
+	entryPoint       = ""
+	serverType       = "vm"
+	statTypeCode     = "vm"
+	logTypeCode      = "opensuse"
+	showServerLogs   = true
+	checkTypeCode    = null
+	category         = "opensuse"
+	virtualImage = {
+		code = "kvm.image.morpheus.opensuse.15.1"
+	}
+	provisionType = "nutanix"
+	backupType    = "nutanixSnapshot"
+	containerPorts = []
+	actions = [
+		{
+			code = "generic-remove-node"
+		}
+	]
+	commEnabled = true
+	commType    = "SSH"
+	commPort    = 22
+}
+
+resource "workload-type-set" "opensuse-nutanix-15-1-set" {
+	code           = "opensuse-nutanix-15.1-set"
+	category       = "opensuse"
+	workloadType   = workload-type.opensuse-nutanix-15-1
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "opensuse-nutanix-15-1" {
+	code                     = "opensuse-nutanix-15.1"
+	name                     = "Nutanix VM"
+	sortOrder                = 30
+	description              = "This will provision a single master vm in Nutanix"
+	instanceType             = "opensuse"
+	instanceVersion          = "15.1"
+	serverCount              = 1
+	portCount                = 1
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	enabled                  = true
+	creatable                = true
+	actions = [
+		{
+			code = "generic-add-node"
+		}
+	]
+	containers = [
+		workload-type-set.opensuse-nutanix-15-1-set
+	]
+	provisionType = "nutanix"
+}
+
+resource "scale-action" "opensuse-nutanix-15-1" {
+	code      = "opensuse-nutanix-15.1"
+	scaleType = "action"
+	layout    = instance-type-layout.opensuse-nutanix-15-1
+	upAction = {
+		code = "generic-add-node"
+	}
+	downAction = {
+		code = "generic-remove-node"
+	}
+}

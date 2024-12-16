@@ -1,0 +1,78 @@
+resource "workload-type" "ubuntu-nutanix-16-04" {
+	code             = "ubuntu-nutanix-16.04"
+	shortName        = "ubuntu"
+	name             = "Ubuntu 16.04"
+	ports = [22]
+	containerVersion = "16.04"
+	repositoryImage  = ""
+	entryPoint       = ""
+	serverType       = "vm"
+	statTypeCode     = "vm"
+	logTypeCode      = "ubuntu"
+	showServerLogs   = true
+	checkTypeCode    = "containerCheck"
+	category         = "ubuntu"
+	virtualImage = {
+		code = "nutanix.image.morpheus.ubuntu.16.04"
+	}
+	provisionType = "nutanix"
+	backupType    = "nutanixSnapshot"
+	containerPorts = [
+		{
+			code = "ubuntu.22"
+		}
+	]
+	actions = [
+		{
+			code = "ubuntu-remove-node"
+		}
+	]
+	commEnabled = true
+	commType    = "SSH"
+	commPort    = 22
+}
+
+resource "workload-type-set" "ubuntu-nutanix-16-04-set" {
+	code           = "ubuntu-nutanix-16.04-set"
+	category       = "ubuntu"
+	workloadType   = workload-type.ubuntu-nutanix-16-04
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "ubuntu-nutanix-16-04" {
+	code                     = "ubuntu-nutanix-16.04"
+	name                     = "Nutanix VM"
+	sortOrder                = 16
+	description              = "This will provision a single process with no redundancy"
+	instanceType             = "ubuntu"
+	instanceVersion          = "16.04"
+	serverCount              = 1
+	portCount                = 1
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	enabled                  = true
+	creatable                = true
+	containers = [
+		workload-type-set.ubuntu-nutanix-16-04-set
+	]
+	actions = [
+		{
+			code = "ubuntu-add-node"
+		}
+	]
+	provisionType = "nutanix"
+}
+
+resource "scale-action" "ubuntu-nutanix-16-04" {
+	code      = "ubuntu-nutanix-16.04"
+	scaleType = "action"
+	layout    = instance-type-layout.ubuntu-nutanix-16-04
+	upAction = {
+		code = "ubuntu-add-node"
+	}
+	downAction = {
+		code = "ubuntu-remove-node"
+	}
+}

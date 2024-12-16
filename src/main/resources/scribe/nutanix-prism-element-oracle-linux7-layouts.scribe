@@ -1,0 +1,75 @@
+resource "workload-type" "oraclelinux-nutanix-7" {
+	code             = "oraclelinux-nutanix-7"
+	shortName        = "oraclelinux"
+	name             = "Oracle Linux 7"
+	ports = []
+	containerVersion = "7"
+	repositoryImage  = ""
+	entryPoint       = ""
+	serverType       = "vm"
+	statTypeCode     = "vm"
+	logTypeCode      = "oraclelinux"
+	showServerLogs   = true
+	checkTypeCode    = null
+	category         = "oraclelinux"
+	virtualImage = {
+		code = "kvm.image.morpheus.oraclelinux.7.20241026"
+	}
+	provisionType = "nutanix"
+	backupType    = "nutanixSnapshot"
+	containerPorts = []
+	actions = [
+		{
+			code = "generic-remove-node"
+		}
+	]
+	commEnabled = true
+	commType    = "SSH"
+	commPort    = 22
+}
+
+resource "workload-type-set" "oraclelinux-nutanix-7-set" {
+	code           = "oraclelinux-nutanix-7-set"
+	category       = "oraclelinux"
+	workloadType   = workload-type.oraclelinux-nutanix-7
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "oraclelinux-nutanix-7-single" {
+	code                     = "oraclelinux-nutanix-7-single"
+	name                     = "Nutanix VM"
+	sortOrder                = 79
+	description              = "This will provision a single master vm in Open Telekom"
+	instanceType             = "oraclelinux"
+	instanceVersion          = "7"
+	serverCount              = 1
+	portCount                = 1
+	memoryRequirement = 1024 * 1024 * 1024 // 1gb
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	enabled                  = true
+	creatable                = true
+	containers = [
+		workload-type-set.oraclelinux-nutanix-7-set
+	]
+	actions = [
+		{
+			code = "generic-add-node"
+		}
+	]
+	provisionType = "nutanix"
+}
+
+resource "scale-action" "oraclelinux-nutanix-7-single" {
+	code      = "oraclelinux-nutanix-7-single"
+	scaleType = "action"
+	layout    = instance-type-layout.oraclelinux-nutanix-7-single
+	upAction = {
+		code = "generic-add-node"
+	}
+	downAction = {
+		code = "generic-remove-node"
+	}
+}

@@ -1,0 +1,92 @@
+resource "workload-type" "centos-nutanix-9-stream" {
+	code             = "centos-nutanix-9-stream"
+	shortName        = "centos"
+	name             = "CentOS 9-stream"
+	ports            = null
+	containerVersion = "9-stream"
+	repositoryImage  = ""
+	entryPoint       = ""
+	statTypeCode     = "vm"
+	logTypeCode      = "centos"
+	showServerLogs   = true
+	checkTypeCode    = null
+	category         = "centos"
+	serverType       = "vm"
+	providerType     = "nutanix"
+	virtualImage     = null
+	osType {
+		code  = "cent.9.64"
+		owner = null
+	}
+	provisionType {
+		code = "nutanix"
+	}
+	backupType = "nutanixSnapshot"
+	containerPorts = []
+	actions = [
+		{
+			code = "generic-remove-node"
+		}
+	]
+	commEnabled = true
+	commType    = "SSH"
+	commPort    = 22
+}
+
+resource "workload-type-set" "centos-nutanix-9-stream-set" {
+	code           = "centos-nutanix-9-stream-set"
+	category       = "centos"
+	workloadType   = workload-type.centos-nutanix-9-stream
+	priorityOrder  = 0
+	dynamicCount   = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "centos-nutanix-9-stream" {
+	code                     = "centos-nutanix-9-stream"
+	name                     = "Nutanix VM"
+	sortOrder                = 99
+	description              = "This will provision a single master vm in Nutanix"
+	instanceType             = "centos"
+	instanceVersion          = "9-stream"
+	serverCount              = 1
+	portCount                = 1
+	memoryRequirement = 1024 * 1024 * 1024 // 1gb
+	serverType               = "vm"
+	supportsConvertToManaged = true
+	enabled                  = true
+	creatable                = true
+	containers = [
+		workload-type-set.centos-nutanix-9-stream-set
+	]
+	actions = [
+		{
+			code = "generic-add-node"
+		}
+	]
+	provisionType = "nutanix"
+}
+
+resource "scale-action" "centos-nutanix-9-stream" {
+	code      = "centos-nutanix-9-stream"
+	scaleType = "action"
+	layout    = instance-type-layout.centos-nutanix-9-stream
+	upAction = {
+		code = "generic-add-node"
+	}
+	downAction = {
+		code = "generic-remove-node"
+	}
+}
+
+resource "os-type-image" "nutanix-morpheus-centos-9-stream" {
+	code          = "nutanix-morpheus-centos-9-stream"
+	provisionType = "nutanix"
+	virtualImage = {
+		code = "kvm.image.morpheus.centos.9-stream.20241023"
+	}
+	osType = {
+		code  = "cent.9.64"
+		owner = null
+	}
+}
