@@ -148,6 +148,18 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	Collection<OptionType> getNodeOptionTypes() {
 		Collection<OptionType> nodeOptions = []
 
+		nodeOptions << new OptionType([
+			name : 'osType',
+			code : 'nutanix-prism-element-node-os-type',
+			fieldName : 'osType.id',
+			fieldContext : 'domain',
+			fieldLabel : 'OsType',
+			inputType : OptionType.InputType.SELECT,
+			displayOrder : 11,
+			required : false,
+			optionSource : 'osTypes'
+		])
+
 		nodeOptions << new OptionType(
 			name: 'virtual image',
 			code: 'nutanix-prism-element-node-virtualImageId-type',
@@ -1309,6 +1321,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 		def prepareResponse = new PrepareHostResponse(computeServer: server, disableCloudInit: false, options: [sendIp: true])
 		ServiceResponse<PrepareHostResponse> rtn = ServiceResponse.prepare(prepareResponse)
+		if (server.sourceImage) {
+			rtn.success = true
+			return rtn
+		}
 
 		try {
 			VirtualImage virtualImage = null
