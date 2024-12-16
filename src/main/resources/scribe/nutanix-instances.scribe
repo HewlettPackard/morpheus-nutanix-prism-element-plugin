@@ -1,17 +1,17 @@
 resource "option-type" "provisionType-nutanix-imageId" {
-	category = "provisionType.nutanix"
-	code = "provisionType.nutanix.imageId"
-	displayOrder = 1
-	fieldCode = "gomorpheus.optiontype.Image",
-	fieldContext = "config"
-	fieldGroup = "Options"
-	fieldLabel = "Image"
-	fieldName = "imageId"
-	name = "image"
+	category         = "provisionType.nutanix"
+	code             = "provisionType.nutanix.imageId"
+	displayOrder     = 1
+	fieldCode        = "gomorpheus.optiontype.Image",
+	fieldContext     = "config"
+	fieldGroup       = "Options"
+	fieldLabel       = "Image"
+	fieldName        = "imageId"
+	name             = "image"
 	optionSourceType = "com.morpheusdata.nutanix.prismelement.plugin"
-	optionSource = "npeProvisionImages"
-	required = true
-	type = "select"
+	optionSource     = "npeProvisionImages"
+	required         = true
+	type             = "select"
 }
 
 resource "instance-type" "nutanix" {
@@ -67,7 +67,7 @@ resource "workload-type" "nutanix-1_0" {
 
 resource "workload-type-set" "nutanix-1_0-set" {
 	code           = "nutanix-1.0-set",
-	workloadType  = workload-type.nutanix-1_0,
+	workloadType   = workload-type.nutanix-1_0,
 	priorityOrder  = 0,
 	dynamicCount   = true,
 	containerCount = 1
