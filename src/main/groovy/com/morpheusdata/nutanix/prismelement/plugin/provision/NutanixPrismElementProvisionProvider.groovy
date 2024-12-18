@@ -38,6 +38,7 @@ import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
 import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.cloud.NutanixPrismElementCloudProvider
+import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementVirtualImageDatasetProvider
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
@@ -168,7 +169,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			fieldName: 'virtualImage.id',
 			displayOrder: 10,
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'selectNutanixImage',
+			optionSourceType: NutanixPrismElementVirtualImageDatasetProvider.PROVIDER_NAMESPACE,
+			optionSource: NutanixPrismElementVirtualImageDatasetProvider.PROVIDER_KEY,
 		)
 
 		nodeOptions << new OptionType(
