@@ -51,7 +51,7 @@ class NutanixPrismElementPlugin extends Plugin {
 	 */
 	@Override
 	void initialize() {
-		this.setName("Nutanix Prism Element Plugin")
+		this.setName("Nutanix Prism Element")
 
 		cloudProvider = new NutanixPrismElementCloudProvider(this, this.morpheus)
 		def imageStoreDatasetProvider = new NutanixPrismElementImageStoreDatasetProvider(this, this.morpheus)
