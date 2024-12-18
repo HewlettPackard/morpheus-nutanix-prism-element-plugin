@@ -540,7 +540,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			//groupUuid
 			def body = [
 				name       : imageName,
-				imageType  : 'DISK_IMAGE',
+				image_type  : 'DISK_IMAGE',
 				vm_disk_clone: [
 					container_uuid  : containerId,
 					snapshot_group_id: snapshotInfo.group_uuid,
@@ -736,9 +736,9 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 			def maxMemory = opts.maxMemory.div(ComputeUtility.ONE_MEGABYTE)
 			// In the nutanix api vcpu == socket b/c one vcpu per socket
 			def maxVcpus = ((opts.maxCores ?: 1) / (opts.coresPerSocket ?: 1)).toLong()
-			def body = [memoryMb       : maxMemory,
-						numVcpus       : maxVcpus,
-						numCoresPerVcpu: (opts.coresPerSocket ?: 1)
+			def body = [memory_mb       : maxMemory,
+						num_vcpus       : maxVcpus,
+						num_cores_per_vcpu: (opts.coresPerSocket ?: 1)
 			]
 			log.info("resize server body: ${body}")
 			def headers = buildHeaders(null, username.toString(), password.toString())
@@ -1156,7 +1156,7 @@ static getTask(HttpApiClient client, Cloud cloud, taskId) {
 				def headers = buildHeaders(null, username, password)
 				def body = [
 					transition: "OFF",
-					logicalTimestamp: (opts.timestamp ?: 1)
+					vm_logical_timestamp: (opts.timestamp ?: 1)
 				]
 				def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
 				def results = client.callJsonApi(apiUrl, v2Api + 'vms/' + serverId + '/set_power_state', null, null, requestOpts, 'POST')
