@@ -23,7 +23,6 @@ import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.*
 import com.morpheusdata.model.*
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementSyncUtility
 import groovy.util.logging.Slf4j
@@ -59,9 +58,8 @@ class VirtualMachinesSync {
 	void execute() {
 		log.info("Executing Virtual Machine sync for cloud ${cloud.name}")
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
-			def listConfig = [:]
-			def listResults = NutanixPrismElementApiService.listVirtualMachinesV2(client, authConfig, listConfig)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def listResults = NutanixPrismElementApiService.listVirtualMachinesV2(client, reqConfig)
 			if (listResults.success == true) {
 				def systemNetworks = morpheusContext.services.network.list(new DataQuery()
 					.withFilter('refType', 'ComputeZone')

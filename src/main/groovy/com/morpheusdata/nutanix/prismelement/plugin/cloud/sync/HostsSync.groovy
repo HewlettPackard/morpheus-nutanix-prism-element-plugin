@@ -25,7 +25,6 @@ import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.*
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import groovy.util.logging.Slf4j
 
@@ -46,8 +45,8 @@ class HostsSync {
 
 	def execute() {
 		log.info("Executing hosts sync for cloud ${cloud.name}")
-		def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
-		def listResults = NutanixPrismElementApiService.listHosts(client, authConfig)
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+		def listResults = NutanixPrismElementApiService.listHosts(client, reqConfig)
 		log.debug("$listResults")
 		if (listResults.success == true) {
 			def objList = listResults.results

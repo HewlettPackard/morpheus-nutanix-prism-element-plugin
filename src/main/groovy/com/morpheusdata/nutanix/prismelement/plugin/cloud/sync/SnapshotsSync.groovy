@@ -27,7 +27,6 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.Snapshot
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import groovy.util.logging.Slf4j
 
@@ -49,9 +48,8 @@ class SnapshotsSync {
 	void execute() {
 		log.info("Executing Snapshot sync for cloud ${cloud.name}")
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
-			def listConfig = [:]
-			def listResults = NutanixPrismElementApiService.listSnapshotsV2(client, authConfig, listConfig)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def listResults = NutanixPrismElementApiService.listSnapshotsV2(client, reqConfig)
 			if (listResults.success == true) {
 				def objList = listResults.snapshots
 				def existingItems = morpheusContext.async.snapshot.list(new DataQuery().withFilter('cloud.id', cloud.id))

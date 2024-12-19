@@ -36,9 +36,9 @@ import com.morpheusdata.model.provisioning.HostRequest
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.cloud.NutanixPrismElementCloudProvider
 import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementVirtualImageDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.utils.RequestConfig
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
@@ -289,6 +289,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	Collection<ServicePlan> getServicePlans() {
 		Collection<ServicePlan> plans = []
 		// TODO: create some service plans (sizing like cpus, memory, etc) and add to collection
+		// TODOOOO
 		return plans
 	}
 
@@ -332,6 +333,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		try {
 			def server = workload.server
 			def cloud = workload.server.cloud
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 
 			server.setConfigProperty('osUsername', workload.getConfigProperty('nutanixUsr'))
 			server.setConfigProperty('osPassword', workload.getConfigProperty('nutanixPwd'))
@@ -341,14 +343,13 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			Map createOpts = buildWorkloadCreateVmOpts(cloud, server, workload, workloadRequest, opts)
 
 			// ensure image is uploaded
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
-			def imageId = getOrUploadImage(client, authConfig, cloud, workload.server.sourceImage, workload.instance.createdBy, createOpts.containerId)
+			def imageId = getOrUploadImage(client, reqConfig, cloud, workload.server.sourceImage, workload.instance.createdBy, createOpts.containerId)
 			if (!imageId) {
 				return ServiceResponse.error("No image file found for virtual image ${server.sourceImage?.id}:${server.sourceImage?.name}")
 			}
 			createOpts.imageId = imageId
 
-			def result = runVm(client, server, null, workloadRequest, createOpts)
+			def result = runVm(client, reqConfig, server, null, workloadRequest, createOpts)
 			provisionResponse.success = result.success
 			if (result.createUsers) {
 				provisionResponse.createUsers = result.createUsers
@@ -380,7 +381,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		return networkProxy
 	}
 
-	private String getOrUploadImage(HttpApiClient client, Map authConfig, Cloud cloud, VirtualImage virtualImage, User createdBy, String datastoreId) {
+	private String getOrUploadImage(HttpApiClient client, RequestConfig reqConfig, Cloud cloud, VirtualImage virtualImage, User createdBy, String datastoreId) {
 		def imageExternalId = null
 		def lockId = null
 		def location = null
@@ -408,14 +409,14 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 				// validate it exists in nutanix
 				if (imageExternalId) {
-					imageExternalId = NutanixPrismElementApiService.checkImageId(client, [zone: cloud], imageExternalId)
+					imageExternalId = NutanixPrismElementApiService.checkImageId(client, reqConfig, imageExternalId)
 				}
 			}
 
 			// Either we don't have a location or it's not uploaded to nutanix.
 			// Check if nutanix has the image already. If so, make a location for it
 			if (!imageExternalId && virtualImage.systemImage || virtualImage.userUploaded) {
-				def imageList = NutanixPrismElementApiService.listImages(client, authConfig)
+				def imageList = NutanixPrismElementApiService.listImages(client, reqConfig)
 				if (imageList.success) {
 					def existingImage = imageList.data.find { it.status?.name == virtualImage.name }
 					if (existingImage) {
@@ -454,9 +455,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 					imageFile    : imageFile,
 					imageUrl     : copyUrl]
 
-				def imageResults = NutanixPrismElementApiService.insertContainerImage(client,
-					[zone       : cloud,
-					 containerId: datastoreId,
+				def imageResults = NutanixPrismElementApiService.insertContainerImage(client, reqConfig,
+					[containerId: datastoreId,
 					 image      : containerImage,
 					])
 
@@ -488,6 +488,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 	private Map runVm(
 		HttpApiClient client,
+		RequestConfig reqConfig,
 		ComputeServer server,
 		HostRequest hostRequest,
 		WorkloadRequest workloadRequest,
@@ -509,8 +510,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 					def cloudFileDiskName = 'morpheus_' + server.id + '.iso'
 					cloudFileResults = NutanixPrismElementApiService.insertContainerImage(
 						client,
+						reqConfig,
 						[
-							zone       : server.cloud,
 							containerId: createOpts.containerId,
 							image      : [
 								name     : cloudFileDiskName,
@@ -533,11 +534,11 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 		//create it
 		if (cloudFileResults.success == true) {
-			rtn.success = createAndStartVM(client, server.cloud, server, createOpts)
+			rtn.success = createAndStartVM(client, reqConfig, server, createOpts)
 
 			// if we created a cloudinit iso as part of provisioning, clean it up
 			if (cloudFileResults.imageId) {
-				NutanixPrismElementApiService.deleteImage(client, [zone: server.cloud], cloudFileResults.imageId)
+				NutanixPrismElementApiService.deleteImage(client, reqConfig, cloudFileResults.imageId)
 			}
 		} else {
 			log.warn("error on cloud config: ${cloudFileResults}")
@@ -547,7 +548,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 		if (cloudFileResults.imageId) {
 			//ok - done - delete cloud disk
-			NutanixPrismElementApiService.deleteImage(client, [zone: server.cloud], cloudFileResults.imageId)
+			NutanixPrismElementApiService.deleteImage(client, reqConfig, cloudFileResults.imageId)
 		}
 
 		return rtn
@@ -639,18 +640,20 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		return rtn
 	}
 
-	private boolean createAndStartVM(HttpApiClient client, Cloud cloud, ComputeServer server, Map createOpts) {
+	private boolean createAndStartVM(HttpApiClient client, RequestConfig reqConfig, ComputeServer server, Map createOpts) {
 		log.debug("create server")
+
 		def createResults
 		if (createOpts.snapshotId) {
 			//cloning off a snapshot
-			createResults = NutanixPrismElementApiService.cloneServer(client, createOpts)
+			createResults = NutanixPrismElementApiService.cloneServer(client, reqConfig, createOpts)
 		} else {
 			//creating off an image
-			createResults = findOrCreateServer(client, server, createOpts)
+			createResults = findOrCreateServer(client, reqConfig, server, createOpts)
 		}
 
 		if (!createResults.success || !createResults.results?.uuid) {
+			log.error("failed to create server: ${createResults}")
 			server.statusMessage = 'Failed to create server'
 			saveAndGet(morpheusContext, server)
 			return false
@@ -661,34 +664,37 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		server.powerState = ComputeServer.PowerState.on
 		server = saveAndGet(morpheusContext, server)
 
-		def loadVmResults = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: cloud], server.externalId)
+		def loadVmResults = NutanixPrismElementApiService.loadVirtualMachine(client, reqConfig, server.externalId)
 		def startResults = NutanixPrismElementApiService.startVm(
 			client,
-			[zone: cloud, timestamp: loadVmResults?.results?.vm_logical_timestamp],
+			reqConfig,
+			[timestamp: loadVmResults?.results?.vm_logical_timestamp],
 			server.externalId
 		)
 		if (!startResults.success) {
+			log.error("failed to start server: ${startResults}")
 			server.statusMessage = 'Failed to start server'
 			saveAndGet(morpheusContext, server)
 			return false
 		}
 
 		log.debug("start: ${startResults.success}")
-		def serverDetail = NutanixPrismElementApiService.checkServerReady(client, [zone: cloud], server.externalId)
+		def serverDetail = NutanixPrismElementApiService.checkServerReady(client, reqConfig, server.externalId)
 		if (serverDetail.success == true) {
 			return true
 		} else {
+			log.error("failed to load server details: ${serverDetail}")
 			server.statusMessage = 'Failed to load server details'
 			saveAndGet(morpheusContext, server)
 			return false
 		}
 	}
 
-	static def findOrCreateServer(HttpApiClient client, ComputeServer server, Map opts) {
+	static def findOrCreateServer(HttpApiClient client, RequestConfig reqConfig, ComputeServer server, Map opts) {
 		def rtn = [success: false]
 		def found = false
 		if (server.externalId) {
-			def serverDetail = NutanixPrismElementApiService.loadVirtualMachine(client, [zone: server.cloud], server.externalId)
+			def serverDetail = NutanixPrismElementApiService.loadVirtualMachine(client, reqConfig, server.externalId)
 			if (serverDetail.success == true && serverDetail.results.power_state == 'on') {
 				found = true
 				rtn.success = true
@@ -699,7 +705,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		if (found == true) {
 			return rtn
 		} else {
-			return NutanixPrismElementApiService.createServer(client, opts)
+			return NutanixPrismElementApiService.createServer(client, reqConfig, opts)
 		}
 	}
 
@@ -716,20 +722,21 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		try {
 			ComputeServer server = workload.server
 			Cloud cloud = server.cloud
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 
 			if(server.sourceImage?.isCloudInit || (server.sourceImage?.isSysprep && !server.sourceImage?.isForceCustomization)) {
-				def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, server.externalId)?.disks
+				def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, reqConfig, server.externalId)?.disks
 				vmDisks.each { vmDisk ->
 					if(vmDisk.is_cdrom) {
-						NutanixPrismElementApiService.ejectDisk(client, [zone:cloud], server.externalId, vmDisk.id)
+						NutanixPrismElementApiService.ejectDisk(client, reqConfig, server.externalId, vmDisk.id)
 					}
 				}
 			}
 
-			def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, server.externalId)?.disks
+			def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, reqConfig, server.externalId)?.disks
 			updateVolumes(server, vmDisks)
 
-			def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, cloud, server.externalId)?.nics
+			def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, reqConfig, server.externalId)?.nics
 			updateNics(server, vmNics)
 		} catch (e) {
 			rtn.success = false
@@ -782,8 +789,9 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	ServiceResponse stopWorkload(Workload workload) {
 		HttpApiClient client = new HttpApiClient()
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, workload.server.cloud)
 		try {
-			return NutanixPrismElementComputeUtility.doStop(client, workload.server, workload.server.cloud, "stopWorkload")
+			return NutanixPrismElementComputeUtility.doStop(client, reqConfig, workload.server, workload.server.cloud, "stopWorkload")
 		} finally {
 			client.shutdownClient()
 		}
@@ -795,8 +803,9 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	ServiceResponse startWorkload(Workload workload) {
 		HttpApiClient client = new HttpApiClient()
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, workload.server.cloud)
 		try {
-			return NutanixPrismElementComputeUtility.doStart(client, workload.server, workload.server.cloud, "startWorkload")
+			return NutanixPrismElementComputeUtility.doStart(client, reqConfig, workload.server, "startWorkload")
 		} finally {
 			client.shutdownClient()
 		}
@@ -829,9 +838,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			externalId   : workload.server.externalId
 		]
 
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 		HttpApiClient client = new HttpApiClient()
 		try {
-			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, vmOpts, vmOpts.externalId)
+			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, reqConfig, vmOpts.externalId)
 			if (vmResults?.results?.vm_logical_timestamp)
 				vmOpts.timestamp = vmResults?.results?.vm_logical_timestamp
 			def stopResults = stopServer(workload.server)
@@ -842,10 +852,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			if (!opts.keepBackups) {
 				List<SnapshotIdentityProjection> snapshots = workload.server.snapshots
 				snapshots?.each { snap ->
-					NutanixPrismElementApiService.deleteSnapshot(client, vmOpts, snap.externalId)
+					NutanixPrismElementApiService.deleteSnapshot(client, reqConfig, snap.externalId)
 				}
 			}
-			def removeResults = NutanixPrismElementApiService.deleteServer(client, vmOpts, vmOpts.externalId)
+			def removeResults = NutanixPrismElementApiService.deleteServer(client, reqConfig, vmOpts.externalId)
 			log.debug("remove results: ${removeResults}")
 			if (removeResults.success == true) {
 				rtn.success = true
@@ -872,8 +882,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			Cloud cloud = server.cloud
 			HttpApiClient client = new HttpApiClient()
 			client.networkProxy = cloud.apiProxy
+
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 			try {
-				Map serverDetails = NutanixPrismElementApiService.checkServerReady(client, [zone: cloud], serverUuid)
+				Map serverDetails = NutanixPrismElementApiService.checkServerReady(client, reqConfig, serverUuid)
 				if (serverDetails.success && serverDetails.ipAddresses) {
 					rtn.externalId = serverUuid
 					rtn.success = serverDetails.success
@@ -906,8 +918,9 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	ServiceResponse stopServer(ComputeServer computeServer) {
 		HttpApiClient client = new HttpApiClient()
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, computeServer.cloud)
 		try {
-			return NutanixPrismElementComputeUtility.doStop(client, computeServer, computeServer.cloud, "stopServer")
+			return NutanixPrismElementComputeUtility.doStop(client, reqConfig, computeServer, "stopServer")
 		} finally {
 			client.shutdownClient()
 		}
@@ -919,8 +932,9 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	ServiceResponse startServer(ComputeServer computeServer) {
 		HttpApiClient client = new HttpApiClient()
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, computeServer.cloud)
 		try {
-			return NutanixPrismElementComputeUtility.doStart(client, computeServer, computeServer.cloud, "startServer")
+			return NutanixPrismElementComputeUtility.doStart(client, reqConfig, computeServer, "startServer")
 		} finally {
 			client.shutdownClient()
 		}
@@ -1022,14 +1036,15 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	}
 
 	static ServiceResponse resizeCompute(MorpheusContext context, HttpApiClient client, ComputeServer server, ResizeRequest resizeRequest) {
+
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(context, server.cloud)
 		def resizeOpts = [
 			coresPerSocket: resizeRequest.coresPerSocket,
 			maxCores: resizeRequest.maxCores,
 			maxMemory: resizeRequest.maxMemory,
 			serverId: server.externalId,
-			zone: server.cloud,
 		]
-		def resizeResults = NutanixPrismElementApiService.updateServer(client, resizeOpts)
+		def resizeResults = NutanixPrismElementApiService.updateServer(client, reqConfig, resizeOpts)
 		if (resizeResults.success) {
 			def computeServer = context.services.computeServer.get(server.id)
 			computeServer.coresPerSocket = resizeRequest.coresPerSocket
@@ -1045,8 +1060,9 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	ServiceResponse resizeDisks(HttpApiClient client, ComputeServer server, ResizeRequest resizeRequest) {
 		ServiceResponse rtn = ServiceResponse.success()
 		def cloud = server.cloud
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 		def vmId = server.externalId
-		def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, vmId)?.disks
+		def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, reqConfig, vmId)?.disks
 		resizeRequest.volumesUpdate.each { it ->
 			def existingVolume = it.existingModel
 			Map updateProps = it.updateProps
@@ -1062,10 +1078,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			def size = updateProps.size?.toInteger() * ComputeUtility.ONE_GIGABYTE
 			def diskId = existingVolume.externalId
 			def diskToResize = vmDisks.find{ it.disk_address.vmdisk_uuid == diskId }
-			def resizeResults = NutanixPrismElementApiService.resizeDisk(client, cloud, vmId, diskToResize, size)
+			def resizeResults = NutanixPrismElementApiService.resizeDisk(client, reqConfig, vmId, diskToResize, size)
 			if(resizeResults.success == true) {
 				//get new disk ID
-				vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, vmId)?.disks
+				vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, reqConfig, vmId)?.disks
 				def resizedDisk = vmDisks.find{ it.disk_address.vmdisk_uuid == diskId }.disk_address
 				existingVolume.externalId = resizedDisk.vmdisk_uuid
 				existingVolume.maxStorage = updateProps.maxStorage as Long
@@ -1088,7 +1104,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			}
 			def sizeGb = it.size?.toInteger()
 			def busType = morpheusContext.services.storageVolume.storageVolumeType.get(it?.storageType?.toLong())?.code?.replace('nutanix-','')
-			def diskResults = NutanixPrismElementApiService.addDisk(client, addOpts, vmId, sizeGb, busType)
+			def diskResults = NutanixPrismElementApiService.addDisk(client, reqConfig, addOpts, vmId, sizeGb, busType)
 			log.debug("create disk success: ${diskResults.success}")
 			if(!diskResults.success) {
 				rtn.error = "Error in creating the: ${diskResults}"
@@ -1101,7 +1117,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			Boolean found = false
 			def existingDisks = vmDisks
 
-			vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, cloud, vmId)?.disks
+			vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, reqConfig, vmId)?.disks
 			vmDisks.each { vmDisk ->
 				def existingDisk = existingDisks.find{it.disk_address.vmdisk_uuid == vmDisk.disk_address.vmdisk_uuid}
 				if(!existingDisk) {
@@ -1125,7 +1141,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		resizeRequest.volumesDelete.each { volume ->
 			log.info("Deleting volume: ${volume}, id: ${volume.externalId}")
 			def delDisk = vmDisks.find({ it.disk_address.vmdisk_uuid == volume.externalId })
-			def deleteDiskResults = NutanixPrismElementApiService.deleteDisk(client, cloud, vmId, delDisk)
+			def deleteDiskResults = NutanixPrismElementApiService.deleteDisk(client, reqConfig, vmId, delDisk)
 			log.info("Delete Disk Results: ${deleteDiskResults}")
 			def storageVolume = morpheusContext.services.storageVolume.get(volume.id)
 			def computeServer = morpheusContext.services.computeServer.get(server.id)
@@ -1145,8 +1161,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		if(!resizeRequest.interfacesAdd && !resizeRequest.interfacesDelete) {
 			return ServiceResponse.success()
 		}
+
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, server.cloud)
 		def vmId = server.externalId
-		def existingNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, vmId)?.nics
+		def existingNics = NutanixPrismElementApiService.getVirtualMachineNics(client, reqConfig, vmId)?.nics
 		def computeServer = morpheusContext.services.computeServer.get(server.id)
 		resizeRequest.interfacesAdd?.each { newInterfaceOpts ->
 			log.info("adding network: ${newInterfaceOpts}")
@@ -1157,15 +1175,14 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			}
 
 			def networkConfig = [
-				zone:server.cloud,
 				networkUuid:targetNetwork.uniqueId,
 				ipAddress:newInterfaceOpts.ipAddress
 			]
-			def networkResults = NutanixPrismElementApiService.addNic(client, networkConfig, server.externalId)
+			def networkResults = NutanixPrismElementApiService.addNic(client, reqConfig, networkConfig, server.externalId)
 			log.info("network results: ${networkResults}")
 			if(networkResults.success == true) {
 				def newInterface = NutanixPrismElementSyncUtility.buildComputeServerInterface(morpheusContext, computeServer, newInterfaceOpts.network)
-				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, server.cloud, server.externalId)?.nics
+				def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, reqConfig, server.externalId)?.nics
 				vmNics.each { vmNic ->
 					def existingNic = existingNics.find{it.mac_address == vmNic.mac_address}
 					if(!existingNic) {
@@ -1179,8 +1196,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			}
 		}
 		resizeRequest.interfacesDelete?.eachWithIndex { networkDelete, index ->
-			def deleteConfig = [zone:server.cloud, macAddress: networkDelete.macAddress]
-			def deleteResults = NutanixPrismElementApiService.deleteNic(client, deleteConfig, server.externalId, networkDelete.externalId)
+			def deleteConfig = [macAddress: networkDelete.macAddress]
+			def deleteResults = NutanixPrismElementApiService.deleteNic(client, reqConfig, deleteConfig, server.externalId, networkDelete.externalId)
 			log.debug("deleteResults: ${deleteResults}")
 			if(deleteResults.success == true) {
 				def networkInterface = morpheusContext.services.computeServer.computeServerInterface.get(networkDelete.id)
@@ -1381,14 +1398,14 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			def createOpts = buildHostCreateVmOpts(server.cloud, server, hostRequest)
 
 			// ensure image is uploaded
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, server.cloud)
-			def imageId = getOrUploadImage(client, authConfig, server.cloud, server.sourceImage, server.createdBy, createOpts.containerId)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, server.cloud)
+			def imageId = getOrUploadImage(client, reqConfig, server.cloud, server.sourceImage, server.createdBy, createOpts.containerId)
 			if (!imageId) {
 				return ServiceResponse.error("No image file found for virtual image ${server.sourceImage?.id}:${server.sourceImage?.name}")
 			}
 			createOpts.imageId = imageId
 
-			def result = runVm(client, server, hostRequest, null, createOpts)
+			def result = runVm(client, reqConfig, server, hostRequest, null, createOpts)
 			provisionResponse.success = result.success
 			if (result.createUsers) {
 				provisionResponse.createUsers = result.createUsers
@@ -1468,22 +1485,21 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = server.cloud.apiProxy
-
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, server.cloud)
 		try {
 			def snapshotName = opts.snapshotName ?: "${server.name}.${System.currentTimeMillis()}"
 			def snapshotOpts = [
-				zone: server.cloud,
 				vmId: server.externalId,
 				snapshotName: snapshotName
 			]
 
-			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, snapshotOpts)
+			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, reqConfig, snapshotOpts)
 			def taskId = snapshotResults?.results?.taskUuid
 			if (!snapshotResults.success || !taskId) {
 				return ServiceResponse.error("Failed to create snapshot", null, snapshotResults)
 			}
 
-			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, taskId)
+			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, reqConfig, taskId)
 			if (!taskResults.success) {
 				return ServiceResponse.error("Error waiting for create snapshot task to complete")
 			}
@@ -1542,8 +1558,9 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = snapshot.cloud.apiProxy
 
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, snapshot.cloud)
 		try {
-			def resp = NutanixPrismElementApiService.deleteSnapshot(client, [zone: snapshot.cloud], snapshot.externalId)
+			def resp = NutanixPrismElementApiService.deleteSnapshot(client, reqConfig, snapshot.externalId)
 			if (!resp.success) {
 				return ServiceResponse.error("Failed to delete snapshot: ${resp.error}")
 			}
@@ -1565,14 +1582,15 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = server.cloud.apiProxy
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, server.cloud)
 
 		try {
-			def resp = NutanixPrismElementApiService.restoreSnapshot(client, [zone: server.cloud, vmId: server.externalId, snapshotId: snapshot.externalId])
+			def resp = NutanixPrismElementApiService.restoreSnapshot(client, reqConfig, [vmId: server.externalId, snapshotId: snapshot.externalId])
 			if (!resp.success) {
 				return ServiceResponse.error(resp.msg as String)
 			}
 
-			resp = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, resp.results?.task_uuid)
+			resp = NutanixPrismElementApiService.checkTaskReady(client, reqConfig, resp.results?.task_uuid)
 			if (!resp.success) {
 				return ServiceResponse.error("Error waiting for revert snapshot task to complete")
 			}
@@ -1609,7 +1627,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = server.cloud.apiProxy
 
-		def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, server.cloud)
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, server.cloud)
 		try {
 
 			def snapshotName = "${workload.instance.name}.${workload.id}.${System.currentTimeMillis()}".toString()
@@ -1621,17 +1639,16 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			}
 
 			def snapshotOpts = [
-				zone        : server.cloud,
 				vmId        : server.externalId,
 				snapshotName: snapshotName
 			]
-			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, snapshotOpts)
+			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, reqConfig, snapshotOpts)
 			if (!snapshotResults.success) {
 				rtn.msg = 'clone failed'
 				return rtn
 			}
 
-			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, snapshotResults.results.taskUuid)
+			def taskResults = NutanixPrismElementApiService.checkTaskReady(client, reqConfig, snapshotResults.results.taskUuid)
 			if (!taskResults.success || taskResults.error) {
 				rtn.msg = 'clone failed'
 				return rtn
@@ -1644,14 +1661,14 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				name: opts.templateName,
 				containerId: server.cloud.getConfigProperty('imageStoreId')
 			]
-			def cloneResults = NutanixPrismElementApiService.cloneVmToImage(client, authConfig, cloneConfig)
+			def cloneResults = NutanixPrismElementApiService.cloneVmToImage(client, reqConfig, cloneConfig)
 			log.debug("cloneResults: ${cloneResults}")
 			if (!cloneResults.success) {
 				rtn.msg = 'clone failed'
 				return rtn
 			}
 
-			def cloneTaskResults = NutanixPrismElementApiService.checkTaskReady(client, server.cloud, cloneResults.taskUuid)
+			def cloneTaskResults = NutanixPrismElementApiService.checkTaskReady(client, reqConfig, cloneResults.taskUuid)
 			log.debug("cloneTaskResults: ${cloneTaskResults}")
 			if (!cloneTaskResults.success || cloneTaskResults.error) {
 				rtn.msg = 'clone failed'
@@ -1660,7 +1677,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 			//get the image id - create the image
 			def imageId = cloneTaskResults.results.entity_list[0].entity_id
-			def imageResults = NutanixPrismElementApiService.loadImage(client, [zone: server.cloud], imageId)
+			def imageResults = NutanixPrismElementApiService.loadImage(client, reqConfig, imageId)
 			log.debug("imageResults: ${imageResults}")
 			if (imageResults.success && imageResults?.image) {
 				def vmDiskId = imageResults.image.vm_disk_id
@@ -1707,7 +1724,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				morpheusContext.async.virtualImage.create(imageToSave, server.cloud).blockingGet()
 			}
 			//remove the snapshot
-			def removeResult = NutanixPrismElementApiService.deleteSnapshot(client, [zone: server.cloud], snapshotEntity.entity_id)
+			def removeResult = NutanixPrismElementApiService.deleteSnapshot(client, reqConfig, snapshotEntity.entity_id)
 			if (!removeResult.success) {
 				log.error("Failed to remove snapshot: ${removeResult}")
 			}

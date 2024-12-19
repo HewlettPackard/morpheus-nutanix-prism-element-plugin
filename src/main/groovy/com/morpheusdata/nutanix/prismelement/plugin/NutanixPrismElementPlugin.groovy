@@ -18,12 +18,10 @@
 
 package com.morpheusdata.nutanix.prismelement.plugin
 
-import com.morpheusdata.core.MorpheusContext
+
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
-import com.morpheusdata.model.AccountCredential
-import com.morpheusdata.model.Cloud
 import com.morpheusdata.nutanix.prismelement.plugin.backup.NutanixPrismElementBackupProvider
 import com.morpheusdata.nutanix.prismelement.plugin.cloud.NutanixPrismElementCloudProvider
 import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementImageStoreDatasetProvider
@@ -83,33 +81,5 @@ class NutanixPrismElementPlugin extends Plugin {
 			"application.ProvisionTypeNutanixSeed",
 		]
 		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
-	}
-
-	static getAuthConfig(MorpheusContext morpheusContext, Cloud cloud) {
-		if (!cloud.accountCredentialLoaded) {
-			AccountCredential accountCredential
-			try {
-				accountCredential = morpheusContext.async.cloud.loadCredentials(cloud.id).blockingGet()
-				cloud.accountCredentialLoaded = true
-				cloud.accountCredentialData = accountCredential?.data
-			} catch (e) {
-			}
-		}
-
-		def config = [
-			apiUrl: (cloud.serviceUrl ?: cloud.configMap.apiUrl),
-		]
-		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('username')) {
-			config.username = cloud.accountCredentialData['username']
-		} else {
-			config.username = cloud.serviceUsername ?: cloud.configMap.username
-		}
-		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('password')) {
-			config.password = cloud.accountCredentialData['password']
-		} else {
-			config.password = cloud.servicePassword ?: cloud.configMap.password
-		}
-
-		return config
 	}
 }

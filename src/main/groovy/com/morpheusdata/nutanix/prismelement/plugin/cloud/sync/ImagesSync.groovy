@@ -13,7 +13,6 @@ import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.VirtualImageLocation
 import com.morpheusdata.model.projection.VirtualImageIdentityProjection
 import com.morpheusdata.model.projection.VirtualImageLocationIdentityProjection
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import groovy.util.logging.Slf4j
 
@@ -39,8 +38,8 @@ class ImagesSync {
 		log.info("Executing image sync for cloud $cloud.name")
 
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
-			def listResults = NutanixPrismElementApiService.listImages(client, authConfig)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def listResults = NutanixPrismElementApiService.listImages(client, reqConfig)
 			if (listResults.success == true) {
 				//ignore isos for now
 				def cloudImages = listResults?.images?.findAll { it.imageType != 'iso' }

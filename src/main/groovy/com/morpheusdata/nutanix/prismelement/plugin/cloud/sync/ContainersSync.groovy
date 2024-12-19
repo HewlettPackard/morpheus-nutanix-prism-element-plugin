@@ -25,7 +25,6 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.Datastore
 import com.morpheusdata.model.projection.DatastoreIdentity
-import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import groovy.util.logging.Slf4j
 
@@ -47,8 +46,8 @@ class ContainersSync {
 	def execute() {
 		log.info("Executing container sync for cloud ${cloud.name}")
 		try {
-			def authConfig = NutanixPrismElementPlugin.getAuthConfig(morpheusContext, cloud)
-			def listResults = NutanixPrismElementApiService.listContainers(client, authConfig)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def listResults = NutanixPrismElementApiService.listContainers(client, reqConfig)
 			if (listResults.success == true) {
 				def objList = listResults?.containers?.findAll {
 					it.name?.toLowerCase() != 'nutanixmanagementshare'

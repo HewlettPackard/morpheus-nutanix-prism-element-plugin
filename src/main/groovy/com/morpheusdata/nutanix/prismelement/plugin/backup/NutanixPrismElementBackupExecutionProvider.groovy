@@ -99,8 +99,9 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 
 			def cloud = morpheusContext.services.cloud.get(cloudId)
 			client.networkProxy = cloud.apiProxy
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 
-			def result = NutanixPrismElementApiService.deleteSnapshot(client, [zone: cloud], snapshotId)
+			def result = NutanixPrismElementApiService.deleteSnapshot(client, reqConfig, snapshotId)
 			rtn.success = result.success
 		} catch(e) {
 			log.error("error deleting backup: ${e.message}", e)
@@ -145,6 +146,7 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = cloud.apiProxy
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 
 		try {
 			// Clean out vm unique markers before taking a snapshot
@@ -158,11 +160,10 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 			def workload = morpheusContext.services.workload.get(backup.containerId)
 			def snapshotName = "${workload.instance.name}.${workload.id}.${System.currentTimeMillis()}".toString()
 			def snapshotOpts = [
-				zone: cloud,
 				vmId: server.externalId,
 				snapshotName: snapshotName
 			]
-			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, snapshotOpts)
+			def snapshotResults = NutanixPrismElementApiService.createSnapshot(client, reqConfig, snapshotOpts)
 			def taskId = snapshotResults?.results?.taskUuid
 			if (snapshotResults.success && taskId) {
 				rtn.success = true
@@ -222,8 +223,9 @@ class NutanixPrismElementBackupExecutionProvider implements BackupExecutionProvi
 
 			client.networkProxy = cloud.apiProxy
 			def server = morpheusContext.services.computeServer.get(serverId)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 
-			def taskResults = NutanixPrismElementApiService.getTask(client, cloud, backupResult.getConfigMap().taskId)
+			def taskResults = NutanixPrismElementApiService.getTask(client, reqConfig, backupResult.getConfigMap().taskId)
 			if(taskResults.success == true && taskResults.results.percentage_complete == 100) {
 				def results = taskResults.results
 				if(results.progress_status == 'Succeeded') {

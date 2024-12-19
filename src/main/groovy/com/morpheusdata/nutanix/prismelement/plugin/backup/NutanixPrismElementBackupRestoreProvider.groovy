@@ -108,7 +108,9 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 			client.networkProxy = cloud.apiProxy
 
 			def server = morpheusContext.services.computeServer.get(serverId)
-			def resp = NutanixPrismElementApiService.restoreSnapshot(client, [zone: cloud, vmId: server.externalId, snapshotId:backupRestore.externalId])
+
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def resp = NutanixPrismElementApiService.restoreSnapshot(client, reqConfig, [vmId: server.externalId, snapshotId:backupRestore.externalId])
 			if (!resp.success) {
 				rtn.data.backupRestore.status = BackupResult.Status.FAILED
 				rtn.data.backupRestore.errorMessage = resp?.msg
@@ -158,7 +160,8 @@ class NutanixPrismElementBackupRestoreProvider implements BackupRestoreProvider 
 			// now that we've got our cloud, set the proxy
 			client.networkProxy = cloud.apiProxy
 
-			def taskResults = NutanixPrismElementApiService.getTask(client, [zone: cloud], backupRestore.externalId)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def taskResults = NutanixPrismElementApiService.getTask(client, reqConfig, backupRestore.externalId)
 			if(taskResults.success == true && taskResults.results.percentage_complete == 100) {
 				def results = taskResults.results
 				if(results.progress_status == 'Succeeded') {

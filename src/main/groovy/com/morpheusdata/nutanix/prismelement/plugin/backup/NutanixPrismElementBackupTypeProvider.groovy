@@ -153,7 +153,7 @@ class NutanixPrismElementBackupTypeProvider extends AbstractBackupTypeProvider {
 	 * {@inheritDoc}
 	 */
 	@Override
-	ServiceResponse refresh(Map authConfig, BackupProvider backupProvider) {
+	ServiceResponse refresh(Map reqConfig, BackupProvider backupProvider) {
 		return ServiceResponse.success()
 	}
 

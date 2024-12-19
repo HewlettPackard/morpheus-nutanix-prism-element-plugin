@@ -25,12 +25,14 @@ class NetworkSync {
 		log.info("Executing network sync for cloud $cloud.name")
 
 		try {
+
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
 			def codes = ['nutanixVlan', 'nutanixManagedVlan']
 			def networkTypes = morpheusContext.services.network.type.list(new DataQuery().withFilter('code', 'in', codes))
 			networkTypes?.each {
 				log.debug("networkType: ${it.externalType} ${it.code}")
 			}
-			def listResults = NutanixPrismElementApiService.listNetworks(client, [zone: cloud])
+			def listResults = NutanixPrismElementApiService.listNetworks(client, reqConfig)
 			log.debug("networks: ${listResults}")
 
 			if (listResults.success) {

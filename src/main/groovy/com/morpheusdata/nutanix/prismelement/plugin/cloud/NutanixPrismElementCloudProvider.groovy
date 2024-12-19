@@ -38,6 +38,7 @@ import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.VirtualMachinesSy
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
+import com.morpheusdata.nutanix.prismelement.plugin.utils.RequestConfig
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
@@ -460,7 +461,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				} else if (url?.isBlank()) {
 					return ServiceResponse.error('Enter an api url')
 				} else {
-					def authConfig = [
+					def reqConfig = [
 						username  : username,
 						password  : password,
 						apiUrl    : url,
@@ -468,7 +469,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					HttpApiClient apiClient = new HttpApiClient()
 					apiClient.networkProxy = cloudInfo.apiProxy
 					try {
-						def containerList = NutanixPrismElementApiService.listContainers(apiClient, authConfig)
+						def containerList = NutanixPrismElementApiService.listContainers(apiClient, new RequestConfig(reqConfig))
 						if (containerList.success == true) {
 							return ServiceResponse.success()
 						} else {
@@ -514,9 +515,9 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = cloudInfo.apiProxy
 		try {
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloudInfo)
 			def syncDate = new Date()
-			def apiUrl = NutanixPrismElementApiService.getNutanixApiUrl(cloudInfo)
-			def apiUrlObj = new URL(apiUrl)
+			def apiUrlObj = new URL(reqConfig.apiUrl)
 			def apiHost = apiUrlObj.getHost()
 			def apiPort = apiUrlObj.getPort() > 0 ? apiUrlObj.getPort() : (apiUrlObj?.getProtocol()?.toLowerCase() == 'https' ? 443 : 80)
 
@@ -524,7 +525,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			def hostOnline = ConnectionUtils.testHostConnectivity(apiHost, apiPort, true, true, proxySettings)
 			log.debug("nutanix online: ${apiHost} ${hostOnline}")
 			if (hostOnline) {
-				def testResults = NutanixPrismElementApiService.testConnection(client, [zone: cloudInfo])
+				def testResults = NutanixPrismElementApiService.testConnection(client, reqConfig)
 
 				if (testResults.success) {
 					def regionCode = calculateRegionCode(cloudInfo)
@@ -701,7 +702,10 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	@Override
 	ServiceResponse startServer(ComputeServer computeServer) {
 		HttpApiClient client = new HttpApiClient()
-		return NutanixPrismElementComputeUtility.doStart(client, computeServer, computeServer.cloud, "startServer")
+		client.networkProxy = computeServer.cloud.apiProxy
+
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, computeServer.cloud)
+		return NutanixPrismElementComputeUtility.doStart(client, reqConfig, computeServer, "startServer")
 	}
 
 	/**
@@ -710,7 +714,10 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	@Override
 	ServiceResponse stopServer(ComputeServer computeServer) {
 		HttpApiClient client = new HttpApiClient()
-		return NutanixPrismElementComputeUtility.doStop(client, computeServer, computeServer.cloud, "stopServer")
+		client.networkProxy = computeServer.cloud.apiProxy
+
+		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, computeServer.cloud)
+		return NutanixPrismElementComputeUtility.doStop(client, reqConfig, computeServer, "stopServer")
 	}
 
 	/**
@@ -725,15 +732,16 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			def serverId = computeServer.externalId
 			HttpApiClient client = new HttpApiClient()
 			client.networkProxy = cloud.apiProxy
-			def removeOpts = [zone: cloud]
-			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, removeOpts, serverId)
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, cloud)
+			def stopVmOpts = [:]
+			def vmResults = NutanixPrismElementApiService.loadVirtualMachine(client, reqConfig, serverId)
 			if (vmResults.success) {
 				if (vmResults.results?.vm_logical_timestamp) {
-					removeOpts.timestamp = vmResults.results?.vm_logical_timestamp
+					stopVmOpts.timestamp = vmResults.results?.vm_logical_timestamp
 				}
-				def stopResults = NutanixPrismElementApiService.stopVm(client, removeOpts, serverId)
+				def stopResults = NutanixPrismElementApiService.stopVm(client, reqConfig, stopVmOpts, serverId)
 				if (stopResults.success) {
-					def removeResults = NutanixPrismElementApiService.deleteServer(client, removeOpts, serverId)
+					def removeResults = NutanixPrismElementApiService.deleteServer(client, reqConfig, serverId)
 					if (removeResults.success) {
 						rtn.success = true
 					}
