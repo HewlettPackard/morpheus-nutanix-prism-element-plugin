@@ -1750,4 +1750,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	HostType getHostType() {
 		return HostType.vm
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	String getNodeFormat() {
+		return "vm"
+	}
 }
