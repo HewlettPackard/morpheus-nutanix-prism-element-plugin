@@ -1004,7 +1004,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		ifaces << new ComputeServerInterfaceType(
 			code: 'nutanix.virtio',
 			externalId: 'NORMAL_NIC',
-			name: 'Nutanix Prism Element VirtIO NIC',
+			name: 'Default',
 			defaultType: true,
 			enabled: true,
 			displayOrder: 1
@@ -1013,7 +1013,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		ifaces << new ComputeServerInterfaceType(
 			code: 'nutanix.E1000',
 			externalId: 'NORMAL_NIC',
-			name: 'Nutanix Prism Element E1000 NIC',
+			name: 'e1000',
 			defaultType: false,
 			enabled: true,
 			displayOrder: 2
