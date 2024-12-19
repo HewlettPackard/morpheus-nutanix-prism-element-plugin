@@ -1758,4 +1758,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	String getNodeFormat() {
 		return "vm"
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Boolean hasConfigurableSockets() {
+		return true
+	}
 }
