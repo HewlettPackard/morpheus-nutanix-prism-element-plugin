@@ -1766,4 +1766,28 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	Boolean hasConfigurableSockets() {
 		return true
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Boolean hasDatastores() {
+		return true
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Boolean lvmSupported() {
+		return true
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	String getHostDiskMode() {
+		return "lvm"
+	}
 }
