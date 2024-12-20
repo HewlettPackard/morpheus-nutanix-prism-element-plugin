@@ -288,8 +288,138 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	Collection<ServicePlan> getServicePlans() {
 		Collection<ServicePlan> plans = []
-		// TODO: create some service plans (sizing like cpus, memory, etc) and add to collection
-		// TODOOOO
+		plans << new ServicePlan(
+			code: "nutanix-vm-512",
+			editable: true,
+			name: "1 vCPU, 512MB Memory",
+			description: "1 vCPU, 512MB Memory",
+			sortOrder: 0,
+			maxStorage: 10L * 1024L * 1024L * 1024L,
+			maxMemory: 512L * 1024L * 1024L,
+			maxCores: 1,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true,
+		)
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-1024",
+			editable: true,
+			name: "1 vCPU, 1GB Memory",
+			description: "1 vCPU, 1GB Memory",
+			sortOrder: 1,
+			maxStorage: 10L * 1024L * 1024L * 1024L,
+			maxMemory: 1024L * 1024L * 1024L,
+			maxCores: 1,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-2048",
+			editable: true,
+			name: "1 vCPU, 2GB Memory",
+			description: "1 vCPU, 2GB Memory",
+			sortOrder: 2,
+			maxStorage: 20L * 1024L * 1024L * 1024L,
+			maxMemory: 2 * 1024L * 1024L * 1024L,
+			maxCores: 1,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-4096",
+			editable: true,
+			name: "1 vCPU, 4GB Memory",
+			description: "1 vCPU, 4GB Memory",
+			sortOrder: 3,
+			maxStorage: 40L * 1024L * 1024L * 1024L,
+			maxMemory: 4L * 1024L * 1024L * 1024L,
+			maxCores: 1,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-8192",
+			editable: true,
+			name: "2 vCPU, 8GB Memory",
+			description: "2 vCPU, 8GB Memory",
+			sortOrder: 4,
+			maxStorage: 80L * 1024L * 1024L * 1024L,
+			maxMemory: 8L * 1024L * 1024L * 1024L,
+			maxCores: 2,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-16384",
+			editable: true,
+			name: "2 vCPU, 16GB Memory",
+			description: "2 vCPU, 16GB Memory",
+			sortOrder: 5,
+			maxStorage: 160L * 1024L * 1024L * 1024L,
+			maxMemory: 16L * 1024L * 1024L * 1024L,
+			maxCores: 2,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-24576",
+			editable: true,
+			name: "4 vCPU, 24GB Memory",
+			description: "4 vCPU, 24GB Memory",
+			sortOrder: 6,
+			maxStorage: 240L * 1024L * 1024L * 1024L,
+			maxMemory: 24L * 1024L * 1024L * 1024L,
+			maxCores: 4,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+		plans << new ServicePlan(
+			code: "nutanix-vm-32768",
+			editable: true,
+			name: "4 vCPU, 32GB Memory",
+			description: "4 vCPU, 32GB Memory",
+			sortOrder: 7,
+			maxStorage: 320L * 1024L * 1024L * 1024L,
+			maxMemory: 32L * 1024L * 1024L * 1024L,
+			maxCores: 4,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true
+		)
+
+		plans << new ServicePlan(
+			code: "internal-custom-nutanix",
+			editable: false,
+			name: "Nutanix Custom",
+			description: "Nutanix Custom",
+			sortOrder: 0,
+			customMaxStorage: true,
+			customMaxDataStorage: true,
+			addVolumes: true,
+			customCpu: true,
+			customCores: true,
+			customMaxMemory: true,
+			deletable: false,
+			provisionable: false,
+			maxStorage: 0,
+			maxMemory: 0,
+			maxCpu: 0,
+		)
 		return plans
 	}
 
