@@ -116,8 +116,6 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			fieldLabel: 'Credentials',
 			fieldContext: 'credential',
 			fieldCode: 'gomorpheus.label.credentials',
-			fieldSet: '',
-			fieldGroup: 'Connection Config',
 			required: true,
 			global: false,
 			helpBlock: '',
@@ -167,7 +165,6 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			fieldContext: 'config',
 			fieldName: 'enableVnc',
 			fieldCode: 'gomorpheus.label.enableHyperVConsole',
-			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.CHECKBOX,
 		)
 
