@@ -349,6 +349,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			displayOrder: 99,
 			hasAutomation: false,
 			agentType: null,
+			reconfigureSupported: false,
 			managedServerType: 'nutanixVm',
 			guestVm: true,
 			provisionTypeCode: CLOUD_PROVIDER_CODE,
