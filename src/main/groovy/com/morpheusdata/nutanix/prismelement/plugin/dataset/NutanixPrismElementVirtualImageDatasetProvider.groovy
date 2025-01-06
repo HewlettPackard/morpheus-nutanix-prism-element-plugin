@@ -2,17 +2,19 @@ package com.morpheusdata.nutanix.prismelement.plugin.dataset
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.data.DataAndFilter
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.data.DatasetInfo
 import com.morpheusdata.core.data.DatasetQuery
 import com.morpheusdata.core.data.NotDataFilter
+import com.morpheusdata.core.data.NullDataFilter
 import com.morpheusdata.core.providers.AbstractDatasetProvider
 import com.morpheusdata.model.VirtualImage
 import io.reactivex.rxjava3.core.Observable
 
-class NutanixPrismElementVirtualImageDatasetProvider  extends AbstractDatasetProvider<VirtualImage, String> {
+class NutanixPrismElementVirtualImageDatasetProvider extends AbstractDatasetProvider<VirtualImage, String> {
 	public static final PROVIDER_NAME = "Nutanix Virtual Image Provider"
 	public static final PROVIDER_NAMESPACE = "com.morpheusdata.nutanix.prismelement.plugin"
 	public static final PROVIDER_KEY = "npeVirtualImages"
@@ -51,29 +53,59 @@ class NutanixPrismElementVirtualImageDatasetProvider  extends AbstractDatasetPro
 	Observable<VirtualImage> list(DatasetQuery query) {
 		Long cloudId = query.get("zoneId")?.toLong()
 		Long accountId = query.get("accountId")?.toLong()
-		return morpheusContext.async.virtualImage.list(
-			new DataQuery()
-				.withFilters(
-					new DataOrFilter(
-						new DataFilter('visibility', 'public'),
-						new DataFilter('accounts.id', accountId),
-						new DataFilter('owner.id', accountId),
+		def listQuery = new DataQuery()
+			.withFilters(
+				new DataOrFilter(
+					new DataFilter('visibility', 'public'),
+					new DataFilter('accounts.id', null), // if there are no accounts associated
+					new DataFilter('accounts.id', accountId),
+					new DataFilter('owner.id', accountId),
+				),
+				new DataOrFilter(
+					new NotDataFilter('status', 'in', ['Saving', 'Failed', 'Converting', 'Queued']),
+					new DataFilter('status', null),
+				),
+				new DataFilter('deleted', false),
+				new DataOrFilter(
+					new DataFilter('imageType', 'disk'),
+					new DataFilter('imageType', 'qcow2'),
+				),
+
+			).withSort('name')
+
+		if (cloudId) {
+			listQuery.withFilters(
+				new DataOrFilter(
+					new DataFilter('category', "nutanix.acropolis.image.${cloudId}"),
+					new DataAndFilter(
+						new DataFilter('refType', 'ComputeZone'),
+						new DataFilter('refId', cloudId),
 					),
-					new DataOrFilter(
-						new NotDataFilter('status', 'in', ['Saving','Failed','Converting','Queued']),
-						new DataFilter('status', null),
+					new DataAndFilter(
+						new DataFilter('locations.refType', 'ComputeZone'),
+						new DataFilter('locations.refId', cloudId),
 					),
-					new DataFilter('deleted', false),
-					new DataOrFilter(
-						new DataFilter('imageType', 'disk'),
-						new DataFilter('imageType', 'qcow2'),
+					new DataAndFilter(
+						new DataOrFilter(
+							new DataFilter('userUploaded', true),
+							new DataFilter('systemImage', true),
+						),
+						new DataOrFilter(
+							new NullDataFilter('zoneType'),
+							new NotDataFilter('zoneType', 'nutanix-prism-cloud'),
+						),
 					),
-					new DataOrFilter(
-						new DataFilter('category', "nutanix.acropolis.image.${cloudId}"),
-						new DataFilter('userUploaded', true),
-					),
-				).withSort('name')
-		)
+				)
+			)
+		} else {
+			listQuery.withFilters(
+				new DataOrFilter(
+					new NullDataFilter('zoneType'),
+					new NotDataFilter('zoneType', 'nutanix-prism-cloud'),
+				),
+			)
+		}
+		return morpheusContext.async.virtualImage.list(listQuery)
 	}
 
 	/**
