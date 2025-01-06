@@ -80,6 +80,7 @@ class NutanixPrismElementPlugin extends Plugin {
 		List<String> seedsToRun = [
 			"application.NutanixZoneTypeSeed",
 			"application.ProvisionTypeNutanixSeed",
+			"application.NetworkTypeSeed",
 		]
 		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
 	}
