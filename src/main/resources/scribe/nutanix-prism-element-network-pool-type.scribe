@@ -1,0 +1,9 @@
+resource "network-pool-type" "npe-network-pool-type" {
+	code               = "nutanix"
+	poolService        = "nutanixNetworkPoolService"
+	name               = "Nutanix"
+	creatable          = false
+	description        = "Nutanix network ip pool"
+	rangeSupportsCidr  = false
+	hostRecordEditable = false
+}

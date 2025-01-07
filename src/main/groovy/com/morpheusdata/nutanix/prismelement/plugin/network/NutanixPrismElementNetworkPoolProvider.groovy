@@ -33,6 +33,8 @@ import com.morpheusdata.response.ServiceResponse
  *
  * This assumes that a network pool with DHCP has been setup in the Nutanix cluster.
  * For now, the Morpheus side doesn't create/edit nutanix network pools
+ *
+ * TODO: This is a placeholder for now, there's no actual implementation here yet and it's not registered in the plugin
  */
 class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
@@ -119,6 +121,8 @@ class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	Collection<NetworkPoolType> getNetworkPoolTypes() {
+		// TODO: This is seeded for now. Once this IPAM provider is fleshed out and registered in the plugin, this
+		//       should be used and the seed data removed
 		def networkPoolType = new NetworkPoolType(
 			code: 'nutanix',
 			name: 'Nutanix',
