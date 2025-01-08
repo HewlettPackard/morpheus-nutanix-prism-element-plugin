@@ -1244,11 +1244,11 @@ class NutanixPrismElementApiService {
 					&& hasIpAddress(serverDetail.results)) {
 						rtn.success = true
 						rtn.results = serverDetail.results
-						rtn.ipAddresses = serverDetail.results.vm_nics?.collect {
-							it.ip_addresses
-						}?.flatten()?.findAll {
+						rtn.ipAddresses = serverDetail.results.vm_nics?.collectMany {
+							(it.ip_addresses ?: []) + (it.ip_address ?: [])
+						}?.findAll {
 							checkIpv4Ip(it)
-						}
+						}?.unique()
 						pending = false
 				}
 				attempts++
@@ -1262,10 +1262,9 @@ class NutanixPrismElementApiService {
 	}
 
 	static boolean hasIpAddress(Map vm) {
-		vm?.vm_nics?.collect {
-			it.ip_addresses
-		}?.flatten()
-		?.any {
+		vm?.vm_nics?.collectMany {
+			(it.ip_addresses ?: []) + (it.ip_address ?: [])
+		}?.any {
 			checkIpv4Ip(it)
 		}
 	}
