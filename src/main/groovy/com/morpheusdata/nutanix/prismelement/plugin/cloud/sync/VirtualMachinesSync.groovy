@@ -427,9 +427,13 @@ class VirtualMachinesSync {
 									)
 								}
 								volume.deviceDisplayName = deviceName
-								if (volume.deviceDisplayName == 'sda')
+								if (volume.deviceDisplayName == 'sda') {
 									volume.rootVolume = true
-								rtn.maxStorage += maxStorage
+								}
+
+								if (maxStorage) {
+									rtn.maxStorage += maxStorage
+								}
 								disks << volume
 							}
 						}
@@ -482,7 +486,10 @@ class VirtualMachinesSync {
 						if (save) {
 							disks << existingVolume
 						}
-						rtn.maxStorage += maxStorage
+
+						if (maxStorage) {
+							rtn.maxStorage += maxStorage
+						}
 					}
 
 					if (disks) {
