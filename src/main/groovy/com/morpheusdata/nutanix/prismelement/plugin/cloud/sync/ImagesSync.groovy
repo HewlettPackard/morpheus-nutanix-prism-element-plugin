@@ -55,10 +55,9 @@ class ImagesSync {
 				)
 
 				// Sync all the the locations of the images and then within that context we'll sync the images themselves.
-				SyncTask<VirtualImageLocationIdentityProjection, Map, VirtualImageLocation> syncTask = new SyncTask<>(existingLocations, cloudImages)
-				syncTask.addMatchFunction { VirtualImageLocationIdentityProjection imageLocationProjection, Map nutanixImage ->
-					return nutanixImage.uuid == imageLocationProjection.externalId
-						|| nutanixImage?.name == imageLocationProjection.imageName
+				SyncTask<VirtualImageLocation, Map, VirtualImageLocation> syncTask = new SyncTask<>(existingLocations, cloudImages)
+				syncTask.addMatchFunction { VirtualImageLocation imageLocationProjection, Map nutanixImage ->
+					return nutanixImage.uuid == imageLocationProjection.internalId
 						|| nutanixImage?.vmDiskId == imageLocationProjection.externalId
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageLocationIdentityProjection, VirtualImageLocation>> updateItems ->
 					morpheusContext.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
@@ -101,7 +100,6 @@ class ImagesSync {
 		syncTask.addMatchFunction { VirtualImageIdentityProjection existingItem, Map cloudItem ->
 			cloudItem.uuid == existingItem.externalId
 				|| cloudItem?.vmDiskId == existingItem.externalId
-				|| cloudItem?.name == existingItem.name
 		}.onDelete { removeItems ->
 			// noop
 		}.onUpdate { List<SyncTask.UpdateItem<VirtualImage, Map>> updateItems ->
