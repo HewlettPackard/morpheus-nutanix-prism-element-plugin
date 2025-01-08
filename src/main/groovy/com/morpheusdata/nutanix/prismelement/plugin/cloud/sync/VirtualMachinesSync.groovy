@@ -516,7 +516,7 @@ class VirtualMachinesSync {
 
 	private void cacheVirtualMachineInterfaces(List<Map> nicList, ComputeServer server, List<Network> networks, Collection<ComputeServerInterfaceType> netTypes) {
 		try {
-			log.debug("Nic List: {}", nicList)
+			log.info("Nic List: {}", nicList)
 
 			// TODO: use FullModelSyncTask when a release is cut and propagated into morpheus-ui
 			SyncTask<ComputeServerInterface, Map, ComputeServerInterface> syncTask = new SyncTask<>(Observable.fromIterable(server.interfaces), nicList)
@@ -534,6 +534,7 @@ class VirtualMachinesSync {
 					serverInterface.ipAddress == nicInfo.ip_address
 				}
 				.onAdd { addItems ->
+					log.debug("Adding ${addItems?.size()} interfaces")
 					def netInterfaces = []
 					for (final def nicInfo in addItems) {
 						def nicId = nicInfo.mac_address
@@ -547,7 +548,9 @@ class VirtualMachinesSync {
 							type: nicType,
 							macAddress: nicInfo.mac_address)
 
-						netInterface.addresses << new NetAddress(type: NetAddress.AddressType.IPV4, address: nicInfo?.ip_address)
+						if (nicInfo?.ip_address) {
+							netInterface.addresses << new NetAddress(type: NetAddress.AddressType.IPV4, address: nicInfo?.ip_address)
+						}
 						netInterfaces << netInterface
 					}
 
@@ -557,6 +560,7 @@ class VirtualMachinesSync {
 					}
 				}
 				.onUpdate { updateItems ->
+					log.debug("Updating ${updateItems?.size()} interfaces")
 					def netInterfaces = []
 					for (final def updateMap in updateItems) {
 						log.debug("processing update item: {}", updateMap)
@@ -576,8 +580,8 @@ class VirtualMachinesSync {
 							save = true
 						}
 
-						def ipAddress = nicInfo.ip_addresses ? nicInfo.ip_addresses.first(): null
-						if (!existingInterface.addresses.find {
+						def ipAddress = nicInfo?.ip_addresses?.first() ?: nicInfo?.ip_address
+						if (ipAddress && !existingInterface.addresses.find {
 							it.type == NetAddress.AddressType.IPV4 && it.address == ipAddress
 						}) {
 							existingInterface.addresses << new NetAddress(NetAddress.AddressType.IPV4, ipAddress)
@@ -600,11 +604,12 @@ class VirtualMachinesSync {
 				}
 				.onDelete { deleteItems ->
 					if (deleteItems) {
+						log.debug("Removing ${deleteItems?.size()} interfaces")
 						morpheusContext.async.computeServer.computeServerInterface.remove(deleteItems, server).blockingGet()
 					}
 				}.start()
 		} catch (e) {
-			log.error("error cacheVirtualMachineVolumes ${e}", e)
+			log.error("error cacheVirtualMachineInterfaces${e}", e)
 		}
 	}
 }
