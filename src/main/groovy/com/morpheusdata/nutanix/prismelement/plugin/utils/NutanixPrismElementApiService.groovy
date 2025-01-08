@@ -1393,19 +1393,8 @@ class NutanixPrismElementApiService {
 			}
 		}
 
-		def apiUrl = cloud.serviceUrl ?: cloud.configMap?.apiUrl
-		if (apiUrl) {
-			if (apiUrl.startsWith('http')) {
-				URIBuilder uriBuilder = new URIBuilder("${apiUrl}")
-				uriBuilder.setPath('')
-				apiUrl= uriBuilder.build().toString()
-			} else {
-				apiUrl = 'https://' + apiUrl + ':9440'
-			}
-		}
-
 		def config = new RequestConfig()
-		config.apiUrl = apiUrl
+		config.apiUrl = cloud.serviceUrl ?: cloud.configMap?.apiUrl
 		if (cloud.accountCredentialData && cloud.accountCredentialData.containsKey('username')) {
 			config.username = cloud.accountCredentialData['username']
 		} else {
@@ -1425,4 +1414,25 @@ class RequestConfig {
 	String username
 	String password
 	String apiUrl
+
+	/**
+	 * Sets the API URL for the request, ensuring that the apiUrl is the base url without any path.
+	 * <p>
+	 * This allows us to be a bit more flexible with the apiUrl configuration, allowing for the full URL to be provided
+	 * without any negative consequences for the user.
+	 *
+	 * @param apiUrl the API URL
+	 */
+	void setApiUrl(String apiUrl) {
+		if (apiUrl) {
+			if (apiUrl.startsWith('http')) {
+				URIBuilder uriBuilder = new URIBuilder("${apiUrl}")
+				uriBuilder.setPath('')
+				apiUrl= uriBuilder.build().toString()
+			} else {
+				apiUrl = 'https://' + apiUrl + ':9440'
+			}
+		}
+		this.apiUrl = apiUrl
+	}
 }
