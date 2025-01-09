@@ -71,9 +71,14 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
 		log.debug "prepareWorkload: ${workload} ${workloadRequest} ${opts}"
-
 		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
 		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false], disableCloudInit: false)
+
+		if (workload.server.sourceImage) {
+			resp.success = true
+			return resp
+		}
+
 		try {
 			Long virtualImageId = workload.getConfigProperty('imageId')?.toLong() ?: workload?.workloadType?.virtualImage?.id ?: opts?.config?.imageId
 			if (!virtualImageId) {
