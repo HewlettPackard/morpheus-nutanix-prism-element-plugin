@@ -926,7 +926,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		HttpApiClient client = new HttpApiClient()
 		def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, workload.server.cloud)
 		try {
-			return NutanixPrismElementComputeUtility.doStop(client, reqConfig, workload.server, workload.server.cloud, "stopWorkload")
+			return NutanixPrismElementComputeUtility.doStop(client, reqConfig, workload.server,"stopWorkload")
 		} finally {
 			client.shutdownClient()
 		}
