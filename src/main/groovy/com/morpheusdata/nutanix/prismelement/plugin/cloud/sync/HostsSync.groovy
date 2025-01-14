@@ -53,8 +53,7 @@ class HostsSync {
 			def serverType = morpheusContext.async.cloud.findComputeServerTypeByCode('nutanixMetalHypervisor').blockingGet()
 			def serverOs = morpheusContext.services.osType.find(new DataQuery().withFilter('code', 'linux'))
 			def existingItems = morpheusContext.async.computeServer.listIdentityProjections(new DataQuery()
-				.withFilter('refType', 'ComputeZone')
-				.withFilter('refId', cloud.id)
+				.withFilter('cloud.id', cloud.id)
 				.withFilter('computeServerType.code', "nutanixMetalHypervisor")
 			)
 
@@ -148,6 +147,9 @@ class HostsSync {
 				} as Long
 				if (server.usedMemory != combinedChildMemory) {
 					server.usedMemory = combinedChildMemory
+					shouldUpdate = true
+				}
+				if (server.capacityInfo && server.capacityInfo?.usedMemory != combinedChildMemory) {
 					server.capacityInfo?.usedMemory = combinedChildMemory
 					shouldUpdate = true
 				}
