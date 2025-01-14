@@ -750,6 +750,16 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			rtn = datastores.find { ds ->
 				ds.externalId != null && ds.externalId != ""
 			}
+		} else {
+			rtn = morpheusContext.services.cloud.datastore.find(new DataQuery().withFilters(
+				new DataFilter('refType', 'ComputeZone'),
+				new DataFilter('refId', cloud.id),
+				new DataFilter("id", datastoreOption),
+				new DataOrFilter(
+					new DataFilter('owner.id', account.id),
+					new DataFilter('visibility', 'public')
+				)
+			))
 		}
 		return rtn
 	}
