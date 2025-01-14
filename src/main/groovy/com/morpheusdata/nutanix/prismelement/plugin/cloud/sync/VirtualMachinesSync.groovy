@@ -228,7 +228,8 @@ class VirtualMachinesSync {
 		//memory
 		def maxMemory = vm.memoryCapacityInBytes?.toLong() ?: 0
 		def usedMemory = (vm.stats && vm.stats['guest.memory_usage_bytes']) ? vm.stats['guest.memory_usage_bytes'].toLong() : 0
-		if (maxMemory != capacityInfo.maxMemory || usedMemory != capacityInfo.usedMemory) {
+		if (maxMemory != capacityInfo.maxMemory || usedMemory != capacityInfo.usedMemory
+			|| maxMemory != server.maxMemory || usedMemory != server.usedMemory) {
 			server.maxMemory = maxMemory
 			server.usedMemory = usedMemory
 			capacityInfo.maxMemory = maxMemory
@@ -356,18 +357,26 @@ class VirtualMachinesSync {
 			}
 
 			def parentId = matchedServer.host_uuid
+			def currentParentServerId = currentServer.parentServer?.id
 			if (parentId) {
 				currentServer.parentServer = morpheusContext.services.computeServer.find(
 					new DataQuery()
 						.withFilter('cloud.id', cloud.id)
 						.withFilter('externalId', parentId)
 				)
+			} else if (currentServer.parentServer) {
+				currentServer.parentServer = null
 			}
+
+			if (currentParentServerId != currentServer.parentServer?.id) {
+				save = true
+			}
+
 			if (currentServer.computeServerType?.guestVm) {
 				NutanixPrismElementSyncUtility.updateServerContainersAndInstances(morpheusContext, plan, currentServer)
 			}
 			if (save) {
-				morpheusContext.services.computeServer.save(currentServer)
+				currentServer = saveAndGet(currentServer)
 			}
 
 			performPostSaveSync(currentServer, matchedServer, systemNetworks)
