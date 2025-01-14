@@ -19,6 +19,7 @@
 package com.morpheusdata.nutanix.prismelement.plugin.cloud.sync
 
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.*
 import com.morpheusdata.model.*
@@ -70,7 +71,10 @@ class VirtualMachinesSync {
 				def defaultServerType = computeServerTypes.find { it.code == 'nutanixUnmanaged' }
 				def existingItems = morpheusContext.async.computeServer.listIdentityProjections(
 					new DataQuery()
-						.withFilter('computeServerType.code', '!=', 'nutanixMetalHypervisor')
+						.withFilters(
+							new DataFilter('zone.id', cloud.id),
+							new DataFilter('computeServerType.code', '!=', 'nutanixMetalHypervisor')
+						)
 				)
 
 				List<ServicePlan> availablePlans = morpheusContext.services.servicePlan.list(
