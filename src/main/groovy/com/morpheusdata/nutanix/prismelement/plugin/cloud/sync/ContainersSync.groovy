@@ -86,8 +86,30 @@ class ContainersSync {
 				}.onDelete { List<Datastore> morpheusItems ->
 					log.debug("removing datastores: ${morpheusItems}")
 					morpheusContext.services.cloud.datastore.bulkRemove(morpheusItems)
-				}.onUpdate {
-					// do nothing
+				}.onUpdate { updateItems ->
+					def itemsToUpdate = []
+					for (final def item in updateItems) {
+						def update = false
+						def currentStorageSize = Long.valueOf(item.masterItem.maxStorage ?: 0)
+						if (item.existingItem.storageSize != currentStorageSize) {
+							item.existingItem.storageSize = currentStorageSize
+							update = true
+						}
+
+						def currentFreeSpace = Long.valueOf(item.masterItem.freeStorage ?: 0)
+						if (item.existingItem.freeSpace != currentFreeSpace) {
+							item.existingItem.freeSpace = currentFreeSpace
+							update = true
+						}
+
+						if (update) {
+							itemsToUpdate << item.existingItem
+						}
+					}
+
+					if (itemsToUpdate) {
+						morpheusContext.services.cloud.datastore.bulkSave(itemsToUpdate)
+					}
 				}.withLoadObjectDetailsFromFinder { updateItems ->
 					morpheusContext.async.cloud.datastore.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()

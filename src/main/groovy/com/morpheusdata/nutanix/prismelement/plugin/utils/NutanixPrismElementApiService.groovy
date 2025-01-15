@@ -122,7 +122,7 @@ class NutanixPrismElementApiService {
 					uuid: entity.storage_container_uuid,
 					clusterUuid: entity.cluster_uuid,
 					name: entity.name,
-				    maxStorage: entity.max_capacity,
+				    maxStorage: entity?.usage_stats?.'storage.capacity_bytes',
 				    replicationFactor: entity.replication_factor,
 				    freeStorage: entity?.usage_stats?.'storage.free_bytes'
 				]
