@@ -858,11 +858,11 @@ class NutanixPrismElementApiService {
 				]
 			]
 			def body = [
-				disks: vmDisks
+				vm_disks: vmDisks
 			]
 			log.info("add disk body: ${body}")
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers, body: body)
-			def results = client.callJsonApi(reqConfig.apiUrl, v2Api + 'vms/' + vmId + '/disks', reqConfig.username, reqConfig.password, requestOpts, 'POST')
+			def results = client.callJsonApi(reqConfig.apiUrl, v2Api + 'vms/' + vmId + '/disks/attach', reqConfig.username, reqConfig.password, requestOpts, 'POST')
 
 			log.info("addDisk results: ${results}")
 			if (results.success == true && results.data) {
