@@ -1270,12 +1270,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			//new disk
 			def addOpts = [:]
 			addOpts.zone = cloud
-			if (it.datastoreId) {
-				addOpts.containerId = it.datastoreId
-			} else {
-				def dataStore = getDatastoreOption(cloud, server.account, null, null, it.size.toLong())
-				addOpts.containerId = dataStore?.externalId
-			}
+
+			def dataStore = getDatastoreOption(cloud, server.account, null, it.datastoreId, it.size.toLong())
+			addOpts.containerId = dataStore?.externalId
+
 			def sizeGb = it.size?.toInteger()
 			def busType = morpheusContext.services.storageVolume.storageVolumeType.get(it?.storageType?.toLong())?.code?.replace('nutanix-','')
 			def diskResults = NutanixPrismElementApiService.addDisk(client, reqConfig, addOpts, vmId, sizeGb, busType)
