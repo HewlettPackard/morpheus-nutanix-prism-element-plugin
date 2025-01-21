@@ -27,7 +27,6 @@ import com.morpheusdata.model.projection.ComputeServerIdentityProjection
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementSyncUtility
 import groovy.util.logging.Slf4j
-import io.reactivex.rxjava3.core.Observable
 
 /**
  * Syncs virtual machines from nutanix to the morpheus ComputeServer equivalent
@@ -179,7 +178,7 @@ class VirtualMachinesSync {
 
 	private void performPostSaveSync(ComputeServer server, Map cloudItem, List<Network> systemNetworks) {
 		if (server.status != 'resizing') {
-			def volumeResults = cacheVirtualMachineVolumes(cloudItem.vm_disk_info as List<Map>, server)
+			def volumeResults = NutanixPrismElementSyncUtility.syncVirtualMachineVolumes(morpheusContext, server, cloudItem.vm_disk_info as List<Map>)
 			if (volumeResults.saveRequired) {
 				// get latest in case of modifications from the volumes
 				server = morpheusContext.services.computeServer.get(server.id)
@@ -209,7 +208,7 @@ class VirtualMachinesSync {
 		}
 
 		if (server != null && server.status != 'resizing') {
-			cacheVirtualMachineInterfaces(cloudItem.vm_nics as List<Map>, server, systemNetworks, netTypes)
+			NutanixPrismElementSyncUtility.syncVirtualMachineInterfaces(morpheusContext, cloudItem.vm_nics as List<Map>, server, systemNetworks, netTypes)
 		}
 	}
 
@@ -383,253 +382,7 @@ class VirtualMachinesSync {
 		}
 	}
 
-	private cacheVirtualMachineVolumes(List<Map> diskList, ComputeServer server) {
-		def rtn = [saveRequired: false, maxStorage: 0]
-		try {
-
-			// TODO: use FullModelSyncTask when a release is cut and propagated into morpheus-ui
-			SyncTask<StorageVolume, Map, StorageVolume> syncTask = new SyncTask<>(
-				Observable.fromIterable(server.volumes),
-				diskList,
-			).withLoadObjectDetails { List<SyncTask.UpdateItemDto<StorageVolume, Map>> items ->
-				Observable.fromIterable(items.collect { item ->
-					new SyncTask.UpdateItem<StorageVolume, Map>(existingItem: item.existingItem, masterItem: item.masterItem)
-				})
-			}
-
-			syncTask
-				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
-					morpheusVolume?.externalId == diskInfo.disk_address.vmdisk_uuid
-				}
-				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
-					def deviceName = NutanixPrismElementSyncUtility.generateVolumeDeviceName(diskInfo)
-					morpheusVolume.deviceDisplayName == deviceName && morpheusVolume.type.externalId == "nutanix_${diskInfo.disk_address.device_bus.toUpperCase()}"
-				}
-				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
-					def indexPos = diskInfo.disk_address?.device_index ?: diskInfo.device_properties?.disk_address?.device_index ?: 0
-					if (diskInfo.disk_address?.device_bus?.toUpperCase() == 'SATA' || diskInfo.device_properties?.disk_address?.adapter_type == 'SATA') {
-						indexPos += diskList.count { it.device_properties?.disk_address?.adapter_type == 'SCSI' || it.disk_address?.device_bus?.toUpperCase() == 'SCSI' }
-					}
-					morpheusVolume.displayOrder == indexPos
-				}
-				.onAdd { addItems ->
-					def disks = []
-					for (final def addItem in addItems) {
-						def volumeId = addItem.disk_address.vmdisk_uuid
-
-						if (addItem.is_cdrom != true) {
-							def storageVolumeType = morpheusContext.services.storageVolume.storageVolumeType.find(
-								new DataQuery().withFilter('externalId', "nutanix_${addItem.disk_address.device_bus.toUpperCase()}")
-							)
-
-							if (storageVolumeType) {
-								def maxStorage = addItem.size
-								def deviceName = NutanixPrismElementSyncUtility.generateVolumeDeviceName(addItem)
-								def datastore
-
-								def volume = new StorageVolume(maxStorage: maxStorage, type: storageVolumeType, externalId: volumeId,
-									unitNumber: addItem.disk_address.device_index, deviceName: "/dev/${deviceName}", name: volumeId,
-									cloudId: server.cloud?.id, displayOrder: addItem.disk_address.device_index)
-
-								if (addItem.storage_container_uuid) {
-									volume.datastore = morpheusContext.services.cloud.datastore.find(
-										new DataQuery()
-											.withFilter('refType', 'ComputeZone')
-											.withFilter('refId', cloud.id)
-											.withFilter('externalId', addItem.storage_container_uuid)
-									)
-								}
-								volume.deviceDisplayName = deviceName
-								if (volume.deviceDisplayName == 'sda') {
-									volume.rootVolume = true
-								}
-
-								if (maxStorage) {
-									rtn.maxStorage += maxStorage
-								}
-								disks << volume
-							}
-						}
-
-					}
-
-					if (disks) {
-						def result = morpheusContext.async.storageVolume.create(disks, server).blockingGet()
-						if (!result) {
-							log.error("failed to create storage volume(s) for server $server.name")
-						}
-						rtn.saveRequired = true
-					}
-				}
-				.onUpdate { updateItems ->
-					def disks = []
-					for (final def updateMap in updateItems) {
-						log.debug("processing update item: ${updateMap}")
-						StorageVolume existingVolume = updateMap.existingItem
-						def diskInfo = updateMap.masterItem
-
-						def volumeId = diskInfo.disk_address.vmdisk_uuid
-
-						def save = false
-						def maxStorage = diskInfo.size
-						if (existingVolume.maxStorage != maxStorage) {
-							existingVolume.maxStorage = maxStorage
-							save = true
-						}
-						if (existingVolume.unitNumber != diskInfo.disk_address.device_index?.toString()) {
-							existingVolume.unitNumber = diskInfo.disk_address.device_index
-							save = true
-						}
-						def deviceDisplayName = NutanixPrismElementSyncUtility.generateVolumeDeviceName(diskInfo)
-
-						if (deviceDisplayName != existingVolume.deviceDisplayName) {
-							existingVolume.deviceDisplayName = deviceDisplayName
-							save = true
-						}
-						def rootVolume = deviceDisplayName == 'sda'
-						if (rootVolume != existingVolume.rootVolume) {
-							existingVolume.rootVolume = rootVolume
-							save = true
-						}
-						if (existingVolume.externalId != volumeId) {
-							existingVolume.externalId = volumeId
-							save = true
-						}
-
-						if (save) {
-							disks << existingVolume
-						}
-
-						if (maxStorage) {
-							rtn.maxStorage += maxStorage
-						}
-					}
-
-					if (disks) {
-						rtn.saveRequired = true
-						// TODO: replace with newer api when fixed, use deprecated api for now
-						morpheusContext.services.storageVolume.save(disks)
-					}
-				}
-				.onDelete { deleteItems ->
-					def disks = []
-					for (final def existingVolume in deleteItems) {
-						log.debug "removing volume ${existingVolume}"
-						disks << existingVolume
-					}
-
-					if (disks) {
-						// TODO: replace with newer api when fixed, use deprecated api for now
-						morpheusContext.async.storageVolume.remove(disks, server, false).blockingGet()
-						rtn.saveRequired = true
-					}
-				}.start()
-		} catch (e) {
-			log.error("error cacheVirtualMachineVolumes ${e}", e)
-		}
-		return rtn
-	}
-
 	private static boolean shouldImportExistingVMs(importExisting) {
 		importExisting == 'on' || importExisting == 'true' || importExisting == true
-	}
-
-	private void cacheVirtualMachineInterfaces(List<Map> nicList, ComputeServer server, List<Network> networks, Collection<ComputeServerInterfaceType> netTypes) {
-		try {
-			log.info("Nic List: {}", nicList)
-
-			// TODO: use FullModelSyncTask when a release is cut and propagated into morpheus-ui
-			SyncTask<ComputeServerInterface, Map, ComputeServerInterface> syncTask = new SyncTask<>(Observable.fromIterable(server.interfaces), nicList)
-				.withLoadObjectDetails { List<SyncTask.UpdateItemDto<ComputeServerInterface, Map>> items ->
-					Observable.fromIterable(items.collect { item ->
-						new SyncTask.UpdateItem<ComputeServerInterface, Map>(existingItem: item.existingItem, masterItem: item.masterItem)
-					})
-				}
-
-			syncTask
-				.addMatchFunction { ComputeServerInterface serverInterface, nicInfo ->
-					serverInterface?.externalId == nicInfo.mac_address
-				}
-				.addMatchFunction { ComputeServerInterface serverInterface, nicInfo ->
-					serverInterface.ipAddress == nicInfo.ip_address
-				}
-				.onAdd { addItems ->
-					log.debug("Adding ${addItems?.size()} interfaces")
-					def netInterfaces = []
-					for (final def nicInfo in addItems) {
-						def nicId = nicInfo.mac_address
-						def network = networks.find { it.externalId == nicInfo.network_uuid }
-						def nicPosition = nicList.indexOf(nicInfo) ?: 0
-						def nicType = netTypes.find { it.code.startsWith('nutanix') && it.code.contains(nicInfo.adapter_type as String ?: 'virtio')}
-						def netInterface = new ComputeServerInterface(
-							externalId: nicId,
-							name: NutanixPrismElementSyncUtility.generateNicName(server, nicPosition),
-							network: network,
-							type: nicType,
-							macAddress: nicInfo.mac_address)
-
-						if (nicInfo?.ip_address) {
-							netInterface.addresses << new NetAddress(type: NetAddress.AddressType.IPV4, address: nicInfo?.ip_address)
-						}
-						netInterfaces << netInterface
-					}
-
-					if (netInterfaces) {
-						// TODO: replace with newer api when fixed, use deprecated api for now
-						morpheusContext.async.computeServer.computeServerInterface.create(netInterfaces, server).blockingGet()
-					}
-				}
-				.onUpdate { updateItems ->
-					log.debug("Updating ${updateItems?.size()} interfaces")
-					def netInterfaces = []
-					for (final def updateMap in updateItems) {
-						log.debug("processing update item: {}", updateMap)
-						ComputeServerInterface existingInterface = updateMap.existingItem
-						def nicInfo = updateMap.masterItem
-						def nicId = nicInfo.mac_address
-
-						def network = networks.find { it.externalId == nicInfo.network_uuid }
-						def save = false
-						if (network && existingInterface.network?.id != network?.id) {
-							existingInterface.network = network
-							save = true
-						}
-
-						if (nicInfo.mac_address != existingInterface.macAddress) {
-							existingInterface.macAddress = nicInfo.mac_address
-							save = true
-						}
-
-						def ipAddress = nicInfo?.ip_addresses?.first() ?: nicInfo?.ip_address
-						if (ipAddress && !existingInterface.addresses.find {
-							it.type == NetAddress.AddressType.IPV4 && it.address == ipAddress
-						}) {
-							existingInterface.addresses << new NetAddress(NetAddress.AddressType.IPV4, ipAddress)
-							save = true
-						}
-
-						if (existingInterface.externalId != nicId) {
-							existingInterface.externalId = nicId
-							save = true
-						}
-
-						if (save) {
-							netInterfaces << existingInterface
-						}
-					}
-					if (netInterfaces) {
-						// TODO: replace with newer api when fixed, use deprecated api for now
-						morpheusContext.services.computeServer.computeServerInterface.save(netInterfaces)
-					}
-				}
-				.onDelete { deleteItems ->
-					if (deleteItems) {
-						log.debug("Removing ${deleteItems?.size()} interfaces")
-						morpheusContext.async.computeServer.computeServerInterface.remove(deleteItems, server).blockingGet()
-					}
-				}.start()
-		} catch (e) {
-			log.error("error cacheVirtualMachineInterfaces${e}", e)
-		}
 	}
 }

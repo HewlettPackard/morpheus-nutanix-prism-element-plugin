@@ -420,7 +420,6 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			customCores: true,
 			customMaxMemory: true,
 			deletable: false,
-			provisionable: false,
 			maxStorage: 0,
 			maxMemory: 0,
 			maxCpu: 0,
@@ -880,9 +879,24 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 			def vmDisks = NutanixPrismElementApiService.getVirtualMachineDisks(client, reqConfig, server.externalId)?.disks
 			updateVolumes(server, vmDisks)
+			def syncRes = NutanixPrismElementSyncUtility.syncVirtualMachineVolumes(morpheusContext, server, vmDisks)
+			if (syncRes.saveRequired) {
+				server = saveAndGet(morpheusContext, server)
+			}
 
 			def vmNics = NutanixPrismElementApiService.getVirtualMachineNics(client, reqConfig, server.externalId)?.nics
 			updateNics(server, vmNics)
+
+			def systemNetworks = morpheusContext.services.network.list(new DataQuery()
+				.withFilter('refType', 'ComputeZone')
+				.withFilter('refId', cloud.id))
+			NutanixPrismElementSyncUtility.syncVirtualMachineInterfaces(
+				morpheusContext,
+				vmNics,
+				server,
+				systemNetworks,
+				computeServerInterfaceTypes
+			)
 		} catch (e) {
 			rtn.success = false
 			rtn.msg = "Error in finalizing server: ${e.message}"
@@ -893,6 +907,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		return new ServiceResponse(rtn.success, rtn.msg, null, null)
 	}
 
+	/**
+	 * Populate the storage volumes with the corresponding disk id and disk label
+	 *
+	 * Upon creation of the VM, the disk id and disk label are not available. This method
+	 * fills them in after the fact so they have a reference to the Nutanix disk.
+	 */
 	def updateVolumes(ComputeServer server, List<Map> disks) {
 		// update storage volumes with disk id
 		// order in disks matches the order in server.volumes
@@ -908,6 +928,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		}
 	}
 
+	/**
+	 * Populate the network interfaces with the corresponding externalId
+	 *
+	 * Upon creation of the VM, the corresponding nutanix id for the network interface is not available. This method
+	 * fills it in after the fact so they have a reference to the Nutanix network interface.
+	 */
 	def updateNics(ComputeServer server, List<Map> nics) {
 		if (nics) {
 			def networkInterfaces = server.interfaces
