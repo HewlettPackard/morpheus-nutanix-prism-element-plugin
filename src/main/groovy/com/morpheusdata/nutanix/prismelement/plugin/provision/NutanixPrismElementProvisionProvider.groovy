@@ -987,8 +987,11 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	 */
 	@Override
 	ServiceResponse restartWorkload(Workload workload) {
-		// Generally a call to stopWorkLoad() and then startWorkload()
-		return ServiceResponse.success()
+		def res = stopWorkload(workload)
+		if (!res.success) {
+			return res
+		}
+		return startWorkload(workload)
 	}
 
 	/**
