@@ -48,11 +48,12 @@ import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ProvisionResponse
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
+import org.apache.http.client.utils.URIBuilder
 
 import static com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility.saveAndGet
 
 @Slf4j
-class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, HostProvisionProvider.ResizeFacet, WorkloadProvisionProvider.ResizeFacet, ProvisionProvider.SnapshotFacet {
+class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, HostProvisionProvider.ResizeFacet, WorkloadProvisionProvider.ResizeFacet, ProvisionProvider.SnapshotFacet, ProvisionProvider.HypervisorConsoleFacet {
 	public static final String PROVISION_PROVIDER_CODE = 'nutanix-prism-element-provision-provider'
 	public static final String PROVISION_PROVIDER_NAME = 'Nutanix Prism Element'
 
@@ -1961,5 +1962,47 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	String getHostDiskMode() {
 		return "lvm"
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse getNoVNCConsoleUrl(ComputeServer server) {
+		HttpApiClient client = new HttpApiClient()
+		client.networkProxy = server.cloud.apiProxy
+
+		try {
+			def reqConfig = NutanixPrismElementApiService.getRequestConfig(morpheusContext, server.cloud)
+
+			def res = NutanixPrismElementApiService.getConsoleUrl(client, reqConfig, server.externalId)
+			if (res.success) {
+				return ServiceResponse.success([url: res.url, headers: ['Cookie':res.sessionCookie]])
+			} else {
+				return ServiceResponse.error("Failed to get console url")
+			}
+		} finally {
+			client.shutdownClient()
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse enableConsoleAccess(ComputeServer server) {
+		server.consoleType = 'vnc'
+		return updateServerHost(server)
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	ServiceResponse updateServerHost(ComputeServer server) {
+		String apiUrl = server.cloud.serviceUrl ?: server.cloud.configMap?.apiUrl
+		server.consoleHost = new URIBuilder(apiUrl)?.getHost()
+		server = saveAndGet(morpheusContext, server)
+		return ServiceResponse.success(server)
 	}
 }

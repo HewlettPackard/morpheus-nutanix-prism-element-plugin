@@ -941,28 +941,35 @@ class NutanixPrismElementApiService {
 
 	static getConsoleUrl(HttpApiClient client, RequestConfig reqConfig, vmId) {
 		try {
-
 			HttpApiClient.RequestOptions requestOpts = new HttpApiClient.RequestOptions()
 			requestOpts.ignoreSSL = true
 			requestOpts.headers = [
+				'Content-Type': 'application/x-www-form-urlencoded',
 				'Accept': 'text/html',
 			]
 			requestOpts.body = [
 				'j_username': reqConfig.username,
 				'j_password': reqConfig.password,
 			]
+			requestOpts.contentType = 'form'
+
 			def resp = client.callApi(reqConfig.apiUrl, "/PrismGateway/j_spring_security_check", null, null, requestOpts)
 			if (resp.success) {
-				def sessionCookie = resp.getCookie('JSESSIONID')
-				if (sessionCookie != null) {
+				def sessionCookie = resp.headers.find { it.key == "Set-Cookie" }
+					?.value?.split(';')
+					?.find { it.startsWith("JSESSIONID") }
 
+				if (sessionCookie != null) {
 					def apiURL = new URI(reqConfig.apiUrl)
 					return [success: true, url: "wss://${apiURL.host}:${apiURL.port}/vnc/vm/${vmId}/proxy", sessionCookie: sessionCookie]
+				} else {
+					log.error("Failed to find session ID for console URL")
 				}
 			}
 		} catch (ex) {
 			log.error("nutanix exception: ${ex.message}", ex)
 		}
+		return [success: false]
 	}
 
 	static cloneServer(HttpApiClient client, RequestConfig reqConfig, Map opts) {
