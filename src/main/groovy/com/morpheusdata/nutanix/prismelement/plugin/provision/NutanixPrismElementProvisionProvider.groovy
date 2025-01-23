@@ -1677,7 +1677,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				return ServiceResponse.error("Error waiting for create snapshot task to complete")
 			}
 
-			def snapId = taskResults?.results?.entity_list?.find { it.entity_type == 'snapshot'}?.entity_id
+			def snapId = taskResults?.results?.entity_list?.find { it.entity_type?.toLowerCase() == 'snapshot'}?.entity_id
 			if(snapId) {
 				Snapshot savedSnapshot = morpheusContext.services.snapshot.create(new Snapshot(
 					account        : server.account ?: server.cloud.owner,
