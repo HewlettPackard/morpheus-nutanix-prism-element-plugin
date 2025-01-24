@@ -2005,4 +2005,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		server = saveAndGet(morpheusContext, server)
 		return ServiceResponse.success(server)
 	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	String getDeployTargetService() {
+		return "vmDeployTargetService"
+	}
 }
