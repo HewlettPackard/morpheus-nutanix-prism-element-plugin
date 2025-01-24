@@ -47,7 +47,7 @@ class NutanixPrismElementApiService {
 			rtn.success = results?.success && !results?.error
 
 			if (!rtn.success) {
-				rtn.invalidLogin = results.statusCode == 401
+				rtn.invalidLogin = results.errorCode == "401"
 			}
 		} catch (e) {
 			log.error("error in testConnection: ${e}", e)

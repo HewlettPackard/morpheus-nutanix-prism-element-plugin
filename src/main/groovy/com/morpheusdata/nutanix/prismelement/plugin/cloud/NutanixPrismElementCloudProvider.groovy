@@ -509,6 +509,8 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
 		log.info("refresh: ${cloudInfo}")
+		def resp = ServiceResponse.prepare()
+		resp.data = [:]
 
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = cloudInfo.apiProxy
@@ -540,19 +542,22 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					new VirtualMachinesSync(morpheusContext, cloudInfo, client, plugin.provisionProvider.getComputeServerInterfaceTypes(), plugin.cloudProvider.getComputeServerTypes()).execute()
 					new SnapshotsSync(morpheusContext, cloudInfo, client).execute()
 					morpheusContext.services.operationNotification.clearZoneAlarm(cloudInfo)
-					morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.ok, null, syncDate)
+					resp = ServiceResponse.success()
 				} else {
 					if (testResults.invalidLogin) {
-						morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix invalid credentials', syncDate)
 						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
+						resp.msg = 'nutanix invalid credentials'
+						resp.data.status = Cloud.Status.error
 					} else {
-						morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
-						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
+						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix not reachable')
+						resp.msg = 'nutanix host not reachable'
+						resp.data.status = Cloud.Status.offline
 					}
 				}
 			} else {
-				morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.offline, 'nutanix host not reachable', syncDate)
-				morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix host not reachable')
+				morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix not reachable')
+				resp.msg = 'nutanix host not reachable'
+				resp.data.status = Cloud.Status.offline
 			}
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
@@ -560,7 +565,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		} finally {
 			client.shutdownClient()
 		}
-		return ServiceResponse.success()
+		return resp
 	}
 
 	static String calculateRegionCode(Cloud cloudInfo) {
