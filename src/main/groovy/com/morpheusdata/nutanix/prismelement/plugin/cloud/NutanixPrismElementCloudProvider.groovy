@@ -547,7 +547,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 					if (testResults.invalidLogin) {
 						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix invalid credentials')
 						resp.msg = 'nutanix invalid credentials'
-						resp.data.status = Cloud.Status.error
+						resp.data.status = Cloud.Status.offline
 					} else {
 						morpheusContext.services.operationNotification.createZoneAlarm(cloudInfo, 'nutanix not reachable')
 						resp.msg = 'nutanix host not reachable'
