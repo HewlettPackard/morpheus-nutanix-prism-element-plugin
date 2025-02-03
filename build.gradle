@@ -74,7 +74,7 @@ dependencies {
 	implementation 'org.apache.httpcomponents:httpasyncclient:4.1.4'
 	implementation 'org.apache.httpcomponents:httpcore-nio:4.4.12'
 	implementation('org.codehaus.groovy.modules.http-builder:http-builder:0.7.1') {
-		exclude module:'xercesImpl'
+		exclude module: 'xercesImpl'
 	}
 
 	implementation("com.bertramlabs.plugins:karman-core:${karmanVersion}") {
@@ -82,8 +82,6 @@ dependencies {
 	}
 
 	implementation 'org.apache.commons:commons-compress:1.21'
-	implementation files('lib/xcpng-8.2.jar')
-
 }
 
 
