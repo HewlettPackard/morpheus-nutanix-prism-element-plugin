@@ -103,7 +103,7 @@ jar {
 			'Morpheus-Organization': 'morpheus',
 			'Morpheus-Code': 'nutanix-prism-element',
 			'Morpheus-Description': 'Plugin for Nutanix Prism Element',
-			'Morpheus-Logo': 'assets/nutanix-light.svg',
+			'Morpheus-Logo': 'assets/nutanix.svg',
 			'Morpheus-Logo-Dark': 'assets/nutanix-dark.svg',
 			'Morpheus-Labels': 'Plugin, Cloud',
 			'Morpheus-Repo': 'https://github.com/gomorpheus/morpheus-nutanix-prism-element-plugin',
