@@ -107,7 +107,7 @@ jar {
 			'Morpheus-Logo-Dark': 'assets/nutanix-dark.svg',
 			'Morpheus-Labels': 'Plugin, Cloud',
 			'Morpheus-Repo': 'https://github.com/gomorpheus/morpheus-nutanix-prism-element-plugin',
-			'Morpheus-Min-Appliance-Version': "8.0.0",
+			'Morpheus-Min-Appliance-Version': "8.0.3",
 		)
 	}
 }
