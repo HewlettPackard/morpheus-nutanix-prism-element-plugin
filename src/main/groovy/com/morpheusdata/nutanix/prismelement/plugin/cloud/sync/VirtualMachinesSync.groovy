@@ -226,34 +226,9 @@ class VirtualMachinesSync {
 
 		//memory
 		def maxMemory = vm.memoryCapacityInBytes?.toLong() ?: 0
-		def usedMemory = (vm.stats && vm.stats['guest.memory_usage_bytes']) ? vm.stats['guest.memory_usage_bytes'].toLong() : 0
-		if (maxMemory != capacityInfo.maxMemory || usedMemory != capacityInfo.usedMemory
-			|| maxMemory != server.maxMemory || usedMemory != server.usedMemory) {
+		if (maxMemory != capacityInfo.maxMemory || maxMemory != server.maxMemory) {
 			server.maxMemory = maxMemory
-			server.usedMemory = usedMemory
 			capacityInfo.maxMemory = maxMemory
-			capacityInfo.usedMemory = usedMemory
-			updates = true
-		}
-
-		// storage
-		def usedStorage
-		if (server.agentInstalled) {
-			usedStorage = server.usedStorage ?: 0
-		} else {
-			usedStorage = vm.stats?.controller_user_bytes?.toLong() ?: 0
-		}
-		if (usedStorage != capacityInfo.usedStorage) {
-			server.usedStorage = usedStorage
-			capacityInfo.usedStorage = usedStorage
-			updates = true
-		}
-
-		//cpu
-		def usedCpu = Math.min(100.0, (vm.stats.hypervisor_cpu_usage_ppm?.toLong() ?: 0) / 1000000)
-		if (usedCpu != server.usedCpu) {
-			capacityInfo.maxCpu = (Float) usedCpu
-			server.usedCpu = (Float) usedCpu
 			updates = true
 		}
 
