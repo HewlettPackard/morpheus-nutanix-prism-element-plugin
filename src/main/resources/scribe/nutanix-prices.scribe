@@ -1,0 +1,105 @@
+resource "account-price-set" "internal-custom-nutanix-priceset" {
+	code           = "internal.custom.nutanix.priceset"
+	name           = "Custom Nutanix Price Set"
+	priceUnit     = "month"
+	systemCreated = true
+	type           = "component"
+}
+
+resource "account-price" "internal-custom-nutanix-memory-usd" {
+  code           = "internal.custom.nutanix.memory.usd"
+  name           = "Custom Nutanix Memory"
+  systemCreated = false
+}
+
+resource "account-price" "internal-custom-nutanix-cpu-usd" {
+  code           = "internal.custom.nutanix.cpu.usd"
+  name           = "Custom Nutanix Cpu"
+  systemCreated = false
+}
+
+resource "account-price" "internal-custom-nutanix-core-usd" {
+  code           = "internal.custom.nutanix.core.usd"
+  name           = "Custom Nutanix Core"
+  systemCreated = false
+}
+
+resource "account-price" "internal-custom-nutanix-storage-usd" {
+  code           = "internal.custom.nutanix.storage.usd"
+  name           = "Custom Nutanix Storage"
+  systemCreated = false
+}
+
+resource "account-price-history" "internal-custom-nutanix-memory-usd" {
+  code            = "internal.custom.nutanix.memory.usd"
+  accountPrice   = account-price.internal-custom-nutanix-memory-usd
+  cost            = 0
+  currency        = "usd"
+  markup          = 0
+  markupPercent  = 0
+  price           = 0
+  priceType      = "memory"
+  priceUnit      = "month"
+  resourceType   = "compute"
+}
+
+resource "account-price-history" "internal-custom-nutanix-cpu-usd" {
+  code            = "internal.custom.nutanix.cpu.usd"
+  accountPrice   = account-price.internal-custom-nutanix-cpu-usd
+  cost            = 0
+  currency        = "usd"
+  markup          = 0
+  markupPercent  = 0
+  price           = 0
+  priceType      = "cpu"
+  priceUnit      = "month"
+  resourceType   = "compute"
+}
+
+resource "account-price-history" "internal-custom-nutanix-core-usd" {
+  code            = "internal.custom.nutanix.core.usd"
+  accountPrice   = account-price.internal-custom-nutanix-core-usd
+  cost            = 0
+  currency        = "usd"
+  markup          = 0
+  markupPercent  = 0
+  price           = 0
+  priceType      = "cores"
+  priceUnit      = "month"
+  resourceType   = "compute"
+}
+
+resource "account-price-history" "internal-custom-nutanix-storage-usd" {
+  code            = "internal.custom.nutanix.storage.usd"
+  accountPrice   = account-price.internal-custom-nutanix-storage-usd
+  cost            = 0
+  currency        = "usd"
+  markup          = 0
+  markupPercent  = 0
+  price           = 0
+  priceType      = "storage"
+  priceUnit      = "month"
+  resourceType   = "compute"
+  volumeType     = "standard"
+  incurCharges   = "always"
+}
+
+resource "account-price-set-price" "internal-custom-nutanix-memory-usd" {
+  accountPriceSet = account-price-set.internal-custom-nutanix-priceset
+  price             = account-price.internal-custom-nutanix-memory-usd
+}
+
+resource "account-price-set-price" "internal-custom-nutanix-cpu-usd" {
+  accountPriceSet = account-price-set.internal-custom-nutanix-priceset
+  price             = account-price.internal-custom-nutanix-cpu-usd
+}
+
+resource "account-price-set-price" "internal-custom-nutanix-core-usd" {
+  accountPriceSet = account-price-set.internal-custom-nutanix-priceset
+  price             = account-price.internal-custom-nutanix-core-usd
+}
+
+resource "account-price-set-price" "internal-custom-nutanix-storage-usd" {
+  accountPriceSet = account-price-set.internal-custom-nutanix-priceset
+  price             = account-price.internal-custom-nutanix-storage-usd
+}

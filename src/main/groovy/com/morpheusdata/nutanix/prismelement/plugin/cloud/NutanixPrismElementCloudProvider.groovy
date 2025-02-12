@@ -508,7 +508,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
-		log.info("refresh: ${cloudInfo}")
+		log.info("refresh: ${cloudInfo.name}")
 		def resp = ServiceResponse.prepare()
 		resp.data = [:]
 
