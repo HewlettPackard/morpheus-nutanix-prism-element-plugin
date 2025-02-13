@@ -75,9 +75,7 @@ class NutanixPrismElementPlugin extends Plugin {
 		// we need to override the instance type that was modified by the plugin.
 		// This includes optionTypes that changed.
 		List<String> seedsToRun = [
-			"application.NutanixZoneTypeSeed",
-			"application.ProvisionTypeNutanixSeed",
-			"application.NetworkTypeSeed",
+			"application.NetworkTypeSeed"
 		]
 		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
 	}
