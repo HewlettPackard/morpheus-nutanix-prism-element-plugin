@@ -97,7 +97,7 @@ jar {
 		attributes(
 			'Plugin-Class': 'com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin',
 			'Plugin-Version': version,
-			'Morpheus-Name': 'Nutanix Prism Element Plugin',
+			'Morpheus-Name': 'Nutanix Prism Element',
 			'Morpheus-Organization': 'morpheus',
 			'Morpheus-Code': 'nutanix-prism-element',
 			'Morpheus-Description': 'Plugin for Nutanix Prism Element',
@@ -124,6 +124,20 @@ task(console, dependsOn: 'classes', type: JavaExec) {
 	classpath = sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath
 }
 
+tasks.register('moveToPlugin') {
+	doLast {
+		ant.move file: "${buildDir}/libs/${project.name}-${version}-all.jar",
+			todir: "../morpheus-plugin-core/plugins"
+	}
+}
+
+// Runs assemble and copyToMorpheus
+tasks.register('publishToMorpheus') {
+	dependsOn tasks.shadowJar
+	dependsOn 'moveToPlugin'
+	tasks.findByName('moveToPlugin').mustRunAfter 'shadowJar'
+}
+
 test {
 	useJUnitPlatform()  // Required for Spock 2.x
 	testLogging {
@@ -132,3 +146,4 @@ test {
 	}
 }
 tasks.assemble.dependsOn tasks.shadowJar
+
