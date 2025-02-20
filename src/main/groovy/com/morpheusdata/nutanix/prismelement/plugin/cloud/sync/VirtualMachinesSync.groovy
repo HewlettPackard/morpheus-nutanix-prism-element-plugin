@@ -200,7 +200,7 @@ class VirtualMachinesSync {
 			}
 		}
 
-		if (server != null && server.status != 'provisioning' && cloudItem.legacyVm) {
+		if (server != null && (server.agentInstalled == false || server.powerState == 'off' || server.powerState == 'suspended') && server.status != 'provisioning' && cloudItem.legacyVm) {
 			def savedRequired = updateVirtualMachineStats(server, cloudItem.legacyVm as Map)
 			if (savedRequired) {
 				server = saveAndGet(server)
@@ -222,17 +222,49 @@ class VirtualMachinesSync {
 
 	private static boolean updateVirtualMachineStats(ComputeServer server, Map vm) {
 		def updates = false
-		def capacityInfo = server.capacityInfo ?: new ComputeCapacityInfo(maxStorage: server.maxStorage)
-
-		//memory
+		def usedStorage
+		if(server.agentInstalled) {
+			usedStorage = server.usedStorage ?: 0
+		} else {
+			usedStorage = vm.stats?.controller_user_bytes?.toLong() ?: 0
+		}
+		def cpuPercent = Math.min (100.0, (vm.stats.hypervisor_cpu_usage_ppm?.toLong() ?: 0) / 10000).toFloat()
 		def maxMemory = vm.memoryCapacityInBytes?.toLong() ?: 0
-		if (maxMemory != capacityInfo.maxMemory || maxMemory != server.maxMemory) {
-			server.maxMemory = maxMemory
-			capacityInfo.maxMemory = maxMemory
+		def usedMemory = (vm.stats && vm.stats['guest.memory_usage_bytes']) ? vm.stats['guest.memory_usage_bytes'].toLong() : 0
+		//save it all
+		ComputeCapacityInfo capacityInfo = server.getComputeCapacityInfo() ?: new ComputeCapacityInfo()
+
+		if(capacityInfo.usedStorage != usedStorage || server.usedStorage != usedStorage) {
+			capacityInfo.usedStorage = usedStorage
+			server?.usedStorage = usedStorage
 			updates = true
 		}
 
-		if (updates) {
+		if(capacityInfo.maxMemory != maxMemory || server.maxMemory != maxMemory) {
+			capacityInfo?.maxMemory = maxMemory
+			server?.maxMemory = maxMemory
+			updates = true
+		}
+
+		if(capacityInfo.usedMemory != usedMemory || server.usedMemory != usedMemory) {
+			capacityInfo?.usedMemory = usedMemory
+			server?.usedMemory = usedMemory
+			updates = true
+		}
+
+		if(capacityInfo.maxCpu != cpuPercent || server.usedCpu != cpuPercent) {
+			capacityInfo?.maxCpu = cpuPercent
+			server?.usedCpu = cpuPercent
+			updates = true
+		}
+
+		def powerState = capacityInfo.maxCpu > 0 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off
+		if(server.powerState != powerState) {
+			server.powerState = powerState
+			updates = true
+		}
+
+		if(updates == true) {
 			server.capacityInfo = capacityInfo
 		}
 

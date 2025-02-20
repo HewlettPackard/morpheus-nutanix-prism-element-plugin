@@ -478,7 +478,7 @@ class NutanixPrismElementSyncUtility {
 					if (disks) {
 						rtn.saveRequired = true
 						// TODO: replace with newer api when fixed, use deprecated api for now
-						morpheusContext.services.storageVolume.save(disks)
+						morpheusContext.async.storageVolume.save(disks).blockingGet()
 					}
 				}
 				.onDelete { deleteItems ->

@@ -826,6 +826,32 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		log.debug("start: ${startResults.success}")
 		def serverDetail = NutanixPrismElementApiService.checkServerReady(client, reqConfig, server.externalId)
 		if (serverDetail.success == true) {
+
+			def volumeCount = 0
+			def volumes = server.volumes.sort { it.displayOrder }
+			def disks = serverDetail.results.vm_disk_info
+
+			def volumesToSave = []
+			for (int i = 0; i < volumes.size(); i++) {
+				def volume = morpheusContext.async.storageVolume.get(volumes[i]?.id).blockingGet()
+				def newDisk = disks.find { disk -> disk.disk_address?.device_bus == volume.type.name.toLowerCase() && disk.disk_address?.device_index == volumeCount}
+				volume.externalId = newDisk?.disk_address?.vmdisk_uuid
+
+				def deviceName = ''
+				if(newDisk?.disk_address?.device_bus == 'scsi' || newDisk?.disk_address?.device_bus == 'sata') {
+					deviceName += 'sd'
+				} else {
+					deviceName += 'hd'
+				}
+				def letterIndex = ['a' ,'b' ,'c' ,'d' ,'e' ,'f' ,'g' ,'h' ,'i' ,'j' ,'k' ,'l']
+				def indexPos = newDisk.disk_address?.device_index ?: 0
+				deviceName += letterIndex[indexPos]
+				volume.deviceName = '/dev/' + deviceName
+				volume.deviceDisplayName = deviceName
+				volumeCount++
+				volumesToSave << volume
+			}
+			morpheusContext.async.storageVolume.bulkSave(volumesToSave).blockingGet()
 			return true
 		} else {
 			log.error("failed to load server details: ${serverDetail}")
