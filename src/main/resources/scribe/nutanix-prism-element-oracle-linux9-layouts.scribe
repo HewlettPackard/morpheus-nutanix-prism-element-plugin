@@ -13,7 +13,7 @@ resource "workload-type" "oraclelinux-nutanix-9" {
 	checkTypeCode    = null
 	category         = "oraclelinux"
 	virtualImage = {
-		code = "kvm.image.morpheus.oraclelinux.9.20241026"
+		code = "kvm.image.morpheus.oraclelinux.9.20250218"
 	}
 	provisionType = "nutanix"
 	backupType    = "nutanixSnapshot"

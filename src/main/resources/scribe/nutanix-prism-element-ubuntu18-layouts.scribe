@@ -13,7 +13,7 @@ resource "workload-type" "ubuntu-nutanix-18-04" {
 	checkTypeCode    = "containerCheck"
 	category         = "ubuntu"
 	virtualImage = {
-		code = "kvm.image.morpheus.ubuntu.18.04.20240604"
+		code = "kvm.image.morpheus.ubuntu.18.04.20250218"
 	}
 	provisionType = "nutanix"
 	backupType    = "nutanixSnapshot"

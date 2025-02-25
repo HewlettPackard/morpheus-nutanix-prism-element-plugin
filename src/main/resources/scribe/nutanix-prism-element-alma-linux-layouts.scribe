@@ -81,7 +81,7 @@ resource "os-type-image" "nutanix-morpheus-almalinux-9" {
 	code          = "nutanix-morpheus-almalinux-9"
 	provisionType = "nutanix"
 	virtualImage = {
-		code = "kvm.image.morpheus.almalinux.9.20241023"
+		code = "kvm.image.morpheus.almalinux.9.20250218"
 	}
 	osType = {
 		code  = "almalinux.9.64"
