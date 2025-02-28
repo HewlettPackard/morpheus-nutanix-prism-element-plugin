@@ -76,3 +76,31 @@ resource "scale-action" "ubuntu-nutanix-16-04" {
 		code = "ubuntu-remove-node"
 	}
 }
+
+resource "virtual-image" "nutanix-image-morpheus-ubuntu-16_04" {
+	code = "nutanix.image.morpheus.ubuntu.16.04"
+	category = "nutanix.image.morpheus.ubuntu.16.04"
+	name = "Morpheus Ubuntu 16.04"
+	imageType = "qcow2"
+	remotePath = "https://s3-us-west-1.amazonaws.com/morpheus-images/kvm/ubuntu/ubuntu-16_04_4-v1-amd64/morpheus-ubuntu-16_04_4-v1-amd64.qcow2"
+	imagePath = "kvm/ubuntu/ubuntu-16_04_4-v1-amd64"
+	isCloudInit = true
+	systemImage = true
+	installAgent = true
+	osType {
+		code = "ubuntu.16.04.64"
+	}
+	zoneType = "nutanix"
+}
+
+resource "os-type-image" "nutanix-morpheus-ubuntu-16.04" {
+	code          = "nutanix-morpheus-ubuntu-16.04"
+	provisionType = "nutanix"
+	virtualImage = {
+		code = "nutanix.image.morpheus.ubuntu.16.04"
+	}
+	osType = {
+		code  = "ubuntu.16.04.64"
+		owner = null
+	}
+}

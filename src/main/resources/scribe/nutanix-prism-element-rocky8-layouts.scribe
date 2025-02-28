@@ -72,3 +72,15 @@ resource "scale-action" "rocky-nutanix-8" {
 		code = "generic-remove-node"
 	}
 }
+
+resource "os-type-image" "nutanix-morpheus-rocky-8" {
+	code          = "nutanix-morpheus-rocky-8"
+	provisionType = "nutanix"
+	virtualImage = {
+		code = "kvm.image.morpheus.rocky.8.20250218"
+	}
+	osType = {
+		code  = "rocky.8.64"
+		owner = null
+	}
+}

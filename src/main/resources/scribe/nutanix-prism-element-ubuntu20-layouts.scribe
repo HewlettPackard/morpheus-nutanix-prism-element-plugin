@@ -77,3 +77,15 @@ resource "scale-action" "ubuntu-nutanix-20-04" {
 		code = "ubuntu-remove-node"
 	}
 }
+
+resource "os-type-image" "nutanix-morpheus-ubuntu-20.04" {
+	code          = "nutanix-morpheus-ubuntu-20.04"
+	provisionType = "nutanix"
+	virtualImage = {
+		code = "kvm.image.morpheus.ubuntu.20.04.20250218"
+	}
+	osType = {
+		code  = "ubuntu.20.04.64"
+		owner = null
+	}
+}
