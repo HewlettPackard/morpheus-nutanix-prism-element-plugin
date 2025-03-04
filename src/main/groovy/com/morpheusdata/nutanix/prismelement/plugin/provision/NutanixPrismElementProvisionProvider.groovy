@@ -1027,6 +1027,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	 */
 	@Override
 	ServiceResponse removeWorkload(Workload workload, Map opts) {
+		log.debug("opts: ${opts}")
 		ServiceResponse rtn = ServiceResponse.prepare()
 		if (!workload.server?.externalId) {
 			rtn.msg = 'vm not found'
@@ -1050,13 +1051,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			if (!stopResults.success) {
 				return stopResults
 			}
-
-			if (!opts.keepBackups) {
-				List<SnapshotIdentityProjection> snapshots = workload.server.snapshots
-				snapshots?.each { snap ->
-					NutanixPrismElementApiService.deleteSnapshot(client, reqConfig, snap.externalId)
-				}
-			}
+			
 			def removeResults = NutanixPrismElementApiService.deleteServer(client, reqConfig, vmOpts.externalId)
 			log.debug("remove results: ${removeResults}")
 			if (removeResults.success == true) {
