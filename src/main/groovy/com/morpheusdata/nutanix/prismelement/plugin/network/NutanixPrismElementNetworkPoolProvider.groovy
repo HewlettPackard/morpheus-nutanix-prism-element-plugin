@@ -19,13 +19,7 @@ package com.morpheusdata.nutanix.prismelement.plugin.network
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.IPAMProvider
-import com.morpheusdata.model.Icon
-import com.morpheusdata.model.NetworkDomain
-import com.morpheusdata.model.NetworkPool
-import com.morpheusdata.model.NetworkPoolIp
-import com.morpheusdata.model.NetworkPoolServer
-import com.morpheusdata.model.NetworkPoolType
-import com.morpheusdata.model.OptionType
+import com.morpheusdata.model.*
 import com.morpheusdata.response.ServiceResponse
 
 /**
@@ -33,8 +27,6 @@ import com.morpheusdata.response.ServiceResponse
  *
  * This assumes that a network pool with DHCP has been setup in the Nutanix cluster.
  * For now, the Morpheus side doesn't create/edit nutanix network pools
- *
- * TODO: This is a placeholder for now, there's no actual implementation here yet and it's not registered in the plugin
  */
 class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	public static final String NETWORK_POOL_PROVIDER_CODE = 'nutanix-prism-element-network-pool-provider'
@@ -62,7 +54,7 @@ class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse createNetworkPoolServer(NetworkPoolServer poolServer, Map opts) {
-		ServiceResponse.success()
+		ServiceResponse.success(poolServer)
 	}
 
 	/**
@@ -94,8 +86,8 @@ class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse createHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp, NetworkDomain domain, Boolean createARecord, Boolean createPtrRecord) {
-		// host records aren't editable for this plugin
-		ServiceResponse.error("unsupported")
+		// We're faking this out for now
+		ServiceResponse.success(['poolIp': networkPoolIp.ipAddress])
 	}
 
 	/**
@@ -103,8 +95,8 @@ class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse updateHostRecord(NetworkPoolServer poolServer, NetworkPool networkPool, NetworkPoolIp networkPoolIp) {
-		// host records aren't editable for this plugin
-		ServiceResponse.error("unsupported")
+		// We're faking this out for now
+		ServiceResponse.success()
 	}
 
 	/**
@@ -112,8 +104,16 @@ class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	ServiceResponse deleteHostRecord(NetworkPool networkPool, NetworkPoolIp poolIp, Boolean deleteAssociatedRecords) {
-		// host records aren't editable for this plugin
-		ServiceResponse.error("unsupported")
+		// We're faking this out for now
+		ServiceResponse.success()
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	Boolean getCreatable() {
+		return false
 	}
 
 	/**
@@ -121,8 +121,6 @@ class NutanixPrismElementNetworkPoolProvider implements IPAMProvider {
 	 */
 	@Override
 	Collection<NetworkPoolType> getNetworkPoolTypes() {
-		// TODO: This is seeded for now. Once this IPAM provider is fleshed out and registered in the plugin, this
-		//       should be used and the seed data removed
 		def networkPoolType = new NetworkPoolType(
 			code: 'nutanix',
 			name: 'Nutanix',

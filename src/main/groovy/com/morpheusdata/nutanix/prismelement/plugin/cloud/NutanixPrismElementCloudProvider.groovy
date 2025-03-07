@@ -20,21 +20,18 @@ package com.morpheusdata.nutanix.prismelement.plugin.cloud
 
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.*
-import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementImageStoreDatasetProvider
 import com.morpheusdata.nutanix.prismelement.plugin.NutanixPrismElementPlugin
+import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.*
+import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementImageStoreDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.network.NutanixPrismElementNetworkPoolProvider
 import com.morpheusdata.nutanix.prismelement.plugin.provision.NutanixPrismElementProvisionProvider
-import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.ContainersSync
-import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.HostsSync
-import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.ImagesSync
-import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.NetworkSync
-import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.SnapshotsSync
-import com.morpheusdata.nutanix.prismelement.plugin.cloud.sync.VirtualMachinesSync
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementApiService
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementComputeUtility
 import com.morpheusdata.nutanix.prismelement.plugin.utils.NutanixPrismElementStorageUtility
@@ -43,6 +40,7 @@ import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 
+import javax.xml.crypto.Data
 import java.security.MessageDigest
 
 /**
@@ -485,6 +483,9 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	@Override
 	ServiceResponse initializeCloud(Cloud cloudInfo) {
 		log.info("initializeCloud: ${cloudInfo}")
+
+		initializePoolServer(cloudInfo)
+
 		if (cloudInfo) {
 			if (cloudInfo.enabled) {
 				return refresh(cloudInfo)
@@ -494,6 +495,34 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		}
 
 		return ServiceResponse.success()
+	}
+
+	private void initializePoolServer(Cloud cloudInfo) {
+		def poolServer = lookUpPoolServer(cloudInfo)
+		if (!poolServer) {
+			log.info("Creating default pool server for NPE cloud ${cloudInfo.id}")
+
+			morpheusContext.services.network.poolServer.create(new NetworkPoolServer(
+				name: "Nutanix Network Pool Server - ${cloudInfo.id}",
+				internalId: getNetworkPoolServerId(cloudInfo),
+				type: new NetworkPoolServerType(code: NutanixPrismElementNetworkPoolProvider.NETWORK_POOL_PROVIDER_CODE),
+				account: cloudInfo.account,
+				visible: false,
+			))
+		}
+	}
+
+	private NetworkPoolServer lookUpPoolServer(Cloud cloudInfo) {
+		morpheusContext.services.network.poolServer.find(
+			new DataQuery().withFilters(
+				new DataFilter("internalId", getNetworkPoolServerId(cloudInfo)),
+				new DataFilter("account.id", cloudInfo.account.id)
+			)
+		)
+	}
+
+	private static def getNetworkPoolServerId(Cloud cloudInfo) {
+		"${NutanixPrismElementNetworkPoolProvider.NETWORK_POOL_PROVIDER_CODE}.${cloudInfo.id}"
 	}
 
 	/**
@@ -528,7 +557,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 						morpheusContext.async.cloud.save(cloudInfo).blockingGet()
 					}
 					morpheusContext.async.cloud.updateCloudStatus(cloudInfo, Cloud.Status.syncing, null, syncDate)
-					new NetworkSync(morpheusContext, cloudInfo, client).execute()
+					new NetworkSync(morpheusContext, cloudInfo, client, lookUpPoolServer(cloudInfo)).execute()
 					new ContainersSync(morpheusContext, cloudInfo, client).execute()
 					new ImagesSync(morpheusContext, cloudInfo, client).execute()
 					new HostsSync(morpheusContext, cloudInfo, client).execute()
@@ -618,6 +647,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	void refreshDaily(Cloud cloudInfo) {
+		initializePoolServer(cloudInfo)
 	}
 
 	/**
@@ -625,6 +655,22 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	 */
 	@Override
 	ServiceResponse deleteCloud(Cloud cloudInfo) {
+		def poolServer = lookUpPoolServer(cloudInfo)
+		if (poolServer) {
+			def pools = morpheusContext.services.network.pool.list(new DataQuery().withFilters(
+				new DataFilter('refType', 'ComputeZone'),
+				new DataFilter('refId', cloudInfo.id)
+			))
+
+			if (pools) {
+				for (def pool in pools) {
+					pool.poolServer = null
+				}
+				// Delete NetworkPools, so we can clear references to pool server before deleting
+				morpheusContext.async.network.pool.remove(poolServer.id, pools).blockingGet()
+			}
+			morpheusContext.async.network.poolServer.bulkRemove([poolServer]).blockingGet()
+		}
 		return ServiceResponse.success()
 	}
 

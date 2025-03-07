@@ -1,6 +1,7 @@
 package com.morpheusdata.nutanix.prismelement.plugin.cloud.sync
 
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.core.util.SyncTask
@@ -14,11 +15,13 @@ class NetworkSync {
 	private MorpheusContext morpheusContext
 	private HttpApiClient client
 	private Cloud cloud
+	private NetworkPoolServer networkPoolServer
 
-	NetworkSync(MorpheusContext morpheusContext, Cloud cloud, HttpApiClient client) {
+	NetworkSync(MorpheusContext morpheusContext, Cloud cloud, HttpApiClient client, NetworkPoolServer server) {
 		this.morpheusContext = morpheusContext
 		this.cloud = cloud
 		this.client = client
+		this.networkPoolServer = server
 	}
 
 	def execute() {
@@ -113,7 +116,7 @@ class NetworkSync {
 						gateway: it.ip_config.default_gateway,
 						type: poolType,
 						owner: cloud.owner,
-						account: cloud.account
+						account: cloud.account,
 					)
 					//ip ranges
 					poolRanges.each { poolRange ->
@@ -128,8 +131,12 @@ class NetworkSync {
 					// TODO: replace with newer api when fixed, use deprecated api for now
 					// The deprecated API properly looks up the poolType by code, which we need, but unfortunately only operates on
 					// a list and returns a boolean. If successful, we look the pool back up after the fact.
-					if (morpheusContext.async.network.pool.create([addNetworkPool]).blockingGet()) {
-						add.pool = morpheusContext.async.network.pool.find(new DataQuery().withFilter('externalId', addNetworkPool.externalId)).blockingGet()
+					if (morpheusContext.async.network.pool.create(this.networkPoolServer.id, [addNetworkPool]).blockingGet()) {
+						add.pool = morpheusContext.async.network.pool.find(new DataQuery().withFilters(
+							new DataFilter('refType','ComputeZone'),
+							new DataFilter('refId', this.cloud.id),
+							new DataFilter('externalId', addNetworkPool.externalId),
+						)).blockingGet()
 					}
 				}
 				networkAdds << add
@@ -182,6 +189,18 @@ class NetworkSync {
 							}
 						}
 					}
+
+					if (existingItem.pool) {
+						def pool = morpheusContext.services.network.pool.find(new DataQuery().withFilter("id", existingItem.pool.id))
+						if (pool?.poolServer?.id !=  this.networkPoolServer.id ||
+							pool.parentId != this.networkPoolServer.id) {
+							pool.poolServer = this.networkPoolServer
+							pool.parentId = this.networkPoolServer.id
+							pool.parentType = "NetworkPoolServer"
+							morpheusContext.services.network.pool.save(pool)
+						}
+					}
+
 					if (existingItem.pool && existingItem.pool.type == null) {
 						existingItem.pool.type = poolType
 						itemChanged = true

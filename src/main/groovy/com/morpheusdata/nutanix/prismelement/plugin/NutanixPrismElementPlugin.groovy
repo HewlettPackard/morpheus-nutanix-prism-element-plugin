@@ -27,6 +27,7 @@ import com.morpheusdata.nutanix.prismelement.plugin.cloud.NutanixPrismElementClo
 import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementImageStoreDatasetProvider
 import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementProvisionImageDatasetProvider
 import com.morpheusdata.nutanix.prismelement.plugin.dataset.NutanixPrismElementVirtualImageDatasetProvider
+import com.morpheusdata.nutanix.prismelement.plugin.network.NutanixPrismElementNetworkPoolProvider
 import com.morpheusdata.nutanix.prismelement.plugin.provision.NutanixPrismElementProvisionProvider
 
 @SuppressWarnings("unused")
@@ -56,11 +57,13 @@ class NutanixPrismElementPlugin extends Plugin {
 		def virtualImageDatasetProvider = new NutanixPrismElementVirtualImageDatasetProvider(this, this.morpheus)
 		provisionProvider = new NutanixPrismElementProvisionProvider(this, this.morpheus)
 		def backupProvider = new NutanixPrismElementBackupProvider(this, morpheus)
+		def ipamProvider = new NutanixPrismElementNetworkPoolProvider(this, morpheus)
 
 		this.registerProviders(
 			backupProvider,
 			this.cloudProvider,
 			imageStoreDatasetProvider,
+			ipamProvider,
 			provisionImageDatasetProvider,
 			this.provisionProvider,
 			virtualImageDatasetProvider,
