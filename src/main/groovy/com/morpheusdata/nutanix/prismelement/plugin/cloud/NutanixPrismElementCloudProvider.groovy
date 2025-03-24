@@ -371,6 +371,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			platform: 'linux',
 			nodeType: 'kube-master',
 			controlSuspend: true,
+			hasMaintenanceMode: true,
 			creatable: true,
 			displayOrder: 15,
 			containerHypervisor: true,
@@ -383,6 +384,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		serverTypes << new ComputeServerType(
 			code: 'nutanixKubeWorker',
 			name: 'Nutanix Kubernetes Worker',
+			hasMaintenanceMode: true,
 			description: '',
 			platform: 'linux',
 			nodeType: 'kube-worker',
