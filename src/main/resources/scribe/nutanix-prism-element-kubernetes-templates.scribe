@@ -1,0 +1,440 @@
+resource "workload-type" "kubernetes-ubuntu-22-04-1-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-22-04-1-nutanix-amd64"
+  shortName        = "kubernetes-ubuntu"
+  name             = "Nutanix Kubernetes Cluster on Ubuntu 22.04"
+  containerVersion = "22.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus Kubernetes on Ubuntu 22.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22"]
+  scripts          = [
+    "kube-ubuntu-22-setup-script-v1", "kube-adm-master-setup-script-v1", "kubernetes-ectd-encrypt-install-master-script-v1"
+  ]
+  templates = ["kubeadm-cluster-master-init","kubernetes-etcd-encrypt-install-master","k8-cypher"]
+}
+
+# worker vm
+resource "workload-type" "kubernetes-ubuntu-22-04-1-worker-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-22-04-1-worker-nutanix-amd64"
+  shortName        = "kubernetes-worker-ubuntu"
+  name             = "Nutanix Kubernetes Worker on Ubuntu 22.04"
+  containerVersion = "22.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus kubernetes on ubuntu 22.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22"]
+  provisionType    = "nutanix"
+  scripts          = [
+    "kube-ubuntu-22-setup-script-v1", "kubernetes-worker-join-v1"
+  ]
+  templates = []
+}
+
+# master set
+resource "compute-type-set" "kubernetes-ubuntu-22-04-1-nutanix-amd64-set" {
+  code             = "kubernetes-ubuntu-22-04-1-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-22-04-1-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 0
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# worker set
+resource "compute-type-set" "kubernetes-ubuntu-22-04-1-worker-nutanix-amd64-set" {
+  code             = "kubernetes-ubuntu-22-04-1-worker-nutanix-amd64-set"
+  name             = "kubernetes worker"
+  containerType    = workload-type.kubernetes-ubuntu-22-04-1-worker-nutanix-amd64
+  computeServerType= compute-server-type.nutanixKubeWorker
+  category         = "ubuntu"
+  priorityOrder    = 1
+  dynamicCount     = true
+  nodeCount        = 3
+  nameSuffix       = "-worker"
+  nodeType         = "worker"
+  canAddNodes      = true
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+
+// Ubuntu 24
+
+resource "workload-type" "kubernetes-ubuntu-24-04-1-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-24-04-1-nutanix-amd64"
+  shortName        = "kubernetes-ubuntu"
+  name             = "Nutanix Kubernetes Cluster on Ubuntu 24.04"
+  containerVersion = "24.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus Kubernetes on Ubuntu 24.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22"]
+  scripts          = [
+    "kube-ubuntu-22-setup-script-v1", "kube-adm-master-setup-script-v1", "kubernetes-ectd-encrypt-install-master-script-v1"
+  ]
+  templates = ["kubeadm-cluster-master-init","kubernetes-etcd-encrypt-install-master","k8-cypher"]
+}
+
+# worker vm
+resource "workload-type" "kubernetes-ubuntu-24-04-1-worker-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-24-04-1-worker-nutanix-amd64"
+  shortName        = "kubernetes-worker-ubuntu"
+  name             = "Nutanix Kubernetes Worker on Ubuntu 24.04"
+  containerVersion = "24.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus kubernetes on ubuntu 24.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22"]
+  provisionType    = "nutanix"
+  scripts          = [
+    "kube-ubuntu-22-setup-script-v1", "kubernetes-worker-join-v1"
+  ]
+  templates = []
+}
+
+# master set
+resource "compute-type-set" "kubernetes-ubuntu-24-04-1-nutanix-amd64-set" {
+  code             = "kubernetes-ubuntu-24-04-1-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-24-04-1-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 0
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# worker set
+resource "compute-type-set" "kubernetes-ubuntu-24-04-1-worker-nutanix-amd64-set" {
+  code             = "kubernetes-ubuntu-24-04-1-worker-nutanix-amd64-set"
+  name             = "kubernetes worker"
+  containerType    = workload-type.kubernetes-ubuntu-24-04-1-worker-nutanix-amd64
+  computeServerType= compute-server-type.nutanixKubeWorker
+  category         = "ubuntu"
+  priorityOrder    = 1
+  dynamicCount     = true
+  nodeCount        = 3
+  nameSuffix       = "-worker"
+  nodeType         = "worker"
+  canAddNodes      = true
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+
+
+
+/*
+ * -- HA LAYOUTS --
+*/
+
+
+
+resource "workload-type" "kubernetes-ubuntu-ha-master-22-04-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-ha-master-22-04-nutanix-amd64"
+  shortName        = "kubernetes-ubuntu"
+  name             = "Nutanix Kubernetes HA Master Cluster on Ubuntu 22.04"
+  containerVersion = "22.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus Kubernetes HA Master on Ubuntu 22.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22", "kubernetes.ha.6443"]
+  scripts          = [
+    "kube-ubuntu-22-setup-script-v1", "kube-adm-master-setup-script-v1", "kubernetes-ectd-encrypt-install-master-script-v1", "kube-kubeadm-cluster-shared-key", "k8-config-save"
+  ]
+  templates = ["kubeadm-cluster-master-init","kubernetes-etcd-encrypt-install-master","k8-cypher"]
+}
+
+# add master vm
+resource "workload-type" "kubernetes-ubuntu-ha-add-master-22-04-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-ha-add-master-22-04-nutanix-amd64"
+  shortName        = "kubernetes-worker-ubuntu"
+  name             = "nutanix Kubernetes HA Add Master Cluster on Ubuntu 22.04"
+  containerVersion = "22.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus Kubernetes HA Add Master on Ubuntu 22.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22"]
+  provisionType    = "nutanix"
+  scripts          = [
+    "kube-kubeadm-cluster-shared-key", "kube-ubuntu-22-setup-script-v1", "k8-config-fetch", "kubernetes-kubeadm-cluster-add-master-init-v1", "kube-ectd-encrypt-install-add-master-script-v1"
+  ]
+  templates = [ "k8-cypher", "kubeadm-cluster-add-master-init", "kubernetes-etcd-encrypt-install-master"]
+}
+
+# master set
+resource "compute-type-set" "kube-ubuntu-22-04-ha-master-nutanix-amd64-set" {
+  code             = "kube-ubuntu-22-04-ha-master-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-ha-master-22-04-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 0
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# add master set
+resource "compute-type-set" "kube-ubuntu-22-04-ha-add-master-nutanix-amd64-set" {
+  code             = "kube-ubuntu-22-04-ha-add-master-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-ha-add-master-22-04-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 1
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# final master set
+resource "compute-type-set" "kube-ubuntu-22-04-ha-final-master-nutanix-amd64-set" {
+  code             = "kube-ubuntu-22-04-ha-final-master-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-ha-add-master-22-04-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 2
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# worker set
+resource "compute-type-set" "kube-ubuntu-22-04-ha-worker-nutanix-amd64-set" {
+  code             = "kube-ubuntu-22-04-ha-worker-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-22-04-1-worker-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeWorker
+  category         = "ubuntu"
+  priorityOrder    = 3
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-worker"
+  nodeType         = "worker"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+
+// Ubuntu 24
+
+resource "workload-type" "kubernetes-ubuntu-ha-master-24-04-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-ha-master-24-04-nutanix-amd64"
+  shortName        = "kubernetes-ubuntu"
+  name             = "Nutanix Kubernetes HA Master Cluster on Ubuntu 24.04"
+  containerVersion = "24.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus Kubernetes HA Master on Ubuntu 24.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22", "kubernetes.ha.6443"]
+  scripts          = [
+    "kube-ubuntu-22-setup-script-v1", "kube-adm-master-setup-script-v1", "kubernetes-ectd-encrypt-install-master-script-v1", "kube-kubeadm-cluster-shared-key", "k8-config-save"
+  ]
+  templates = ["kubeadm-cluster-master-init","kubernetes-etcd-encrypt-install-master","k8-cypher"]
+}
+
+# add master vm
+resource "workload-type" "kubernetes-ubuntu-ha-add-master-24-04-nutanix-amd64" {
+  code             = "kubernetes-ubuntu-ha-add-master-24-04-nutanix-amd64"
+  shortName        = "kubernetes-worker-ubuntu"
+  name             = "nutanix Kubernetes HA Add Master Cluster on Ubuntu 24.04"
+  containerVersion = "24.04"
+  repositoryImage  = ""
+  imageCode        = "nutanix morpheus Kubernetes HA Add Master on Ubuntu 24.04"
+  entryPoint       = ""
+  mountLogs        = "/var/log"
+  statTypeCode     = "server"
+  logTypeCode      = "ubuntu"
+  showServerLogs   = true
+  category         = "kubernetes"
+  cloneType        = "ubuntu"
+  priorityOrder    = 0
+  serverType       = "vm"
+  providerType     = "nutanix"
+  checkTypeCode    = "vmCheck"
+  virtualImage     = {
+    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+  }
+  containerPorts   = ["ubuntu.22"]
+  provisionType    = "nutanix"
+  scripts          = [
+    "kube-kubeadm-cluster-shared-key", "kube-ubuntu-22-setup-script-v1", "k8-config-fetch", "kubernetes-kubeadm-cluster-add-master-init-v1", "kube-ectd-encrypt-install-add-master-script-v1"
+  ]
+  templates = [ "k8-cypher", "kubeadm-cluster-add-master-init", "kubernetes-etcd-encrypt-install-master"]
+}
+
+# master set
+resource "compute-type-set" "kube-ubuntu-24-04-ha-master-nutanix-amd64-set" {
+  code             = "kube-ubuntu-24-04-ha-master-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-ha-master-24-04-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 0
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# add master set
+resource "compute-type-set" "kube-ubuntu-24-04-ha-add-master-nutanix-amd64-set" {
+  code             = "kube-ubuntu-24-04-ha-add-master-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-ha-add-master-24-04-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 1
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# final master set
+resource "compute-type-set" "kube-ubuntu-24-04-ha-final-master-nutanix-amd64-set" {
+  code             = "kube-ubuntu-24-04-ha-final-master-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-ha-add-master-24-04-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeMaster
+  category         = "ubuntu"
+  priorityOrder    = 2
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-master"
+  nodeType         = "master"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
+
+# worker set
+resource "compute-type-set" "kube-ubuntu-24-04-ha-worker-nutanix-amd64-set" {
+  code             = "kube-ubuntu-24-04-ha-worker-nutanix-amd64-set"
+  name             = "kubernetes master"
+  workloadType      = workload-type.kubernetes-ubuntu-24-04-1-worker-nutanix-amd64
+  computeServerType = compute-server-type.nutanixKubeWorker
+  category         = "ubuntu"
+  priorityOrder    = 3
+  dynamicCount     = false
+  nodeCount        = 1
+  nameSuffix       = "-worker"
+  nodeType         = "worker"
+  installContainerRuntime = false
+  installStorageRuntime = false
+}
