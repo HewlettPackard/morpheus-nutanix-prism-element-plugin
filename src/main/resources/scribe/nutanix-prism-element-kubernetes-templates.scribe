@@ -310,6 +310,7 @@ resource "compute-type-set" "kube-ubuntu-22-04-ha-worker-nutanix-amd64-set" {
   nodeCount        = 1
   nameSuffix       = "-worker"
   nodeType         = "worker"
+  canAddNodes      = true
   installContainerRuntime = false
   installStorageRuntime = false
 }
@@ -435,6 +436,7 @@ resource "compute-type-set" "kube-ubuntu-24-04-ha-worker-nutanix-amd64-set" {
   nodeCount        = 1
   nameSuffix       = "-worker"
   nodeType         = "worker"
+  canAddNodes      = true
   installContainerRuntime = false
   installStorageRuntime = false
 }
