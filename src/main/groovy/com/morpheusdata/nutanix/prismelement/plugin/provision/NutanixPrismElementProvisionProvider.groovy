@@ -660,6 +660,13 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 					log.warn("Error configuring cloud-init - no appliance url")
 				}
 			} else {
+				/*TODO:: check if cloudConfig should be set.
+				   Adding this whilst no capacity to test the change
+				   Only if server.sourceImage?.isSysprep || server.sourceImage?.isCloudInit should cloudConfig be set
+				   Nutanix will only accept cloudInit userData or Windows unattend.
+				   If !isSysprep && !isCloudInit the returned result from cloudConfigUser will be powershell and this will fail the Nutanix create VM API
+				   possibily needs to be base64 encoded as well.
+				 */
 				createOpts.cloudConfig = hostRequest?.cloudConfigUser ?: workloadRequest?.cloudConfigUser
 			}
 		} else {
