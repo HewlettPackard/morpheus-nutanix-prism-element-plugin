@@ -1,5 +1,5 @@
 /*
-  
+
 ---- Version 33 -----
 
 */
@@ -79,7 +79,7 @@ resource "compute-type-layout" "kubernetes-1.33-ubuntu-24.04-nutanix-amd64" {
 
 
 /*
-  
+
 ---- Version 32 -----
 
 */
@@ -87,7 +87,7 @@ resource "compute-type-layout" "kubernetes-1.33-ubuntu-24.04-nutanix-amd64" {
 
 resource "compute-type-layout" "kubernetes-1.32-ubuntu-22.04.1-nutanix-amd64-single" {
   code = "kubernetes-1.32-ubuntu-22.04.1-nutanix-amd64-single"
-  enabled = true
+  enabled = false
   name = "MKS Kubernetes 1.32 Cluster on Ubuntu 22.04"
   sortOrder = 90
   computeVersion = "22.04"
@@ -121,7 +121,7 @@ resource "compute-type-layout" "kubernetes-1.32-ubuntu-22.04.1-nutanix-amd64-sin
 
 resource "compute-type-layout" "kubernetes-1.32-ubuntu-22.04-nutanix-amd64" {
   code = "kubernetes-1.32-ubuntu-22.04-nutanix-amd64"
-  enabled = true
+  enabled = false
   name = "MKS Kubernetes 1.32 HA Cluster on Ubuntu 22.04"
   sortOrder = 100
   computeVersion = "22.04"
@@ -151,8 +151,81 @@ resource "compute-type-layout" "kubernetes-1.32-ubuntu-22.04-nutanix-amd64" {
   ]
 }
 
+
 /*
-  
+
+---- Version 32 with Ubuntu 24.04 -----
+
+*/
+
+resource "compute-type-layout" "kubernetes-1.32-ubuntu-24.04.1-nutanix-amd64-single" {
+  code = "kubernetes-1.32-ubuntu-24.04.1-nutanix-amd64-single"
+  enabled = true
+  name = "MKS Kubernetes 1.32 Cluster on Ubuntu 24.04"
+  sortOrder = 90
+  computeVersion = "24.04"
+  clusterVersion = "1.32.x"
+  description = "provision a kubernetes 1.32 cluster on ubuntu 24.04"
+  type = "nutanixKubeMaster"
+  serverCount = 4
+  memoryRequirement = 1073741824
+  hasAutoScale = true
+  containerRuntime = "containerd"
+  networkRuntime = "calico"
+  computeServers = [
+    compute-type-set.kubernetes-ubuntu-24-04-1-nutanix-amd64-set,
+    compute-type-set.kubernetes-ubuntu-24-04-1-worker-nutanix-amd64-set
+  ]
+  optionTypes = [
+    "kubernetes.master.podCidr",
+    "kubernetes.master.serviceCidr"
+  ]
+  groupType = "kubernetes-cluster"
+  provisionType =  "nutanix"
+  specTemplates = []
+  packages = [
+    "kubernetes-calico-3-28-1-package",
+    "kubernetes-rook-1-15-0-package",
+    "kubernetes-fluentbit-3-0-7-package",
+    "kubernetes-prometheus-0-12-package",
+    "kubernetes-nginx-ingress-operator-1-12-1-package"
+  ]
+}
+
+resource "compute-type-layout" "kubernetes-1.32-ubuntu-24.04-nutanix-amd64" {
+  code = "kubernetes-1.32-ubuntu-24.04-nutanix-amd64"
+  enabled = true
+  name = "MKS Kubernetes 1.32 HA Cluster on Ubuntu 24.04"
+  sortOrder = 100
+  computeVersion = "24.04"
+  clusterVersion = "1.32.x"
+  description = "provision a kubernetes 1.32 cluster on ubuntu 24.04"
+  type = "nutanixKubeMaster"
+  serverCount = 6
+  memoryRequirement = 1073741824
+  hasAutoScale = true
+  containerRuntime = "containerd"
+  networkRuntime = "calico"
+  computeServers = [
+    compute-type-set.kube-ubuntu-24-04-ha-master-nutanix-amd64-set,
+    compute-type-set.kube-ubuntu-24-04-ha-add-master-nutanix-amd64-set,
+    compute-type-set.kube-ubuntu-24-04-ha-final-master-nutanix-amd64-set,
+    compute-type-set.kube-ubuntu-24-04-ha-worker-nutanix-amd64-set
+  ]
+  groupType = "kubernetes-cluster"
+  provisionType =  "nutanix"
+  specTemplates = []
+  packages = [
+    "kubernetes-calico-3-28-1-package",
+    "kubernetes-rook-1-15-0-package",
+    "kubernetes-fluentbit-3-0-7-package",
+    "kubernetes-prometheus-0-12-package",
+    "kubernetes-nginx-ingress-operator-1-12-1-package"
+  ]
+}
+
+/*
+
 ---- Version 31 -----
 
 */
@@ -225,7 +298,7 @@ resource "compute-type-layout" "kubernetes-1.31-ubuntu-22.04-nutanix-amd64" {
 }
 
 /*
-  
+
 ---- Version 30 ----
 
 */
