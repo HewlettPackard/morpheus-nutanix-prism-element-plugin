@@ -156,11 +156,17 @@ class NetworkSync {
 		def poolType = new NetworkPoolType(code: 'nutanix')
 		try {
 			def networkUpdates = []
+			def poolUpdates = []
 			updateItems?.each {
 				def masterItem = it.masterItem
 				Network existingItem = it.existingItem
 				if (existingItem) {
+					def pool
+					if(existingItem.pool) {
+						pool = morpheusContext.services.network.pool.find(new DataQuery().withFilter("id", existingItem.pool.id))
+					}
 					def itemChanged = false
+					def poolChanged = false
 					def managedNetwork = masterItem.ip_config?.network_address ? true : false
 					def networkType = managedNetwork ? nutanixManagedVlan : nutanixVlan
 
@@ -172,50 +178,56 @@ class NetworkSync {
 						existingItem.type = networkType
 						itemChanged = true
 					}
+
+
+					if (pool && pool.type == null) {
+						pool.type = poolType
+						poolChanged = true
+					}
+
 					if (masterItem.ip_config?.networkAddress) {
-						if (existingItem.pool && (existingItem.pool.ipRanges == null || existingItem.pool.ipRanges?.size() == 0)) {
+						if (pool && (pool.ipRanges == null || pool.ipRanges?.size() == 0) && pool.type != null && pool.type.code?.equals(poolType.code)) {
 							def poolRanges = masterItem.ip_config.pool?.collect { range -> range.range }
 							if (poolRanges?.size() > 0) {
 								poolRanges.each { poolRange ->
 									def rangeAddrs = poolRange.tokenize(' ')
 									if (rangeAddrs.size() > 1) {
 										log.debug("NetworkSync >> updateMatchedNetworks >> adding pool range ${rangeAddrs[0]}-${rangeAddrs[1]}")
-										def newRange = new NetworkPoolRange(networkPool: existingItem.pool, startAddress: rangeAddrs[0], endAddress: rangeAddrs[1], externalId: poolRange)
+										def newRange = new NetworkPoolRange(networkPool: pool, startAddress: rangeAddrs[0], endAddress: rangeAddrs[1], externalId: poolRange)
 										log.debug("new range: ${newRange}")
-										existingItem.pool.addToIpRanges(newRange)
-										itemChanged = true
+										pool.addToIpRanges(newRange)
+										poolChanged = true
 									}
 								}
 							}
 						}
 					}
 
-					if (existingItem.pool) {
-						def pool = morpheusContext.services.network.pool.find(new DataQuery().withFilter("id", existingItem.pool.id))
-						if (pool?.poolServer?.id !=  this.networkPoolServer.id ||
-							pool.parentId != this.networkPoolServer.id) {
+					if (pool && pool.type != null && pool.type.code?.equals(poolType.code)) {
+						if (pool?.poolServer?.id != this.networkPoolServer.id || pool.parentId != this.networkPoolServer.id) {
 							pool.poolServer = this.networkPoolServer
 							pool.parentId = this.networkPoolServer.id
 							pool.parentType = "NetworkPoolServer"
-							morpheusContext.services.network.pool.save(pool)
+							poolChanged = true
 						}
 					}
 
-					if (existingItem.pool && existingItem.pool.type == null) {
-						existingItem.pool.type = poolType
-						itemChanged = true
-					}
-					if (existingItem.pool && (existingItem.pool.refId == null || existingItem.pool.refId == '')) {
-						existingItem.pool.refType = 'ComputeZone'
-						existingItem.pool.refId = cloud.id
-						checkForDupePools(existingItem.pool, poolType)
-						itemChanged = true
+					if (pool && (pool.refId == null || pool.refId == '')) {
+						pool.refType = 'ComputeZone'
+						pool.refId = cloud.id
+						checkForDupePools(pool, poolType)
+						poolChanged = true
 					}
 					if (itemChanged) {
 						networkUpdates << existingItem
 					}
+					if(poolChanged) {
+						poolUpdates << pool
+					}
 				}
-
+				if(poolUpdates.size() > 0) {
+					morpheusContext.async.cloud.network.pool.bulkSave(poolUpdates).blockingGet()
+				}
 				if (networkUpdates.size() > 0) {
 					morpheusContext.async.cloud.network.bulkSave(networkUpdates).blockingGet()
 				}
