@@ -16,7 +16,7 @@ resource "compute-type-layout" "kubernetes-1.33-ubuntu-24.04.1-nutanix-amd64-sin
   type = "nutanixKubeMaster"
   serverCount = 4
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -50,7 +50,7 @@ resource "compute-type-layout" "kubernetes-1.33-ubuntu-24.04-nutanix-amd64" {
   type = "nutanixKubeMaster"
   serverCount = 6
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -96,7 +96,7 @@ resource "compute-type-layout" "kubernetes-1.32-ubuntu-22.04.1-nutanix-amd64-sin
   type = "nutanixKubeMaster"
   serverCount = 4
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -130,7 +130,7 @@ resource "compute-type-layout" "kubernetes-1.32-ubuntu-22.04-nutanix-amd64" {
   type = "nutanixKubeMaster"
   serverCount = 6
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -169,7 +169,7 @@ resource "compute-type-layout" "kubernetes-1.32-ubuntu-24.04.1-nutanix-amd64-sin
   type = "nutanixKubeMaster"
   serverCount = 4
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -203,7 +203,7 @@ resource "compute-type-layout" "kubernetes-1.32-ubuntu-24.04-nutanix-amd64" {
   type = "nutanixKubeMaster"
   serverCount = 6
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -242,7 +242,7 @@ resource "compute-type-layout" "kubernetes-1.31-ubuntu-22.04.1-nutanix-amd64-sin
   type = "nutanixKubeMaster"
   serverCount = 4
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -276,7 +276,7 @@ resource "compute-type-layout" "kubernetes-1.31-ubuntu-22.04-nutanix-amd64" {
   type = "nutanixKubeMaster"
   serverCount = 6
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -315,7 +315,7 @@ resource "compute-type-layout" "kubernetes-1.30-ubuntu-22.04.1-nutanix-amd64-sin
   type = "nutanixKubeMaster"
   serverCount = 4
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
@@ -345,7 +345,7 @@ resource "compute-type-layout" "kubernetes-1.30-ubuntu-22.04-nutanix-amd64" {
   type = "nutanixKubeMaster"
   serverCount = 6
   memoryRequirement = 1073741824
-  hasAutoScale = true
+  hasAutoScale = false
   containerRuntime = "containerd"
   networkRuntime = "calico"
   computeServers = [
