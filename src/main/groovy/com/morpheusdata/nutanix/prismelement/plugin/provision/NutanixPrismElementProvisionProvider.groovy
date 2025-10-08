@@ -75,36 +75,51 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
 		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false], disableCloudInit: false)
 
+		Cloud cloud = workload.server?.cloud
+
 		if (workload.server.sourceImage) {
 			resp.success = true
-			return resp
-		}
-
-		try {
-			Long virtualImageId = workload.getConfigProperty('imageId')?.toLong() ?: workload?.workloadType?.virtualImage?.id ?: opts?.config?.imageId
-			if (!virtualImageId) {
-				resp.msg = "No virtual image selected"
-			} else {
-				VirtualImage virtualImage
-				try {
-					virtualImage = morpheusContext.services.virtualImage.get(virtualImageId)
-				} catch (e) {
-					log.error "error in get image: ${e}"
-				}
-				if (!virtualImage) {
-					resp.msg = "No virtual image found for ${virtualImageId}"
+		} else {
+			try {
+				Long virtualImageId = workload.getConfigProperty('imageId')?.toLong() ?: workload?.workloadType?.virtualImage?.id ?: opts?.config?.imageId
+				if (!virtualImageId) {
+					resp.msg = "No virtual image selected"
 				} else {
-					workload.server.sourceImage = virtualImage
-					saveAndGet(morpheusContext, workload.server)
-					resp.success = true
+					VirtualImage virtualImage
+					try {
+						virtualImage = morpheusContext.services.virtualImage.get(virtualImageId)
+					} catch (e) {
+						log.error "error in get image: ${e}"
+					}
+					if (!virtualImage) {
+						resp.msg = "No virtual image found for ${virtualImageId}"
+					} else {
+						workload.server.sourceImage = virtualImage
+						saveAndGet(morpheusContext, workload.server)
+						resp.success = true
+					}
 				}
+			} catch (e) {
+				resp.msg = "Error in PrepareWorkload: ${e}"
+				log.error "${resp.msg}, ${e}", e
 			}
-		} catch (e) {
-			resp.msg = "Error in PrepareWorkload: ${e}"
-			log.error "${resp.msg}, ${e}", e
 		}
 		if (!resp.success) {
 			log.error "prepareWorkload: error - ${resp.msg}"
+		} else {
+			def platform = workload.server?.serverOs?.platform ?: workload.server?.sourceImage?.osType?.platform
+			def aosVersion = cloud?.getConfigProperty('aosVersion')
+			if (platform == PlatformType.windows && aosVersion && aosVersion ==~ /^\d+(\.\d+)*$/) {  // matches "7", "7.0", "7.0.11", etc.
+				//correct window interface names for AOS version 7 and above
+				def major = aosVersion.tokenize('.')[0] as int
+				if (major >= 7) {
+					//networkConfig passed by reference and we can update it here before its used for generating user data
+					opts.networkConfig?.primaryInterface?.name = 'Ethernet Instance 0'
+					opts.networkConfig?.extraInterfaces?.eachWithIndex { currentInterface, idx ->
+						currentInterface.name = "Ethernet Instance 0 ${idx+2}"
+					}
+				}
+			}
 		}
 		return resp
 	}
@@ -722,6 +737,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	}
 
 	private static Map buildBaseCreateVmOpts(Cloud cloud, ComputeServer server) {
+		def platformType = server?.serverOs?.platform ?: server?.sourceImage?.osType?.platform
+		def platform = platformType == PlatformType.windows ? 'windows' : 'linux'
 		return [
 			account   : server.account,
 			domainName: server.getExternalDomain(),
@@ -732,6 +749,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			uefi      : server.sourceImage?.uefi,
 			uuid      : server.apiKey,
 			zone      : cloud,
+			platform  : platform,
+			isSysprep : server.sourceImage?.getSysprep()
 		]
 	}
 
@@ -772,6 +791,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	}
 
 	static boolean isCloudInitIso(Map createOpts) {
+		println "isCloudInitIso: ${createOpts}"
 		def rtn = false
 		if (createOpts.platform == 'windows' && createOpts.isSysprep != true) {
 			rtn = true

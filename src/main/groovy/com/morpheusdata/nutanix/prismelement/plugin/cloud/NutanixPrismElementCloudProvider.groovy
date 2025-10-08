@@ -550,6 +550,13 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			log.debug("nutanix online: ${apiHost} ${hostOnline}")
 			if (hostOnline) {
 				def testResults = NutanixPrismElementApiService.testConnection(client, reqConfig)
+				//potentially getting AOS version here.
+				def masterAosVersion = "7.0.11" // get it from testResults
+				def existingAosVersion = cloudInfo.getConfigProperty('aosVersion')
+				if(masterAosVersion != existingAosVersion) {
+					cloudInfo.setConfigProperty('aosVersion', masterAosVersion)
+					morpheusContext.async.cloud.save(cloudInfo).blockingGet()
+				}
 
 				if (testResults.success) {
 					def regionCode = calculateRegionCode(cloudInfo)

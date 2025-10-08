@@ -43,7 +43,7 @@ class NutanixPrismElementApiService {
 		try {
 			def headers = buildHeaders(null)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = client.callJsonApi(reqConfig.apiUrl, v2Api + 'cluster', reqConfig.username, reqConfig.password, requestOpts, 'GET')
+			def results = client.callJsonApi(reqConfig.apiUrl, v2Api + 'cluster', reqConfig.username, reqConfig.password, requestOpts, 'GET') //this returns a version. Need to check with Ficolo what it returns
 			rtn.success = results?.success && !results?.error
 
 			if (!rtn.success) {
