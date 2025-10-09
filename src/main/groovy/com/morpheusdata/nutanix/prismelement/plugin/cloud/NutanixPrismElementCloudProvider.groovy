@@ -553,7 +553,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 				if (testResults.success) {
 					def masterAosVersion = testResults.version
 					def existingAosVersion = cloudInfo.getConfigProperty('aosVersion')
-					if(masterAosVersion != existingAosVersion) {
+					if(masterAosVersion && masterAosVersion != existingAosVersion) {
 						cloudInfo.setConfigProperty('aosVersion', masterAosVersion)
 						morpheusContext.async.cloud.save(cloudInfo).blockingGet()
 					}
