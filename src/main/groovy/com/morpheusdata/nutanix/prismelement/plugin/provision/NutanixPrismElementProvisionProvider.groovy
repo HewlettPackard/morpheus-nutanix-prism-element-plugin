@@ -109,7 +109,6 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		} else {
 			def platform = workload.server?.serverOs?.platform ?: workload.server?.sourceImage?.osType?.platform
 			def aosVersion = cloud?.getConfigProperty('aosVersion')
-			println "platform and aosVersion: ${platform}, ${aosVersion}, ${workload.server?.serverOs}, ${workload.server?.sourceImage?.osType}, ${cloud}"
 			if (platform == PlatformType.windows && aosVersion) {
 				// Match only if the first segment is 1–3 digits, followed by optional dot-separated subversions
 				// Nutanix does not reliably return the AOS version in the correct format for the V2 cluster API. It has changed over the years therefore try and detect if its an AOS version and only change interfaces if the major version is greater than 7
@@ -117,7 +116,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 				if (matcher.matches()) {
 					def major = matcher[0][1] as int
 					if (major >= 7) {
-						log.info("Modifying Network Config for Windows deployment on AOS 7")
+						log.debug("Modifying Network Config for Windows deployment on AOS 7")
 						// Update networkConfig for AOS 7 and above
 						// Updates by object reference so that the networkConfig is updated before Morpheus Core generates the network userdata. Perhaps in the future a specific method will be defined for this if needed.
 						opts.networkConfig?.primaryInterface?.name = 'Ethernet Instance 0'
@@ -798,7 +797,6 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	}
 
 	static boolean isCloudInitIso(Map createOpts) {
-		println "isCloudInitIso: ${createOpts}"
 		def rtn = false
 		if (createOpts.platform == 'windows' && createOpts.isSysprep != true) {
 			rtn = true
