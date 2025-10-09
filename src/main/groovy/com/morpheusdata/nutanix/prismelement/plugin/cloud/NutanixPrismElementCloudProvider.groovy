@@ -535,7 +535,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		log.info("refresh: ${cloudInfo.name}")
 		def resp = ServiceResponse.prepare()
 		resp.data = [:]
-
+		cloudInfo = morpheusContext.services.cloud.get(cloudInfo.id) //fixes issue with saving cloud "A different object with the same identifier value was already associated with the session". TODO: potentially an issue that needs fixing on Morpheus Core.
 		HttpApiClient client = new HttpApiClient()
 		client.networkProxy = cloudInfo.apiProxy
 		try {
@@ -550,15 +550,13 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			log.debug("nutanix online: ${apiHost} ${hostOnline}")
 			if (hostOnline) {
 				def testResults = NutanixPrismElementApiService.testConnection(client, reqConfig)
-				//potentially getting AOS version here.
-				def masterAosVersion = "7.0.11" // get it from testResults
-				def existingAosVersion = cloudInfo.getConfigProperty('aosVersion')
-				if(masterAosVersion != existingAosVersion) {
-					cloudInfo.setConfigProperty('aosVersion', masterAosVersion)
-					morpheusContext.async.cloud.save(cloudInfo).blockingGet()
-				}
-
 				if (testResults.success) {
+					def masterAosVersion = testResults.version
+					def existingAosVersion = cloudInfo.getConfigProperty('aosVersion')
+					if(masterAosVersion != existingAosVersion) {
+						cloudInfo.setConfigProperty('aosVersion', masterAosVersion)
+						morpheusContext.async.cloud.save(cloudInfo).blockingGet()
+					}
 					def regionCode = calculateRegionCode(cloudInfo)
 					if (cloudInfo.regionCode != regionCode) {
 						convertOldRegionCodes(cloudInfo.regionCode, regionCode)

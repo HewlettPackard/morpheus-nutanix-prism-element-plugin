@@ -43,11 +43,12 @@ class NutanixPrismElementApiService {
 		try {
 			def headers = buildHeaders(null)
 			def requestOpts = new HttpApiClient.RequestOptions(headers: headers)
-			def results = client.callJsonApi(reqConfig.apiUrl, v2Api + 'cluster', reqConfig.username, reqConfig.password, requestOpts, 'GET') //this returns a version. Need to check with Ficolo what it returns
+			def results = client.callJsonApi(reqConfig.apiUrl, v2Api + 'cluster', reqConfig.username, reqConfig.password, requestOpts, 'GET')
 			rtn.success = results?.success && !results?.error
-
 			if (!rtn.success) {
 				rtn.invalidLogin = results.errorCode == "401"
+			} else {
+				rtn.version = results?.data?.version
 			}
 		} catch (e) {
 			log.error("error in testConnection: ${e}", e)
