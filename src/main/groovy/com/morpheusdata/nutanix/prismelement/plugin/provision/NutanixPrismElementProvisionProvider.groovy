@@ -75,36 +75,57 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
 		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false], disableCloudInit: false)
 
+		Cloud cloud = workload.server?.cloud
+
 		if (workload.server.sourceImage) {
 			resp.success = true
-			return resp
-		}
-
-		try {
-			Long virtualImageId = workload.getConfigProperty('imageId')?.toLong() ?: workload?.workloadType?.virtualImage?.id ?: opts?.config?.imageId
-			if (!virtualImageId) {
-				resp.msg = "No virtual image selected"
-			} else {
-				VirtualImage virtualImage
-				try {
-					virtualImage = morpheusContext.services.virtualImage.get(virtualImageId)
-				} catch (e) {
-					log.error "error in get image: ${e}"
-				}
-				if (!virtualImage) {
-					resp.msg = "No virtual image found for ${virtualImageId}"
+		} else {
+			try {
+				Long virtualImageId = workload.getConfigProperty('imageId')?.toLong() ?: workload?.workloadType?.virtualImage?.id ?: opts?.config?.imageId
+				if (!virtualImageId) {
+					resp.msg = "No virtual image selected"
 				} else {
-					workload.server.sourceImage = virtualImage
-					saveAndGet(morpheusContext, workload.server)
-					resp.success = true
+					VirtualImage virtualImage
+					try {
+						virtualImage = morpheusContext.services.virtualImage.get(virtualImageId)
+					} catch (e) {
+						log.error "error in get image: ${e}"
+					}
+					if (!virtualImage) {
+						resp.msg = "No virtual image found for ${virtualImageId}"
+					} else {
+						workload.server.sourceImage = virtualImage
+						saveAndGet(morpheusContext, workload.server)
+						resp.success = true
+					}
 				}
+			} catch (e) {
+				resp.msg = "Error in PrepareWorkload: ${e}"
+				log.error "${resp.msg}, ${e}", e
 			}
-		} catch (e) {
-			resp.msg = "Error in PrepareWorkload: ${e}"
-			log.error "${resp.msg}, ${e}", e
 		}
 		if (!resp.success) {
 			log.error "prepareWorkload: error - ${resp.msg}"
+		} else {
+			def platform = workload.server?.serverOs?.platform ?: workload.server?.sourceImage?.osType?.platform
+			def aosVersion = cloud?.getConfigProperty('aosVersion')
+			if (platform == PlatformType.windows && aosVersion) {
+				// Match only if the first segment is 1–3 digits, followed by optional dot-separated subversions
+				// Nutanix does not reliably return the AOS version in the correct format for the V2 cluster API. It has changed over the years therefore try and detect if its an AOS version and only change interfaces if the major version is greater than 7
+				def matcher = (aosVersion =~ /^(\d{1,3})(?=\.|$)(?:[\.\w-]*)$/)
+				if (matcher.matches()) {
+					def major = matcher[0][1] as int
+					if (major >= 7) {
+						log.debug("Modifying Network Config for Windows deployment on AOS 7")
+						// Update networkConfig for AOS 7 and above
+						// Updates by object reference so that the networkConfig is updated before Morpheus Core generates the network userdata. Perhaps in the future a specific method will be defined for this if needed.
+						opts.networkConfig?.primaryInterface?.name = 'Ethernet Instance 0'
+						opts.networkConfig?.extraInterfaces?.eachWithIndex { currentInterface, idx ->
+							currentInterface.name = "Ethernet Instance 0 ${idx + 2}"
+						}
+					}
+				}
+			}
 		}
 		return resp
 	}
@@ -722,6 +743,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	}
 
 	private static Map buildBaseCreateVmOpts(Cloud cloud, ComputeServer server) {
+		def platformType = server?.serverOs?.platform ?: server?.sourceImage?.osType?.platform
+		def platform = platformType == PlatformType.windows ? 'windows' : 'linux'
 		return [
 			account   : server.account,
 			domainName: server.getExternalDomain(),
@@ -732,6 +755,8 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			uefi      : server.sourceImage?.uefi,
 			uuid      : server.apiKey,
 			zone      : cloud,
+			platform  : platform,
+			isSysprep : server.sourceImage?.getSysprep()
 		]
 	}
 
