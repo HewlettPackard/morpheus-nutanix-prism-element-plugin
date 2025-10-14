@@ -798,8 +798,12 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 
 	static boolean isCloudInitIso(Map createOpts) {
 		def rtn = false
-		if (createOpts.platform == 'windows' && createOpts.isSysprep != true) {
-			rtn = true
+		if (createOpts.platform == 'windows') {
+			//don't want to do cloudbase init for nutanix, instead rely on sysprep/unattend.xml in the API
+			//don't combine these two if statements :)
+			if (createOpts.isSysprep != true) {
+				rtn = true
+			}
 		} else if (createOpts.snapshotId) {
 			rtn = true
 		} else {
