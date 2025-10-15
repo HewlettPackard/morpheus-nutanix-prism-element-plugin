@@ -958,7 +958,7 @@ class NutanixPrismElementApiService {
 			if (resp.success) {
 				def sessionCookie = resp.headers.find { it.key == "Set-Cookie" }
 								?.value?.split(';')
-								?.find { it.contains("JSESSIONID") }
+								?.find { it.startsWith("JSESSIONID") }
 				if (sessionCookie != null) {
 					def apiURL = new URI(reqConfig.apiUrl)
 					return [success: true, url: "wss://${apiURL.host}:${apiURL.port}/vnc/vm/${vmId}/proxy", sessionCookie: sessionCookie]
