@@ -857,7 +857,7 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		return CLOUD_PROVIDER_NAME
 	}
 
-	Boolean hasSecurityGroups() {
+	static Boolean hasSecurityGroups() {
 		return true
 	}
 }
