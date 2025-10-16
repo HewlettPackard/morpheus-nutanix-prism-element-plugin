@@ -957,9 +957,8 @@ class NutanixPrismElementApiService {
 			def resp = client.callApi(reqConfig.apiUrl, "/PrismGateway/j_spring_security_check", null, null, requestOpts)
 			if (resp.success) {
 				def sessionCookie = resp.headers.find { it.key == "Set-Cookie" }
-					?.value?.split(';')
-					?.find { it.startsWith("JSESSIONID") }
-
+								?.value?.split(';')
+								?.find { it.startsWith("JSESSIONID") }
 				if (sessionCookie != null) {
 					def apiURL = new URI(reqConfig.apiUrl)
 					return [success: true, url: "wss://${apiURL.host}:${apiURL.port}/vnc/vm/${vmId}/proxy", sessionCookie: sessionCookie]
