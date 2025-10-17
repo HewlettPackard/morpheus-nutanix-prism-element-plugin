@@ -856,4 +856,8 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	String getName() {
 		return CLOUD_PROVIDER_NAME
 	}
+
+	static Boolean hasSecurityGroups() {
+		return true
+	}
 }
