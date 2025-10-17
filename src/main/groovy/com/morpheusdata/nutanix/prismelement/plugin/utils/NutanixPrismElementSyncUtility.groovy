@@ -359,7 +359,7 @@ class NutanixPrismElementSyncUtility {
 		try {
 			// TODO: use FullModelSyncTask when a release is cut and propagated into morpheus-ui
 			SyncTask<StorageVolume, Map, StorageVolume> syncTask = new SyncTask<>(
-				Observable.fromIterable(server.volumes),
+				morpheusContext.async.storageVolume.listById(server.volumes?.collect { it.id }),
 				diskList,
 			).withLoadObjectDetails { List<SyncTask.UpdateItemDto<StorageVolume, Map>> items ->
 				Observable.fromIterable(items.collect { item ->
