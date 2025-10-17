@@ -25,6 +25,7 @@ import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
+import org.apache.http.cookie.Cookie
 
 /**
  * API service for interfacing with Nutanix Prism Element (NPE)
@@ -956,10 +957,11 @@ class NutanixPrismElementApiService {
 
 			def resp = client.callApi(reqConfig.apiUrl, "/PrismGateway/j_spring_security_check", null, null, requestOpts)
 			if (resp.success) {
-				def sessionCookie = resp.headers.find { it.key == "Set-Cookie" }
-								?.value?.split(';')
-								?.find { it.startsWith("JSESSIONID") }
-				if (sessionCookie != null) {
+
+				List<Cookie> cookies = client.getCookies()
+				def jSessionCookie = cookies.find{it.name?.startsWith("JSESSIONID")}
+				if (jSessionCookie != null) {
+					def sessionCookie = "${jSessionCookie.name}=${jSessionCookie.value}"
 					def apiURL = new URI(reqConfig.apiUrl)
 					return [success: true, url: "wss://${apiURL.host}:${apiURL.port}/vnc/vm/${vmId}/proxy", sessionCookie: sessionCookie]
 				} else {
