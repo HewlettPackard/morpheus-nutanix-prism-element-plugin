@@ -85,6 +85,7 @@ class HostsSync {
 				category: "nutanix.host.${cloud.id}",
 				name: item.name,
 				externalId: item.uuid,
+				uniqueId: item.uuid,
 				cloud: cloud,
 				sshUsername: 'root',
 				apiKey: UUID.randomUUID(),
@@ -172,6 +173,11 @@ class HostsSync {
 			def powerState = isHostPoweredOn(host) ? ComputeServer.PowerState.on : ComputeServer.PowerState.unknown
 			if (server.powerState != powerState) {
 				server.powerState = powerState
+				shouldUpdate = true
+			}
+
+			if(server.uniqueId == null && host.uuid) {
+				server.uniqueId = host.uuid
 				shouldUpdate = true
 			}
 
