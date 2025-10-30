@@ -39,6 +39,7 @@ import com.morpheusdata.nutanix.prismelement.plugin.utils.RequestConfig
 import com.morpheusdata.request.ValidateCloudRequest
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
+import com.morpheusdata.core.providers.*
 
 import javax.xml.crypto.Data
 import java.security.MessageDigest
@@ -860,4 +861,10 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 	static Boolean hasSecurityGroups() {
 		return true
 	}
+
+	@Override
+	CloudClassification getCloudClassification() {
+		return CloudClassification.PRIVATE;
+	}
+
 }
