@@ -1,0 +1,8 @@
+//disable docker on ubuntu 16
+resource "compute-type-layout" "docker-nutanix-prism-ubuntu-16_04-single" {
+	code = "docker-nutanix-ubuntu-16.04-single"
+	name = "Nutanix Docker Ubuntu 16.04"
+	computeVersion = "16.04"
+	enabled = false
+	creatable = false
+}

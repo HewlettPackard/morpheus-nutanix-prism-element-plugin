@@ -53,8 +53,8 @@ resource "instance-type-layout" "ubuntu-nutanix-18-04" {
 	memoryRequirement = 1024 * 1024 * 1024 // 1gb
 	serverType               = "vm"
 	supportsConvertToManaged = true
-	enabled                  = true
-	creatable                = true
+	enabled                  = false
+	creatable                = false
 	containers = [
 		workload-type-set.ubuntu-nutanix-18-04-set
 	]
