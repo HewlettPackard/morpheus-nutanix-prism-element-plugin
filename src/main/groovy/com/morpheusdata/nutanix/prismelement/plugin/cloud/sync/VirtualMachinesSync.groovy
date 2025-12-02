@@ -76,6 +76,8 @@ class VirtualMachinesSync {
 						)
 				)
 
+				//need black listed ones
+
 				List<ServicePlan> availablePlans = morpheusContext.services.servicePlan.list(
 					new DataQuery()
 						.withFilter('active', true)
