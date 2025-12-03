@@ -2053,6 +2053,10 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		return updateServerHost(server)
 	}
 
+	ServiceResponse enableConsoleAccess() {
+		return ServiceResponse.success()
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */
