@@ -106,14 +106,8 @@ class VirtualMachinesSync {
 					}
 				}.onUpdate { List<SyncList.UpdateItem<ComputeServer, Map>> updateItems ->
 					updateMatchedVirtualMachines(updateItems, availablePlans, availablePlanPermissions, fallbackPlan)
-				}.onDelete { deleteItems ->
-					// TODO: switch back to bulkRemove once fixed
-					def doDelete = !blackListedNames?.contains(removeItem.name)
-					if(blackListedNames?.contains(removeItem.name))
-						doDelete = false
-					if(doDelete) {
-						morpheusContext.services.computeServer.remove(deleteItems)
-					}
+				}.onDelete { List<ComputeServerIdentityProjection> deleteItems ->
+					removeMissingVirtualMachines(deleteItems, blackListedNames)
 				}.withLoadObjectDetailsFromFinder { updateItems ->
 					morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()
