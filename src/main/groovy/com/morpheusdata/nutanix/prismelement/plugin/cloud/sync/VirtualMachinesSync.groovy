@@ -76,6 +76,8 @@ class VirtualMachinesSync {
 						)
 				)
 
+				def blackListedNames = existingItems.filter {it.status == 'provisioning'}.map {it.name}.toList().blockingGet()
+
 				List<ServicePlan> availablePlans = morpheusContext.services.servicePlan.list(
 					new DataQuery()
 						.withFilter('active', true)
@@ -100,13 +102,12 @@ class VirtualMachinesSync {
 					existingItem.externalId == cloudItem?.externalId
 				}.onAdd { List<Map> cloudItems ->
 					if (shouldImportExistingVMs(cloud.getConfigProperty('importExisting'))) {
-						addMissingVirtualMachines(cloudItems, defaultServerType, systemNetworks, availablePlans, availablePlanPermissions, fallbackPlan, osType)
+						addMissingVirtualMachines(cloudItems, defaultServerType, systemNetworks, availablePlans, availablePlanPermissions, fallbackPlan, osType, blackListedNames)
 					}
 				}.onUpdate { List<SyncList.UpdateItem<ComputeServer, Map>> updateItems ->
 					updateMatchedVirtualMachines(updateItems, availablePlans, availablePlanPermissions, fallbackPlan)
-				}.onDelete { deleteItems ->
-					// TODO: switch back to bulkRemove once fixed
-					morpheusContext.services.computeServer.remove(deleteItems)
+				}.onDelete { List<ComputeServerIdentityProjection> deleteItems ->
+					removeMissingVirtualMachines(deleteItems, blackListedNames)
 				}.withLoadObjectDetailsFromFinder { updateItems ->
 					morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.start()
@@ -123,17 +124,37 @@ class VirtualMachinesSync {
 		List<ServicePlan> availablePlans,
 		List<ResourcePermission> availablePlanPermissions,
 		ServicePlan fallbackPlan,
-		OsType osType
+		OsType osType,
+		List blackListedNames
 	) {
 		addList?.each {
-			log.debug("adding missing vm: {}", it.externalId)
+			def doCreate = !blackListedNames?.contains(it.name)
+			if (doCreate) {
+				log.debug("adding missing vm: {}", it.externalId)
 
-			def add = buildVm(it, osType, defaultServerType)
-			add.plan = SyncUtils.findServicePlanBySizing(availablePlans, add.maxMemory, add.maxCores, null, fallbackPlan, null, cloud.account, availablePlanPermissions)
+				def add = buildVm(it, osType, defaultServerType)
+				add.plan = SyncUtils.findServicePlanBySizing(availablePlans, add.maxMemory, add.maxCores, null, fallbackPlan, null, cloud.account, availablePlanPermissions)
 
-			def savedServer = morpheusContext.services.computeServer.create(add)
-			if (savedServer) {
-				performPostSaveSync(savedServer, it, systemNetworks)
+				def savedServer = morpheusContext.services.computeServer.create(add)
+				if (savedServer) {
+					performPostSaveSync(savedServer, it, systemNetworks)
+				}
+			}
+		}
+	}
+
+	protected removeMissingVirtualMachines(List<ComputeServerIdentityProjection> removeList, List blackListedNames) {
+		log.debug "removeMissingVirtualMachines: ${removeList.size()}"
+		removeList.each { ComputeServerIdentityProjection removeItem ->
+			try {
+				def doDelete = !blackListedNames?.contains(removeItem.name)
+				if(doDelete) {
+					log.info("remove vm: ${removeItem}")
+					morpheusContext.async.computeServer.bulkRemove([removeItem]).blockingGet()
+				}
+			} catch(e) {
+				log.error "Error removing virtual machine: ${e}", e
+				log.warn("Unable to remove Server from inventory, Perhaps it is associated with an instance currently... ${removeItem.name} - ID: ${removeItem.id}")
 			}
 		}
 	}

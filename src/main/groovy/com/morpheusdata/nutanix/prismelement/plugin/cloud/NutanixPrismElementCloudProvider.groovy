@@ -310,29 +310,28 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			guestVm: true,
 			provisionTypeCode: CLOUD_PROVIDER_CODE)
 
-		// Note: the definition is commented out in embedded. Keeping in case it needs to be re-enabled in the future
-//    		serverTypes << new ComputeServerType(
-//    			code: 'nutanixWindowsVm',
-//    			name: 'Nutanix Instance - Windows',
-//    			description: '',
-//    			platform: 'windows',
-//    			nodeType: 'morpheus-windows-vm-node',
-//    			reconfigureSupported: true,
-//    			enabled: true,
-//    			selectable: false,
-//    			externalDelete: true,
-//    			managed: true,
-//    			controlPower: true,
-//    			controlSuspend: false,
-//    			creatable: false,
-//    			displayOrder: 0,
-//    			hasAutomation: true,
-//    			containerHypervisor: false,
-//    			bareMetalHost: false,
-//    			vmHypervisor: false,
-//    			agentType: ComputeServerType.AgentType.guest,
-//    			guestVm: true,
-//    			provisionTypeCode: CLOUD_PROVIDER_CODE)
+		serverTypes << new ComputeServerType(
+			code: 'nutanixWindowsVm',
+			name: 'Nutanix Instance - Windows',
+			description: '',
+			platform: 'windows',
+			nodeType: 'morpheus-windows-vm-node',
+			reconfigureSupported: true,
+			enabled: true,
+			selectable: false,
+			externalDelete: true,
+			managed: true,
+			controlPower: true,
+			controlSuspend: false,
+			creatable: false,
+			displayOrder: 0,
+			hasAutomation: true,
+			containerHypervisor: false,
+			bareMetalHost: false,
+			vmHypervisor: false,
+			agentType: ComputeServerType.AgentType.guest,
+			guestVm: true,
+			provisionTypeCode: CLOUD_PROVIDER_CODE)
 
 		serverTypes << new ComputeServerType(
 			code: 'nutanixUnmanaged',
