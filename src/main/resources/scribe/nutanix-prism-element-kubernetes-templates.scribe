@@ -373,7 +373,7 @@ resource "workload-type" "kubernetes-ubuntu-ha-add-master-24-04-nutanix-amd64" {
   scripts          = [
     "kube-kubeadm-cluster-shared-key", "kube-ubuntu-22-setup-script-v1", "k8-config-fetch", "kubernetes-kubeadm-cluster-add-master-init-v1", "kube-ectd-encrypt-install-add-master-script-v1"
   ]
-  templates = [ "k8-cypher", "kubeadm-cluster-add-master-init", "kubernetes-etcd-encrypt-install-master"]
+  templates = [ "k8-cypher", "kubeadm-cluster-add-master-init", "kubernetes-etcd-encrypt-install-master-secondary"]
 }
 
 # master set
