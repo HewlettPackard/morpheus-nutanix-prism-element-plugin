@@ -582,8 +582,13 @@ class NutanixPrismElementApiService {
 			}
 		}
 		diskTypes = diskTypes?.unique()
-		if (opts.cloudFileId)
-			vmDisks << [is_cdrom: true, vm_disk_clone: [disk_address: [vmdisk_uuid: opts.cloudFileId], minimum_size: (ComputeUtility.ONE_MEGABYTE)]]
+		if (opts.cloudFileId) {
+			// Q35 machine type (used with UEFI) does not support IDE bus type, so use SATA instead
+			vmDisks << (opts.uefi
+				? [is_cdrom: true, vm_disk_clone: [disk_address: [vmdisk_uuid: opts.cloudFileId], minimum_size: (ComputeUtility.ONE_MEGABYTE)], disk_address: [device_bus: 'SATA']]
+				: [is_cdrom: true, vm_disk_clone: [disk_address: [vmdisk_uuid: opts.cloudFileId], minimum_size: (ComputeUtility.ONE_MEGABYTE)]]
+			)
+		}
 		//def cloudInitDisk = [vmDiskClone:[vmDiskUuid:1]]
 		def vmNics = []
 		//nic network
@@ -1028,7 +1033,9 @@ class NutanixPrismElementApiService {
 								if (cdromDisk) {
 									deleteDisk(client, reqConfig, vm.uuid, cdromDisk)
 								}
-								addCdrom(client, reqConfig, vm.uuid, opts.cloudFileId, cdromDisk?.disk_address ?: ['device_bus': 'IDE', 'device_index': 0])
+								// Q35 machine type (used with UEFI) does not support IDE bus type, so use SATA instead
+								def defaultBusType = opts.uefi ? 'SATA' : 'IDE'
+								addCdrom(client, reqConfig, vm.uuid, opts.cloudFileId, cdromDisk?.disk_address ?: ['device_bus': defaultBusType, 'device_index': 0])
 							}
 							rtn.taskUuid = taskId
 							rtn.results = vm
