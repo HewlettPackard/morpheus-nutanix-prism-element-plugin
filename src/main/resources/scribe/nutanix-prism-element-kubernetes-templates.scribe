@@ -17,7 +17,7 @@ resource "workload-type" "kubernetes-ubuntu-22-04-1-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.22.04.20260203"
   }
   containerPorts   = ["ubuntu.22"]
   scripts          = [
@@ -46,7 +46,7 @@ resource "workload-type" "kubernetes-ubuntu-22-04-1-worker-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.22.04.20260203"
   }
   containerPorts   = ["ubuntu.22"]
   provisionType    = "nutanix"
@@ -111,7 +111,7 @@ resource "workload-type" "kubernetes-ubuntu-24-04-1-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.24.04.20260203"
   }
   containerPorts   = ["ubuntu.22"]
   scripts          = [
@@ -140,7 +140,7 @@ resource "workload-type" "kubernetes-ubuntu-24-04-1-worker-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.24.04.20260203"
   }
   containerPorts   = ["ubuntu.22"]
   provisionType    = "nutanix"
@@ -211,7 +211,7 @@ resource "workload-type" "kubernetes-ubuntu-ha-master-22-04-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.22.04.20260203"
   }
   containerPorts   = ["ubuntu.22", "kubernetes.ha.6443"]
   scripts          = [
@@ -240,7 +240,7 @@ resource "workload-type" "kubernetes-ubuntu-ha-add-master-22-04-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.22.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.22.04.20260203"
   }
   containerPorts   = ["ubuntu.22"]
   provisionType    = "nutanix"
@@ -337,7 +337,7 @@ resource "workload-type" "kubernetes-ubuntu-ha-master-24-04-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.24.04.20260203"
   }
   containerPorts   = ["ubuntu.22", "kubernetes.ha.6443"]
   scripts          = [
@@ -366,7 +366,7 @@ resource "workload-type" "kubernetes-ubuntu-ha-add-master-24-04-nutanix-amd64" {
   providerType     = "nutanix"
   checkTypeCode    = "vmCheck"
   virtualImage     = {
-    code = "kvm.image.morpheus.ubuntu.24.04.20250218"
+    code = "kvm.image.morpheus.ubuntu.24.04.20260203"
   }
   containerPorts   = ["ubuntu.22"]
   provisionType    = "nutanix"
