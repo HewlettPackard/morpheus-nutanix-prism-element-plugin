@@ -157,11 +157,4 @@ class NutanixPrismElementVirtualImageDatasetProvider extends AbstractDatasetProv
 		return item.id
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	boolean isPlugin() {
-		return true
-	}
 }

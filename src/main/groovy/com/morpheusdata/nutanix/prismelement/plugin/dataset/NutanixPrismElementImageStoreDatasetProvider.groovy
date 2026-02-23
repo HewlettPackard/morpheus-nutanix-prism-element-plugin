@@ -123,11 +123,4 @@ class NutanixPrismElementImageStoreDatasetProvider extends AbstractDatasetProvid
 		return item.id
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	boolean isPlugin() {
-		return true
-	}
 }

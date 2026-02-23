@@ -1108,7 +1108,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			if (!stopResults.success) {
 				return stopResults
 			}
-			
+
 			def removeResults = NutanixPrismElementApiService.deleteServer(client, reqConfig, vmOpts.externalId)
 			log.debug("remove results: ${removeResults}")
 			if (removeResults.success == true) {
@@ -2041,6 +2041,11 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	@Override
 	String getHostDiskMode() {
 		return "lvm"
+	}
+
+	@Override
+	Boolean canSyncMaxMemoryStats() {
+		return false
 	}
 
 	/**
