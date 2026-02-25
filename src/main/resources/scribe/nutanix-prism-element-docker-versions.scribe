@@ -30,7 +30,7 @@ resource "workload-type" "docker-nutanix-ubuntu-20_04" {
 	containerPorts = [{code = "ubuntu.22"}]
 	checkTypeCode = "vmCheck"
 	virtualImage = {
-		code = "kvm.image.morpheus.ubuntu.20.04.20250218"
+		code = "kvm.image.morpheus.ubuntu.20.04.20260203"
 	}
 	provisionType = "nutanix"
 }
