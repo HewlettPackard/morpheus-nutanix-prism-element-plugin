@@ -116,7 +116,9 @@ resource "virtual-image" "nutanix-acropolis-image-morpheus-ubuntu-14_04" {
 	isCloudInit  = true,
 	remotePath   = "https=//s3-us-west-1.amazonaws.com/morpheus-images/kvm/ubuntu/ubuntu-14_04/ubuntu-14_04.qcow2",
 	imagePath    = "kvm/ubuntu/ubuntu-14_04",
-	systemImage  = true,
+	systemImage  = false,
+	active       = false,
+	deleted      = true,
 	installAgent = true,
 	osType       = "ubuntu.14.04.64"
 }
