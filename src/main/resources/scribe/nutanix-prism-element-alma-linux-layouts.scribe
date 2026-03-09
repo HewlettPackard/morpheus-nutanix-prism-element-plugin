@@ -4,7 +4,7 @@ resource "workload-type" "almalinux-nutanix-10" {
 	code             = "almalinux-nutanix-10"
 	shortName        = "almalinux"
 	name             = "AlmaLinux 10"
-	ports            = null
+	ports            = []
 	containerVersion = "10"
 	repositoryImage  = ""
 	entryPoint       = ""
@@ -16,10 +16,7 @@ resource "workload-type" "almalinux-nutanix-10" {
 	serverType       = "vm"
 	providerType     = "nutanix"
 	virtualImage     = null
-	osType = {
-		code  = "almalinux.10.64"
-		owner = null
-	}
+	osType = "almalinux.10.64"
 	provisionType = "nutanix"
 	backupType    = "nutanixSnapshot"
 	containerPorts = []
@@ -58,7 +55,7 @@ resource "instance-type-layout" "almalinux-nutanix-10" {
 	creatable                = true
 	containers = [
 		workload-type-set.almalinux-nutanix-10-set
-	],
+	]
 	actions = [
 		{
 			code = "generic-add-node"
@@ -71,10 +68,10 @@ resource "scale-action" "almalinux-nutanix-10" {
 	code      = "almalinux-nutanix-10"
 	scaleType = "action"
 	layout    = instance-type-layout.almalinux-nutanix-10
-	upAction {
+	upAction = {
 		code = "generic-add-node"
 	}
-	downAction {
+	downAction = {
 		code = "generic-remove-node"
 	}
 }
@@ -99,7 +96,7 @@ resource "workload-type" "almalinux-nutanix-9" {
 	code             = "almalinux-nutanix-9"
 	shortName        = "almalinux"
 	name             = "AlmaLinux 9"
-	ports            = null
+	ports            = []
 	containerVersion = "9"
 	repositoryImage  = ""
 	entryPoint       = ""
@@ -111,10 +108,7 @@ resource "workload-type" "almalinux-nutanix-9" {
 	serverType       = "vm"
 	providerType     = "nutanix"
 	virtualImage     = null
-	osType = {
-		code  = "almalinux.9.64"
-		owner = null
-	}
+	osType = "almalinux.9.64"
 	provisionType = "nutanix"
 	backupType    = "nutanixSnapshot"
 	containerPorts = []
@@ -153,7 +147,7 @@ resource "instance-type-layout" "almalinux-nutanix-9" {
 	creatable                = true
 	containers = [
 		workload-type-set.almalinux-nutanix-9-set
-	],
+	]
 	actions = [
 		{
 			code = "generic-add-node"
@@ -166,10 +160,10 @@ resource "scale-action" "almalinux-nutanix-9" {
 	code      = "almalinux-nutanix-9"
 	scaleType = "action"
 	layout    = instance-type-layout.almalinux-nutanix-9
-	upAction {
+	upAction = {
 		code = "generic-add-node"
 	}
-	downAction {
+	downAction = {
 		code = "generic-remove-node"
 	}
 }
