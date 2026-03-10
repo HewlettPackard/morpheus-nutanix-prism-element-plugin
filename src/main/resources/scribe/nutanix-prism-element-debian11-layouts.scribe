@@ -50,6 +50,7 @@ resource "instance-type-layout" "debian-nutanix-11" {
 	instanceType             = "debian"
 	serverCount              = 1
 	portCount                = 1
+	hasAutoScale             = true
 	enabled                  = true
 	creatable                = true
 	containers = [

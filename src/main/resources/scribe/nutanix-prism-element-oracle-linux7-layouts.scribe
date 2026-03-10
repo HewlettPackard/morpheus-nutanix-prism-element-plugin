@@ -51,6 +51,7 @@ resource "instance-type-layout" "oraclelinux-nutanix-7-single" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	containers = [
 		workload-type-set.oraclelinux-nutanix-7-set
 	]

@@ -53,6 +53,7 @@ resource "instance-type-layout" "almalinux-nutanix-10" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	containers = [
 		workload-type-set.almalinux-nutanix-10-set
 	]
@@ -145,6 +146,7 @@ resource "instance-type-layout" "almalinux-nutanix-9" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	containers = [
 		workload-type-set.almalinux-nutanix-9-set
 	]

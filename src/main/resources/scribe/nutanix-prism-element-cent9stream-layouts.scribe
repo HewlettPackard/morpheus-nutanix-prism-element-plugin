@@ -56,6 +56,7 @@ resource "instance-type-layout" "centos-nutanix-9-stream" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	containers = [
 		workload-type-set.centos-nutanix-9-stream-set
 	]

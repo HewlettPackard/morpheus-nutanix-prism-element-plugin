@@ -50,6 +50,7 @@ resource "instance-type-layout" "rocky-nutanix-10" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	containers = [
 		workload-type-set.rocky-nutanix-10-set
 	]

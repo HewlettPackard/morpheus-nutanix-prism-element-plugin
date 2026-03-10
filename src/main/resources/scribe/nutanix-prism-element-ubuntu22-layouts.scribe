@@ -55,6 +55,7 @@ resource "instance-type-layout" "ubuntu-nutanix-22-04" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	containers = [
 		workload-type-set.ubuntu-nutanix-22-04-set
 	]

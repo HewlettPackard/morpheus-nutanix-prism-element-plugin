@@ -50,6 +50,7 @@ resource "instance-type-layout" "opensuse-nutanix-15-1" {
 	supportsConvertToManaged = true
 	enabled                  = true
 	creatable                = true
+	hasAutoScale             = true
 	actions = [
 		{
 			code = "generic-add-node"
