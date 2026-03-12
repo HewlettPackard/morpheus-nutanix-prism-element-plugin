@@ -201,7 +201,13 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'nutanixPrismElementWindowsNicConfigModeOptions',
 			defaultValue: 'unattend',
-			helpText: 'Controls how static IP addresses are configured for Windows VMs during sysprep. SetupComplete.cmd is recommended for UEFI deployments.',
+			helpText: 'Controls how static IP configuration is applied to Windows VMs during provisioning. ' +
+				'"SetupComplete.cmd" configures NICs post-OOBE by adapter index order and is more reliable ' +
+				'across BIOS/UEFI deployments and AOS versions. "Inline (Unattend.xml)" is the legacy default. ' +
+				'Note: SetupComplete.cmd produces a larger unattend.xml which is passed directly via the ' +
+				'Nutanix API. Prism Element has no automatic ISO fallback for Windows sysprep, so deployments ' +
+				'with multiple NICs, agent install, or a proxy configured may exceed API size limits. ' +
+				'If in doubt, verify the deployment succeeds or switch to Inline (Unattend.xml).',
 		)
 
 		return options
