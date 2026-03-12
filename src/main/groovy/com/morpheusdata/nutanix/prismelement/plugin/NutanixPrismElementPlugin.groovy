@@ -58,12 +58,14 @@ class NutanixPrismElementPlugin extends Plugin {
 		provisionProvider = new NutanixPrismElementProvisionProvider(this, this.morpheus)
 		def backupProvider = new NutanixPrismElementBackupProvider(this, morpheus)
 		def ipamProvider = new NutanixPrismElementNetworkPoolProvider(this, morpheus)
+		def optionSourceProvider = new NutanixPrismElementOptionSourceProvider(this, this.morpheus)
 
 		this.registerProviders(
 			backupProvider,
 			this.cloudProvider,
 			imageStoreDatasetProvider,
 			ipamProvider,
+			optionSourceProvider,
 			provisionImageDatasetProvider,
 			this.provisionProvider,
 			virtualImageDatasetProvider,

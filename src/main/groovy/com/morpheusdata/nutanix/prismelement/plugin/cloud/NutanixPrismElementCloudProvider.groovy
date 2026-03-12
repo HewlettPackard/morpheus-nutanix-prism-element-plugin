@@ -191,6 +191,19 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 			inputType: OptionType.InputType.CHECKBOX,
 		)
 
+		options << new OptionType(
+			name: 'Windows NIC Configuration Method',
+			code: 'nutanix-prism-element-windows-nic-config-mode',
+			displayOrder: 9,
+			fieldContext: 'config',
+			fieldName: 'windowsNicConfigMode',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'nutanixPrismElementWindowsNicConfigModeOptions',
+			defaultValue: 'unattend',
+			helpText: 'Controls how static IP addresses are configured for Windows VMs during sysprep. SetupComplete.cmd is recommended for UEFI deployments.',
+		)
+
 		return options
 	}
 

@@ -109,6 +109,13 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 		} else {
 			def osType = workload.server?.serverOs ?: workload.server?.sourceImage?.osType
 			def platform = osType?.platform
+			if (platform && platform == PlatformType.windows) {
+				def nicConfigMode = cloud?.getConfigProperty('windowsNicConfigMode') ?: 'unattend'
+				if (nicConfigMode == 'setupComplete') {
+					opts.nicConfigMode = 'setupComplete'
+					return resp
+				}
+			}
 			def aosVersion = cloud?.getConfigProperty('aosVersion')
 			if (platform && platform == PlatformType.windows && aosVersion) {
 				//todo:: this is going to be messy to maintain long term. Interface Name Alias's in unattend answer files can always have a chance of mismatching what is deployed in the OS
