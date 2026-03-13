@@ -192,22 +192,17 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		)
 
 		options << new OptionType(
-			name: 'Windows NIC Configuration Method',
+			name: 'Static IP Mode (Windows)',
 			code: 'nutanix-prism-element-windows-nic-config-mode',
 			displayOrder: 9,
 			fieldContext: 'config',
 			fieldName: 'windowsNicConfigMode',
+			fieldLabel: 'Static IP Mode (Windows)',
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'nutanixPrismElementWindowsNicConfigModeOptions',
 			defaultValue: 'unattend',
-			helpText: 'Controls how static IP configuration is applied to Windows VMs during provisioning. ' +
-				'"SetupComplete.cmd" configures NICs post-OOBE by adapter index order and is more reliable ' +
-				'across BIOS/UEFI deployments and AOS versions. "Inline (Unattend.xml)" is the legacy default. ' +
-				'Note: SetupComplete.cmd produces a larger unattend.xml which is passed directly via the ' +
-				'Nutanix API. Prism Element has no automatic ISO fallback for Windows sysprep, so deployments ' +
-				'with multiple NICs, agent install, or a proxy configured may exceed API size limits. ' +
-				'If in doubt, verify the deployment succeeds or switch to Inline (Unattend.xml).',
+			helpText: 'Controls how static IP is configured on Windows VMs. "SetupComplete.cmd" is more reliable but Prism Element has no ISO fallback — deployments with multiple NICs, agent install, or a proxy may exceed API size limits.',
 		)
 
 		return options
