@@ -111,6 +111,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			def platform = osType?.platform
 			if (platform && platform == PlatformType.windows) {
 				def nicConfigMode = cloud?.getConfigProperty('windowsNicConfigMode') ?: 'unattend'
+				resp.data.options.nicConfigMode = nicConfigMode
 				if (nicConfigMode == 'setupComplete') {
 					opts.nicConfigMode = 'setupComplete'
 					return resp
