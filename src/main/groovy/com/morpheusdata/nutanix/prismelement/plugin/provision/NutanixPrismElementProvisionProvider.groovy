@@ -118,12 +118,7 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 			}
 			def aosVersion = cloud?.getConfigProperty('aosVersion')
 			if (platform && platform == PlatformType.windows && aosVersion) {
-				//todo:: this is going to be messy to maintain long term. Interface Name Alias's in unattend answer files can always have a chance of mismatching what is deployed in the OS
-				// A few options:
-				// 1) Create a server, sync network interfaces and mac addresses, and use mac addresses in answer file for <Identifier>, build the user data, attach to disk, start vm.
-				//    - problem is this will rely on using a custom ISO image for the answer file, which needs connectivty back to Morpheus, some users may not have that setup. Right now sysprep can be injected into api call.
-				// 2) Remove nic information from <Interfaces> element in answer file, and instead configur nics in SetupCommand.cmd.
-
+				
 				def osVersion = osType?.osVersion
 				if (osVersion && osVersion?.isNumber() && osVersion?.toInteger() <= 2019) {
 					//interface name issue does not seem to impact 2019 or less
