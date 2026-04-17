@@ -870,4 +870,9 @@ It streamlines operations with powerful automation, analytics, and one-click sim
 		return CloudClassification.PRIVATE;
 	}
 
+	@Override
+	String getCloudInstanceTypeLayoutCode() {
+		return 'nutanix-1.0-single'
+	}
+
 }
