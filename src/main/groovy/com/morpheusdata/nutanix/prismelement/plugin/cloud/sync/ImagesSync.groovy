@@ -81,6 +81,7 @@ class ImagesSync {
 	}
 
 	private addMissingVirtualImageLocations(Collection<Map> addItems) {
+		def externalIds = (addItems.collect { it.uuid } + addItems.collect { it.vmDiskId }).findAll { it }.unique()
 		def existingRecords = morpheusContext.async.virtualImage.listIdentityProjections(
 			new DataQuery()
 				.withFilters(
@@ -90,7 +91,7 @@ class ImagesSync {
 						new DataFilter('owner.id', '==', cloud.owner.id)
 					),
 					new DataOrFilter(
-						new DataFilter('externalId', 'in', (addItems.collect { it.uuid } + addItems.collect { it.vmDiskId }).unique()),
+						new DataFilter('externalId', 'in', externalIds),
 						new DataFilter('name', 'in', addItems.collect { it.name })
 					)
 				)
@@ -100,6 +101,8 @@ class ImagesSync {
 		syncTask.addMatchFunction { VirtualImageIdentityProjection existingItem, Map cloudItem ->
 			cloudItem.uuid == existingItem.externalId
 				|| cloudItem?.vmDiskId == existingItem.externalId
+		}.addMatchFunction { VirtualImageIdentityProjection existingItem, Map cloudItem ->
+			existingItem.name == cloudItem.name
 		}.onDelete { removeItems ->
 			// noop
 		}.onUpdate { List<SyncTask.UpdateItem<VirtualImage, Map>> updateItems ->
