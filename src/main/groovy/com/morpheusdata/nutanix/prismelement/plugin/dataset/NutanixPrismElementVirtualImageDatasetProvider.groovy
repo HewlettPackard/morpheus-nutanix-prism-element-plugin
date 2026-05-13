@@ -53,11 +53,12 @@ class NutanixPrismElementVirtualImageDatasetProvider extends AbstractDatasetProv
 	Observable<VirtualImage> list(DatasetQuery query) {
 		Long cloudId = query.get("zoneId")?.toLong()
 		Long accountId = query.get("accountId")?.toLong()
+
 		def listQuery = new DataQuery()
 			.withFilters(
 				new DataOrFilter(
 					new DataFilter('visibility', 'public'),
-					new DataFilter('accounts.id', null), // if there are no accounts associated
+					new DataFilter('accounts.id', null),
 					new DataFilter('accounts.id', accountId),
 					new DataFilter('owner.id', accountId),
 				),
@@ -105,7 +106,14 @@ class NutanixPrismElementVirtualImageDatasetProvider extends AbstractDatasetProv
 				),
 			)
 		}
-		return morpheusContext.async.virtualImage.list(listQuery)
+		// Use identity projections to avoid hydrating full VirtualImage GORM objects (87 columns).
+		// Callers only use name+id via listOptions().
+		return morpheusContext.async.virtualImage.listIdentityProjections(listQuery).map { projection ->
+			def vi = new VirtualImage()
+			vi.id = projection.id
+			vi.name = projection.name
+			return vi
+		}
 	}
 
 	/**

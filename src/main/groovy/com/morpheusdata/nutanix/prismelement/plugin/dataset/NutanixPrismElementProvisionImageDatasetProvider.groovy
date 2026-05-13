@@ -67,7 +67,8 @@ class NutanixPrismElementProvisionImageDatasetProvider extends AbstractDatasetPr
 			filter = new DataFilter("userUploaded", true)
 		}
 
-		return morpheusContext.async.virtualImage.list(
+		// Use identity projections to avoid hydrating full VirtualImage GORM objects
+		return morpheusContext.async.virtualImage.listIdentityProjections(
 			new DataQuery()
 				.withFilters(
 					new DataOrFilter(
@@ -82,7 +83,12 @@ class NutanixPrismElementProvisionImageDatasetProvider extends AbstractDatasetPr
 					),
 					filter,
 				).withSort('name')
-		)
+		).map { projection ->
+			def vi = new VirtualImage()
+			vi.id = projection.id
+			vi.name = projection.name
+			return vi
+		}
 	}
 
 	/**
