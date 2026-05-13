@@ -138,7 +138,7 @@ tasks.register('publishToMorpheus') {
 	tasks.findByName('moveToPlugin').mustRunAfter 'shadowJar'
 }
 
-tasks.withType(Test).configureEach {
+test {
 	useJUnitPlatform()  // Required for Spock 2.x
 	testLogging {
 		exceptionFormat = 'full'
