@@ -199,7 +199,11 @@ class VirtualMachinesSync {
 
 	private void performPostSaveSync(ComputeServer server, Map cloudItem, List<Network> systemNetworks) {
 		if (server.status != 'resizing') {
-			def volumeResults = NutanixPrismElementSyncUtility.syncVirtualMachineVolumes(morpheusContext, server, cloudItem.vm_disk_info as List<Map>)
+			// Filter out Volume Group attached disks — they appear in vm_disk_info with no stable UUID,
+			// no size and no storage container. Syncing them causes duplicate StorageVolume records to
+			// accumulate on every cycle (MORPH-12918).
+			def diskInfo = cloudItem.vm_disk_info?.findAll { !it.disk_address?.volume_group_uuid } as List<Map>
+			def volumeResults = NutanixPrismElementSyncUtility.syncVirtualMachineVolumes(morpheusContext, server, diskInfo)
 			if (volumeResults.saveRequired) {
 				// get latest in case of modifications from the volumes
 				server = morpheusContext.services.computeServer.get(server.id)
