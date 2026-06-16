@@ -201,7 +201,7 @@ class VirtualMachinesSync {
 		if (server.status != 'resizing') {
 			// Filter out Volume Group attached disks — they appear in vm_disk_info with no stable UUID,
 			// no size and no storage container. Syncing them causes duplicate StorageVolume records to
-			// accumulate on every cycle (MORPH-12918).
+			// accumulate on every cycle.
 			def diskInfo = cloudItem.vm_disk_info?.findAll { !it.disk_address?.volume_group_uuid } as List<Map>
 			def volumeResults = NutanixPrismElementSyncUtility.syncVirtualMachineVolumes(morpheusContext, server, diskInfo)
 			if (volumeResults.saveRequired) {
