@@ -372,10 +372,16 @@ class NutanixPrismElementSyncUtility {
 					morpheusVolume?.externalId == diskInfo.disk_address.vmdisk_uuid
 				}
 				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
+					// Skip fuzzy matching for zero-size null-UUID records — these are residual VG disk
+					// duplicates and must be deleted, not adopted onto a real disk.
+					if (!morpheusVolume?.externalId && !morpheusVolume?.name && (morpheusVolume?.maxStorage ?: 0) == 0) return false
 					def deviceName = generateVolumeDeviceName(diskInfo)
 					morpheusVolume.deviceDisplayName == deviceName && morpheusVolume.type.externalId == "nutanix_${diskInfo.disk_address.device_bus.toUpperCase()}"
 				}
 				.addMatchFunction { StorageVolume morpheusVolume, diskInfo ->
+					// Skip fuzzy matching for zero-size null-UUID records — these are residual VG disk
+					// duplicates and must be deleted, not adopted onto a real disk.
+					if (!morpheusVolume?.externalId && !morpheusVolume?.name && (morpheusVolume?.maxStorage ?: 0) == 0) return false
 					def indexPos = diskInfo.disk_address?.device_index ?: diskInfo.device_properties?.disk_address?.device_index ?: 0
 					if (diskInfo.disk_address?.device_bus?.toUpperCase() == 'SATA' || diskInfo.device_properties?.disk_address?.adapter_type == 'SATA') {
 						indexPos += diskList.count { it.device_properties?.disk_address?.adapter_type == 'SCSI' || it.disk_address?.device_bus?.toUpperCase() == 'SCSI' }
