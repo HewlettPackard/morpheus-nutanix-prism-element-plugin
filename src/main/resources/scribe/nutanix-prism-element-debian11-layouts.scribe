@@ -51,8 +51,8 @@ resource "instance-type-layout" "debian-nutanix-11" {
 	serverCount              = 1
 	portCount                = 1
 	hasAutoScale             = true
-	enabled                  = true
-	creatable                = true
+	enabled                  = false
+	creatable                = false
 	containers = [
 		workload-type-set.debian-nutanix-11-set
 	]

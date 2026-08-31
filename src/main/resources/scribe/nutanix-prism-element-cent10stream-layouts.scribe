@@ -84,7 +84,7 @@ resource "os-type-image" "nutanix-morpheus-centos-10-stream" {
 	code          = "nutanix-morpheus-centos-10-stream"
 	provisionType = "nutanix"
 	virtualImage = {
-		code = "kvm.image.morpheus.centos.10-stream.20260126"
+		code = "kvm.image.morpheus.centos.10-stream.20260820"
 	}
 	osType = {
 		code  = "cent.10.64"

@@ -82,7 +82,7 @@ resource "os-type-image" "nutanix-morpheus-debian-13" {
 	code          = "nutanix-morpheus-debian-13"
 	provisionType = "nutanix"
 	virtualImage = {
-		code = "kvm.image.morpheus.debian.13.20260310"
+		code = "kvm.image.morpheus.debian.13.20260821"
 	}
 	osType = {
 		code  = "debian.13.64"
