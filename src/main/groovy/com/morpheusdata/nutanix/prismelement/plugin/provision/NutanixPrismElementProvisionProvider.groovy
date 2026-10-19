@@ -1540,6 +1540,14 @@ class NutanixPrismElementProvisionProvider extends AbstractProvisionProvider imp
 	 * {@inheritDoc}
 	 */
 	@Override
+	Boolean canResizeRootVolume() {
+		return true
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	Boolean disableRootDatastore() {
 		return true
 	}
