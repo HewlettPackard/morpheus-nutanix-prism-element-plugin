@@ -78,7 +78,7 @@ resource "os-type-image" "nutanix-morpheus-rocky-8" {
 	code          = "nutanix-morpheus-rocky-8"
 	provisionType = "nutanix"
 	virtualImage = {
-		code = "kvm.image.morpheus.rocky.8.20260119"
+		code = "kvm.image.morpheus.rocky.8.20260824"
 	}
 	osType = {
 		code  = "rocky.8.64"

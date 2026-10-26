@@ -13,7 +13,7 @@ resource "workload-type" "ubuntu-nutanix-22-04" {
 	checkTypeCode    = "containerCheck"
 	category         = "ubuntu"
 	virtualImage = {
-		code = "kvm.image.morpheus.ubuntu.22.04.20260203"
+		code = "kvm.image.morpheus.ubuntu.22.04.20260824"
 	}
 	provisionType = "nutanix"
 	backupType    = "nutanixSnapshot"
@@ -83,7 +83,7 @@ resource "os-type-image" "nutanix-morpheus-ubuntu-22.04" {
 	code          = "nutanix-morpheus-ubuntu-22.04"
 	provisionType = "nutanix"
 	virtualImage = {
-		code = "kvm.image.morpheus.ubuntu.22.04.20260203"
+		code = "kvm.image.morpheus.ubuntu.22.04.20260824"
 	}
 	osType = {
 		code  = "ubuntu.22.04.64"
