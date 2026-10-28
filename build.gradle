@@ -51,7 +51,7 @@ dependencies {
 	implementation 'commons-beanutils:commons-beanutils:1.11.0'
 	implementation "org.slf4j:slf4j-api:$slf4jVersion"
 	implementation "org.slf4j:slf4j-parent:$slf4jVersion"
-	implementation 'commons-net:commons-net:3.6'
+	implementation 'commons-net:commons-net:3.9.0'
 
 	// Include morpheus-core and it's dependencies
 	testImplementation "com.morpheusdata:morpheus-plugin-api:$morpheusApiVersion"
