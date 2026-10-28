@@ -86,7 +86,12 @@ dependencies {
 		exclude module: 'groovy-all'
 	}
 
-	implementation 'org.apache.commons:commons-compress:1.21'
+	implementation 'org.apache.commons:commons-compress:1.26.0'
+	constraints {
+		implementation('org.apache.commons:commons-lang3:3.18.0') {
+			because('commons-compress 1.26.0 pulls vulnerable commons-lang3 3.14.0 (CVE-2025-48924)')
+		}
+	}
 }
 
 
