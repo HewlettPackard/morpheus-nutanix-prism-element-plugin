@@ -35,6 +35,8 @@ class NutanixPrismElementStorageUtility {
 			defaultType: true,
 			minStorage: ComputeUtility.ONE_GIGABYTE,
 			allowSearch: true,
+			resizable: true,
+			editable: true,
 		)
 
 		volumeTypes << new StorageVolumeType(
@@ -47,6 +49,8 @@ class NutanixPrismElementStorageUtility {
 			defaultType: true,
 			minStorage: ComputeUtility.ONE_GIGABYTE,
 			allowSearch: true,
+			resizable: true,
+			editable: true,
 		)
 
 		volumeTypes << new StorageVolumeType(
@@ -59,6 +63,8 @@ class NutanixPrismElementStorageUtility {
 			defaultType: true,
 			minStorage: ComputeUtility.ONE_GIGABYTE,
 			allowSearch: true,
+			resizable: true,
+			editable: true,
 		)
 
 		volumeTypes
